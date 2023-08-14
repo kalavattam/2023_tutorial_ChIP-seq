@@ -31,7 +31,7 @@
             1. [Code](#code-8)
 1. [Tally/calculate alignments](#tallycalculate-alignments)
     1. [Tally/calculate alignments](#tallycalculate-alignments-1)
-        1. [Initialize functions for doing floating point arithmetic](#initialize-functions-for-doing-floating-point-arithmetic)
+        1. [Initialize functions for doing floating point arithmetic, etc.](#initialize-functions-for-doing-floating-point-arithmetic-etc)
             1. [Code](#code-9)
         1. [Get situated, then initialize arrays, variables, etc.](#get-situated-then-initialize-arrays-variables-etc)
             1. [Code](#code-10)
@@ -947,8 +947,8 @@ done
 ## Tally/calculate alignments
 <a id="tallycalculate-alignments-1"></a>
 ### Tally/calculate alignments
-<a id="initialize-functions-for-doing-floating-point-arithmetic"></a>
-#### Initialize functions for doing floating point arithmetic
+<a id="initialize-functions-for-doing-floating-point-arithmetic-etc"></a>
+#### Initialize functions for doing floating point arithmetic, etc.
 <a id="code-9"></a>
 ##### Code
 <details>

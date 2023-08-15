@@ -1830,7 +1830,7 @@ paste -d '\n' "${a_ind_ctrl}" "${a_ind_test}" > "${a_comb}"
 
 #  Touch a temporary file with a header
 touch "${a_header}"
-echo "sf_0 sf_1 sf_2 sf_3 sf_23 sf_30 sf_40 sf_42" > "${a_header}"
+echo "sf_0 sf_1 sf_2 sf_3 sf_23 sf_30 sf_40 sf_42" >> "${a_header}"
 # cat "${a_header}"
 
 #  Concatenate the header and interleaved-matrix files
@@ -1871,8 +1871,6 @@ end="$(date +%s)"
 calculate_run_time "${start}" "${end}"  \
 "Calculate CC/SS-styled scaling factors."
 ```
-</details>
-<br />
 </details>
 <br />
 <br />

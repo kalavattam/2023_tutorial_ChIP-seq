@@ -8,40 +8,45 @@
 <!-- MarkdownTOC -->
 
 1. [Get situated](#get-situated)
-    1. [Code](#code)
+	1. [Code](#code)
 1. [Align the datasets](#align-the-datasets)
-    1. [Run `bowtie2` alignment, etc.](#run-bowtie2-alignment-etc)
-        1. [Get situated, set up variables and arrays](#get-situated-set-up-variables-and-arrays)
-            1. [Code](#code-1)
-        1. [Trim any adapter sequences present in the reads](#trim-any-adapter-sequences-present-in-the-reads)
-            1. [Code](#code-2)
-        1. [Align, sort, and index the sample datasets](#align-sort-and-index-the-sample-datasets)
-            1. [`SmartMap`'s `Bowtie2` parameters](#smartmaps-bowtie2-parameters)
-                1. [Code](#code-3)
-            1. [Align \(etc.\) `atria`-trimmed `fastq`s](#align-etc-atria-trimmed-fastqs)
-                1. [Code](#code-4)
-            1. [Align \(etc.\) un-trimmed `fastq`s](#align-etc-un-trimmed-fastqs)
-                1. [Code](#code-5)
-    1. [Examine flags in bam outfiles](#examine-flags-in-bam-outfiles)
-        1. [Initialize necessary functions](#initialize-necessary-functions)
-            1. [Code](#code-6)
-        1. [Initialize an array of bams](#initialize-an-array-of-bams)
-            1. [Code](#code-7)
-        1. [Check on flag information in bams](#check-on-flag-information-in-bams)
-            1. [Code](#code-8)
+	1. [Run `bowtie2` alignment, etc.](#run-bowtie2-alignment-etc)
+		1. [Get situated, set up variables and arrays](#get-situated-set-up-variables-and-arrays)
+			1. [Code](#code-1)
+		1. [Trim any adapter sequences present in the reads](#trim-any-adapter-sequences-present-in-the-reads)
+			1. [Code](#code-2)
+		1. [Align, sort, and index the sample datasets](#align-sort-and-index-the-sample-datasets)
+			1. [`SmartMap`'s `Bowtie2` parameters](#smartmaps-bowtie2-parameters)
+				1. [Code](#code-3)
+			1. [Align \(etc.\) `atria`-trimmed `fastq`s](#align-etc-atria-trimmed-fastqs)
+				1. [Code](#code-4)
+			1. [Align \(etc.\) un-trimmed `fastq`s](#align-etc-un-trimmed-fastqs)
+				1. [Code](#code-5)
+	1. [Examine flags in bam outfiles](#examine-flags-in-bam-outfiles)
+		1. [Initialize necessary functions](#initialize-necessary-functions)
+			1. [Code](#code-6)
+		1. [Initialize an array of bams](#initialize-an-array-of-bams)
+			1. [Code](#code-7)
+		1. [Check on flag information in bams](#check-on-flag-information-in-bams)
+			1. [Code](#code-8)
 1. [Tally/calculate alignments](#tallycalculate-alignments)
-    1. [Tally/calculate alignments](#tallycalculate-alignments-1)
-        1. [Initialize functions for doing floating point arithmetic, etc.](#initialize-functions-for-doing-floating-point-arithmetic-etc)
-            1. [Code](#code-9)
-        1. [Get situated, then initialize arrays, variables, etc.](#get-situated-then-initialize-arrays-variables-etc)
-            1. [Code](#code-10)
-        1. [Generate tab-separated table of alignment tallies/calculations](#generate-tab-separated-table-of-alignment-talliescalculations)
-            1. [Code](#code-11)
-        1. [Calculate CC/SS-styled scaling factors](#calculate-ccss-styled-scaling-factors)
-            1. [Code](#code-12)
-    1. [On calculating scaling factors](#on-calculating-scaling-factors)
-        1. [Email from Christine \(edited by me\)](#email-from-christine-edited-by-me)
-        1. [Notes on using Excel to calculate scaling factors](#notes-on-using-excel-to-calculate-scaling-factors)
+	1. [Tally/calculate alignments](#tallycalculate-alignments-1)
+		1. [Initialize functions for doing floating point arithmetic, etc.](#initialize-functions-for-doing-floating-point-arithmetic-etc)
+			1. [Code](#code-9)
+		1. [Get situated, then initialize arrays, variables, etc.](#get-situated-then-initialize-arrays-variables-etc)
+			1. [Code](#code-10)
+		1. [Generate tab-separated table of alignment tallies/calculations](#generate-tab-separated-table-of-alignment-talliescalculations)
+			1. [Code](#code-11)
+		1. [Calculate CC/SS-styled scaling factors](#calculate-ccss-styled-scaling-factors)
+			1. [Code](#code-12)
+	1. [On calculating scaling factors](#on-calculating-scaling-factors)
+		1. [Email from Christine \(edited by me\)](#email-from-christine-edited-by-me)
+		1. [Notes on using Excel to calculate scaling factors](#notes-on-using-excel-to-calculate-scaling-factors)
+		1. [More detailed notes for Biostars post about this method](#more-detailed-notes-for-biostars-post-about-this-method)
+		1. [How scaling factors are calculated by Egan et al., *PLOS One* 2016-1122](#how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122)
+		1. [Description in answer to Biostars post \(by Jared Andrews\)](#description-in-answer-to-biostars-post-by-jared-andrews)
+			1. [Cleaned up version of the post](#cleaned-up-version-of-the-post)
+			1. [How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?](#how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -1918,3 +1923,188 @@ Calculate the scaling factor by hand using the table of tallies/calculations
 3. Do this for all samples (e.g., sample-and-replicate-wise pairs of input and ChIP `bam`s)
 </details>
 <br />
+
+<a id="more-detailed-notes-for-biostars-post-about-this-method"></a>
+#### More detailed notes for [Biostars post](https://www.biostars.org/p/9572653/) about this method
+<details>
+<summary><i>More detailed notes for Biostars post</i></summary>
+
+1. For each sample, tally the numbers of genome-wide quality-checked (QC'd) alignments for input, immunoprecipitate (IP), spike-in input, and spike-in IP
+```R
+## R ##
+ main_input <- # Integer value of QC'd genome-wide alignments for input "main"
+    main_IP <- # Integer value of QC'd genome-wide alignments for IP "main"
+
+spike_input <- # Integer value of QC'd genome-wide alignments for input spike-in
+   spike_IP <- # Integer value of QC'd genome-wide alignments for IP spike-in
+```
+*These alignment counts represent the raw data for each sample.*
+
+2. Calculate the ratio of spike-in input to "main" input, and calculate the ratio spike-in IP to "main" IP
+```R
+## R ##
+ratio_input <- spike_input / main_input
+   ratio_IP <- spike_IP / main_IP
+```
+*The assumption here is that the spike-in controls are proportional to the actual chromatin content and should ideally represent similar scaling factors.*
+
+3. For the sample IP, calculate a scaling factor by dividing the input ratio by the IP ratio
+```R
+## R ##
+      sf_IP <- ratio_input / ratio_IP
+```
+*This scaling factor aims to correct for potential differences in IP efficiency and sequencing depth between the input and IP samples.*
+
+4. For the sample input, the scaling factor is set to 1
+```R
+## R ##
+   sf_input <- 1 # (i.e., from rat_IP / rat_IP)
+```
+*Since the scaling factor for the input is calculated as 1, the input coverage will remain unchanged after scaling.*
+
+5. Using deepTools `bamCoverage`, compute IP coverage by multiplying by the IP scaling factor
+```bash
+## shell ##
+
+main_IP_bam= # QC'd IP alignments to "main" genome (spike-in IP alignments have been excluded)
+   bin_size= # For example, 1
+      sf_IP= # Value calculated in step #3
+ main_IP_bw= # Bigwig file of scaled coverage 
+
+bamCoverage \
+    -b "${main_IP_bam}" \
+    --binSize "${bin_size}" \
+    --scaleFactor ${scal_fctr} \
+    -o "${main_IP_bw}"
+```
+*This should theoretically normalize the IP coverage based on the spike-in controls.*
+
+Strengths and assumptions for this normalization approach
+- This method attempts to account for differences in sequencing depth and capture efficiency between IP and input samples using spike-in controls.
+- It is based on the assumption that the spike-in controls accurately reflect the differences in IP efficiency and library preparation between samples.
+- By scaling IP coverage based on input scaling factors, it theoretically reduces potential biases and enhances the comparability of different IP samples.
+
+Weaknesses and considerations for this normalization approach
+- The accuracy of the normalization heavily relies on the assumption that spike-in controls are consistent across all samples. If spike-ins vary in proportion or quality between samples, the normalization may introduce errors.
+- This method does not account for biological variability or differences in ChIP efficiency that are not captured by spike-in controls.
+    + Antibody variability: The efficiency of the IP step can vary between samples due to differences in antibody affinity, specificity, and the extent of cross-reactivity. Spike-in controls primarily address technical variations and sequencing depth but do not account for variations in antibody-antigen interactions, which can lead to differences in the IP efficiency for different samples.
+    + Sample-specific conditions: Each sample might have unique characteristics that affect the efficiency of the IP process. These could include differences in chromatin accessibility, DNA fragmentation, and local chromatin structure, which may not be directly reflected by the spike-in controls.
+    + Biological variability: Spike-in controls mainly address technical variation, and they might not capture inherent biological variability between samples. Biological differences in chromatin structure, epigenetic modifications, and transcription factor binding can lead to varying efficiencies in the IP process that are not addressed by the normalization based solely on spike-ins.
+    + Non-specific binding: Non-specific binding of antibodies to unintended targets can also lead to differences in IP efficiency. Such non-specific interactions might not be consistently represented by spike-in controls.
+- It assumes that the IP scaling factor applies uniformly across the entire genome, which may not be the case in regions with varying ChIP efficiencies.
+- ~~The scaling factor can magnify noise and artifacts present in the spike-in controls, potentially introducing bias into the normalization process.~~
+- ~~It might perform well when technical variations dominate the dataset, but biological variations may not be fully corrected.~~
+</details>
+<br />
+
+<a id="how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122"></a>
+#### How scaling factors are calculated by [Egan et al., *PLOS One* 2016-1122](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0166438)
+<details>
+<summary><i>How scaling factors are calculated by Egan et al., PLOS One 2016-1122</i></summary>
+
+
+</details>
+<br />
+
+
+<a id="description-in-answer-to-biostars-post-by-jared-andrews"></a>
+#### Description in answer to [Biostars post](https://www.biostars.org/p/9572653/) (by Jared Andrews)
+<a id="cleaned-up-version-of-the-post"></a>
+##### Cleaned up version of the post
+<details>
+<summary><i>Cleaned up version of the post</i></summary>
+
+This is largely how our group uses them to account for genome-wide shifts, as [done in this study](https://www.sciencedirect.com/science/article/pii/S1535610818305361?via%3Dihub#sec5). If we don't normalize the tracks this way, they look largely identical, as the binding profiles are largely similar, just very diminished genome-wide.
+
+We also normalize the scaling factors to each other so that the highest scaling factor is set to 1. It feels better to scale down data than to scale up:
+
+1. Calculate the percent *Drosophila* reads in the IP (from the read counts with duplicates removed)
+2. Calculate the percent *Drosophila* reads in the input (from the read counts with duplicates removed)
+3. Scaling factor = input fly % / ChIP fly %
+4. For groups of samples that are being compared, all the scaling factors can be normalized by dividing by the highest or lowest scaling factor&mdash;this choice is made depending on how the downstream application will use the scaling factor. Ideally you should scale files down, not falsely inflate them. (For deepTools `bamCoverage`, you should divide all scaling factors by the highest scaling factor).
+
+An example calculation:
+
+Determine % of fly reads for each ChIP and input:
+```txt
+| Sample  | Human Reads | Fly Reads | Calculation           | % Fly Content |
+|---------|-------------|-----------|-----------------------|---------------|
+| ChIP_1  | 30,000,000  | 700,000   | 700,000/30,700,000    | 2.28%         |
+| Input_1 | 10,000,000  | 400,000   | 400,000/10,400,000    | 3.85%         |
+| ChIP_2  | 40,000,000  | 3,000,000 | 3,000,000/43,000,000  | 6.98%         |
+| Input_2 | 10,000,000  | 450,000   | 450,000/10,450,000    | 4.31%         |
+| ChIP_3  | 25,000,000  | 1,000,000 | 1,000,000/26,000,000  | 3.85%         |
+| Input_3 | 10,000,000  | 380,000   | 380,000/10,380,000    | 3.66%         |
+```
+
+Determine scaling factor for each ChIP (input fly % / ChIP fly % = scaling factor):
+```txt
+| Sample  | Calculation | Scaling Factor |
+|---------|-------------|----------------|
+| ChIP_1  | 3.85/2.28   | 1.69           |
+| ChIP_2  | 4.31/6.98   | 0.62           |
+| ChIP_3  | 3.66/3.85   | 0.95           |
+```
+Normalize scaling factors by dividing all scaling factors by highest scaling factor (this is used for `bamCoverage`&mdash;if the scaling factor is in the denominator instead, scale by the lowest scale factor):
+```txt
+| Sample  | Calculation | Normalized Scaling Factor |
+|---------|-------------|---------------------------|
+| ChIP_1  | 1.69/1.69   | 1.00                      |
+| ChIP_2  | 0.62/1.69   | 0.367                     |
+| ChIP_3  | 0.95/1.69   | 0.562                     |
+```
+</details>
+<br />
+
+<a id="how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio"></a>
+##### How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?
+<details>
+<summary><i>How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?</i></summary>
+
+Determine % of fly reads for each ChIP and input:
+```txt
+| Sample  | Human Reads | Fly Reads | Calculation           | % Fly Content |
+|---------|-------------|-----------|-----------------------|---------------|
+| ChIP_1  | 30,000,000  | 700,000   | 700,000 / 30,000,000  | 2.33%         |
+| Input_1 | 10,000,000  | 400,000   | 400,000 / 10,000,000  | 4.00%         |
+| ChIP_2  | 40,000,000  | 3,000,000 | 3,000,000 / 40,000,000| 7.50%         |
+| Input_2 | 10,000,000  | 450,000   | 450,000 / 10,000,000  | 4.50%         |
+| ChIP_3  | 25,000,000  | 1,000,000 | 1,000,000 / 25,000,000| 4.00%         |
+| Input_3 | 10,000,000  | 380,000   | 380,000 / 10,000,000  | 3.80%         |
+```
+
+Determine scaling factor for each ChIP (input fly % / ChIP fly % = scaling factor):
+```txt
+| Sample  | Calculation | Scaling Factor |
+|---------|-------------|----------------|
+| ChIP_1  | 4.00 / 2.33 | 1.72           |
+| ChIP_2  | 4.50 / 7.50 | 0.600          |
+| ChIP_3  | 3.80 / 4.00 | 0.950          |
+```
+Normalize scaling factors by dividing all scaling factors by highest scaling factor (this is used for `bamCoverage`&mdash;if the scaling factor is in the denominator instead, scale by the lowest scale factor):
+```txt
+| Sample  | Calculation | Normalized Scaling Factor |
+|---------|-------------|---------------------------|
+| ChIP_1  | 1.72 / 1.72 | 1.00                      |
+| ChIP_2  | 0.60 / 1.72 | 0.349                     |
+| ChIP_3  | 0.95 / 1.72 | 0.552                     |
+```
+</details>
+<br />
+
+Perhaps this question is better suited for a new post, but since it follows on this work, I will post it here for now and move it if requested.
+
+If I wanted to use `DESeq2` for a differential binding analysis by generating a matrix of ChIP counts per *n*-bp bins, for example:
+
+```txt
+| chr   | start | stop  | ChIP_1_WT | ChIP_2_WT | ChIP_3_KO | ChIP_4_KO |
+|-------|-------|-------|-----------|-----------|-----------|-----------|
+| chr1  | 1     | 150   | 300       | 400       | 1200      | 1800      |
+| chr1  | 151   | 300   | 250       | 433       | 1000      | 1100      |
+| ...   | ...   | ...   | ...       | ...       | ...       | ...       |
+| chrX  | 45001 | 45150 | 15000     | 18000     | 5500      | 4500      |
+| chrX  | 45151 | 45300 | 12500     | 17500     | 5000      | 4500      |
+| ...   | ...   | ...   | ...       | ...       | ...       | ...       |
+```
+
+Is it reasonable for me to supply the scaling factors calculated by the above-described method rather than use the values generated by `DESeq2::estimateSizeFactors()` (using either the human "main" counts or the fly spike-in counts)?

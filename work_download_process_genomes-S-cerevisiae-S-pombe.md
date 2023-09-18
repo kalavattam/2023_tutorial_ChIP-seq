@@ -1219,7 +1219,7 @@ XVI
 cd "${HOME}/tsukiyamalab/kalavatt/genomes/" ||
     echo "cd'ing failed; check on this..."
 
-if [[ ! -d "combined_SC_SP" ]]; then mkdir -p combined_SC_SP/{fasta,gff3}; fi
+[[ ! -d "combined_SC_SP" ]] && mkdir -p combined_SC_SP/{fasta,gff3} || true
 
 cp \
     "Saccharomyces_cerevisiae/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz" \
@@ -1235,16 +1235,25 @@ cp \
     "Schizosaccharomyces_pombe/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
     "combined_SC_SP/fasta/"
 
-cd "combined_SC_SP/" ||
+cd "combined_SC_SP/gff3/" ||
     echo "cd'ing failed; check on this..."
 
-cd "gff3/" ||
-    echo "cd'ing failed; check on this..."
+[[ -f "combined_SC_SP.gff3.gz" ]] && rm "combined_SC_SP.gff3.gz" || true
 
 cat \
     "saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz" \
     "Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
         > "combined_SC_SP.gff3.gz"
+
+#  ARS_consensus_sequence records have strands labeled "0"; these need to be
+#+ adjusted or else downstream programs will through errors when encountering
+#+ the "0" strands
+zcat "combined_SC_SP.gff3.gz" \
+    | awk -F "\t" 'BEGIN {OFS = FS} {if ($7=="0") {$7="."; print $0} else {print $0}}' \
+    | gzip \
+    > "tmp.gff3.gz"
+
+mv -f "tmp.gff3.gz" "combined_SC_SP.gff3.gz"
 
 .,
 
@@ -1261,7 +1270,7 @@ cat \
     "Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
         > "combined_SC_SP.fa.gz"
 
-.,
+ls -lhaFG
 
 zcat "combined_SC_SP.fa.gz" | grep "^>"
 ```

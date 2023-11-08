@@ -481,9 +481,11 @@ fi
 ```bash
 #!/bin/bash
 
-cd "${HOME}/tsukiyamalab/kalavatt/genomes/" ||
-    echo "cd'ing failed; check on this..."
+cd "${HOME}/tsukiyamalab/kalavatt/genomes/" \
+    || echo "cd'ing failed; check on this..."
 
+
+#  Get situated ---------------------------------------------------------------
 [[ ! -d "combined_SC_SP" ]] && mkdir -p combined_SC_SP/{fasta,gff3} || true
 
 cp \
@@ -500,6 +502,8 @@ cp \
     "Schizosaccharomyces_pombe/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
     "combined_SC_SP/fasta/"
 
+
+#  gff3 -----------------------------------------------------------------------
 cd "combined_SC_SP/gff3/" || echo "cd'ing failed; check on this..."
 
 [[ -f "combined_SC_SP.gff3.gz" ]] && rm "combined_SC_SP.gff3.gz" || true
@@ -513,20 +517,73 @@ cat \
 #+ adjusted or else downstream programs will throw errors when encountering the
 #+ "0" strands
 zcat "combined_SC_SP.gff3.gz" \
-    | awk -F "\t" 'BEGIN {OFS = FS} {if ($7=="0") {$7="."; print $0} else {print $0}}' \
+    | awk -F "\t" '
+        BEGIN { OFS = FS } {
+            if ($7=="0") { $7="."; print $0 } else { print $0 }
+        }
+    ' \
     | gzip \
         > "tmp.gff3.gz"
 
 mv -f "tmp.gff3.gz" "combined_SC_SP.gff3.gz"
 
+#  Replace or remove special characters that IGV can't handle
+zcat "combined_SC_SP.gff3.gz" \
+    | sed -e 's/%20/-/g' \
+          -e 's/%2C//g' \
+          -e 's/%3B//g' \
+          -e 's/%28//g' \
+          -e 's/%29//g' \
+          -e 's/%//g' \
+    | gzip \
+        > "combined_SC_SP.clean.gff3.gz"
+
+#  Create S. cerevisiae/S. pombe concatenated gff3 file with "intelligible
+#+ feature names": "Name=" value is "ID=" value; this needs to be something
+#+ that makes sense to a human
+#+ 
+#+ Need to write an `awk` command to
+#+ 1. If field `$3` is `gene`, `blocked_reading_frame`, `ncRNA_gene`,
+#+ `pseudogene`, `rRNA_gene`, `snRNA_gene`, `snoRNA_gene`, `tRNA_gene`,
+#+ `telomerase_RNA_gene` then check for the presence of the `gene=` attribute;
+#+ if present, then replace the `ID=` value with the `gene=` value
+#+ 2. If field `$3` is `ARS`, then check for the presence of the `Alias=`
+#+ attribute; if present, then replace the `ID=` value with the `Alias=` value
+zcat "combined_SC_SP.clean.gff3.gz" \
+    | awk '
+        BEGIN { FS=OFS="\t" }
+        $1 ~ /^#/ { print; next }  # Skip lines starting with #
+        $3 ~ /^(blocked_reading_frame|gene|ncRNA_gene|pseudogene|rRNA_gene|snRNA_gene|snoRNA_gene|tRNA_gene|telomerase_RNA_gene)$/ {
+            if (match($9, /gene=[^;]+/)) {
+                #  Extract the gene name
+                gene_name = substr($9, RSTART+5, RLENGTH-5)
+                #  Replace Name value with gene value
+                sub(/Name=[^;]+/, "Name=" gene_name, $9)
+            }
+        }
+        $3 == "ARS" {
+            if (match($9, /Alias=[^;]+/)) {
+                #  Extract the alias name
+                alias_name = substr($9, RSTART+6, RLENGTH-6)
+                #  Replace Name value with alias value
+                sub(/Name=[^;]+/, "Name=" alias_name, $9)
+            }
+        }
+        { print }
+    ' \
+    | gzip \
+        > "combined_SC_SP.clean.intelligible.gff3.gz"
+
 run_check=true
 if ${run_check}; then .,; fi
 
-run_check=true
+run_check=false
 if ${run_check}; then
-    zcat "combined_SC_SP.gff3.gz" | cut -f 1 | sort | uniq
+    zcat "combined_SC_SP.clean.intelligible.gff3.gz" | cut -f 1 | sort | uniq
 fi
 
+
+#  fasta ----------------------------------------------------------------------
 cd "../fasta" || echo "cd'ing failed; check on this..."
 
 cat \

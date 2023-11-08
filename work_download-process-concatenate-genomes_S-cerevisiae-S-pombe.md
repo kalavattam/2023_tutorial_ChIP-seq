@@ -527,7 +527,9 @@ zcat "combined_SC_SP.gff3.gz" \
 
 mv -f "tmp.gff3.gz" "combined_SC_SP.gff3.gz"
 
-#  Replace or remove special characters that IGV can't handle
+#  Replace or remove special characters that IGV can't handle; these characters
+#+ can break the formation of data frames from gff3 via rtacklayer::import or
+#+ readr::read_tsv, etc.
 zcat "combined_SC_SP.gff3.gz" \
     | sed -e 's/%20/-/g' \
           -e 's/%2C//g' \

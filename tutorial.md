@@ -21,6 +21,7 @@
         1. [Calls to `ls`](#calls-to-ls)
 1. [2. Adapter- and quality-trim the FASTQ files](#2-adapter--and-quality-trim-the-fastq-files)
     1. [Code](#code-1)
+    1. [Notes](#notes-1)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -443,3 +444,11 @@ done
 </details>
 <br />
 
+<a id="notes-1"></a>
+### Notes
+<details>
+<summary><i>Notes: </i></summary>
+
+
+</details>
+<br />

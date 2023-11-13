@@ -10,6 +10,9 @@
 1. [1. Prepare FASTQ files of interest for processing and analyses](#1-prepare-fastq-files-of-interest-for-processing-and-analyses)
     1. [Code](#code)
     1. [Notes](#notes)
+        1. [Comments \(`#`\)](#comments-)
+        1. [Defining a function such as `error_and_return`](#defining-a-function-such-as-error_and_return)
+        1. [The body of the function `error_and_return`](#the-body-of-the-function-error_and_return)
         1. [Variables](#variables)
         1. [The `${HOME}` variable](#the-%24home-variable)
         1. [Wrapping variables in curly braces `{}` and double quotes `""`](#wrapping-variables-in-curly-braces--and-double-quotes-)
@@ -20,8 +23,12 @@
         1. [Calls to `ln`](#calls-to-ln)
         1. [Calls to `ls`](#calls-to-ls)
 1. [2. Adapter- and quality-trim the FASTQ files](#2-adapter--and-quality-trim-the-fastq-files)
-    1. [Code](#code-1)
-    1. [Notes](#notes-1)
+    1. [Install Atria and dependencies](#install-atria-and-dependencies)
+        1. [Code](#code-1)
+        1. [Notes](#notes-1)
+    1. [Adapter- and quality-trim the FASTQ files using Atria](#adapter--and-quality-trim-the-fastq-files-using-atria)
+        1. [Code](#code-2)
+        1. [Notes](#notes-2)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -36,6 +43,15 @@
 
 ```bash
 #!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
 
 #  Initialize variables and arrays ============================================
 #  Initialize variables for directories of interest
@@ -112,7 +128,7 @@ fi
 
 #  Navigate to the work directory, and echo a message if navigation fails
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || echo "cd'ing failed; check on this"
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}"
 
 #  If it doesn't exist, then create a directory to store symlinked FASTQ files
 if [[ ! -d "${dir_sym}" ]]; then
@@ -180,6 +196,26 @@ fi
 <summary><i>Notes: 1. Prepare FASTQ files of interest for processing and analyses</i></summary>
 <br />
 
+<a id="comments-"></a>
+#### Comments (`#`)
+The lines starting with `#` are comments. Comments are used to explain what the code does, but they are not executed. They're there to help anyone reading the code understand it better.
+
+For example, `# Define functions ===========================================================` is a header comment, letting readers know that functions are defined below. The next comment explains what the function `error_and_return` does.
+
+<a id="defining-a-function-such-as-error_and_return"></a>
+#### Defining a function such as `error_and_return`
+`function error_and_return()` starts the definition of a function named `error_and_return`. A function is a block of code that performs a specific task. Functions facilitate the reuse of the same code multiple times without having to write it out each time.
+
+<a id="the-body-of-the-function-error_and_return"></a>
+#### The body of the function `error_and_return`
+Inside the function, we have the following code:
+- `echo "Error: ${1}" >&2`
+    + `echo` is a command used to display text.
+    + `"Error: ${1}"` is the text to be displayed. Here, `${1}` is a placeholder for the first argument passed to the function. This means that whatever text is provided when calling `error_and_return` will be displayed after `"Error: "`.
+    + `>&2` means that the error message is redirected to the standard error stream (stderr). This is typically used to output error messages.
+- `return 1`
+    + `return 1` exits the function and returns a value of 1. In Unix, Linux, and MacOS, returning a non-zero value generally indicates an error or abnormal condition. So, when `error_and_return` is called, it indicates that something went wrong.
+
 <a id="variables"></a>
 #### Variables
 Variables (e.g., `dir_base`) are used to store and retrieve data (e.g., `dir_base="${HOME}/tsukiyamalab"`). They are like placeholders for values that can change over time. Variables make scripts flexible and reusable. For example, changing `dir_base` (to, say, `dir_base="${HOME}/Desktop"`) will update the base directory used throughout the script.
@@ -225,7 +261,7 @@ Flags are variables used to control the flow of the script. `check_variables`, `
 
 <a id="calls-to-ln"></a>
 #### Calls to `ln`
-The `ln` command creates symbolic links (symlinks), which are pointers to original files. The `-s` option creates a symlink. The command format is `ln -s original_file symlink_file`. This maintains the integrity of raw data while simplifying access under new names.
+The `ln` command creates symbolic links (symlinks), which are pointers to original files. The `-s` option creates a symlink. The command format is `ln -s original_file symlink_file`. Using `ln` like this maintains the integrity of raw data while simplifying access under new names.
 
 <a id="calls-to-ls"></a>
 #### Calls to `ls`
@@ -243,10 +279,343 @@ For more details on `ls` flags and shell commands in general, visit [ShellCheck]
 
 <a id="2-adapter--and-quality-trim-the-fastq-files"></a>
 ## 2. Adapter- and quality-trim the FASTQ files
+<a id="install-atria-and-dependencies"></a>
+### Install Atria and dependencies
 <a id="code-1"></a>
-### Code
+#### Code
 <details>
-<summary><i>Code: 2. Adapter- and quality-trim the FASTQ files</i></summary>
+<summary><i>Code: Install Atria and dependencies</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to append PATH update to configuration file
+function update_shell_config() {
+    local config_file="${1}"
+    local stem="${2}"
+    local line_to_add="export PATH=\$PATH:\$HOME/${stem}/bin"
+
+    #  Check if line already exists to avoid duplicates
+    if ! grep -q "${line_to_add}" "${config_file}"; then
+        echo "Appending PATH update to ${config_file}"
+        echo "${line_to_add}" >> "${config_file}"
+    else
+        echo "PATH update already present in ${config_file}"
+        return 1
+    fi
+
+    return 0
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! type -P mamba &>/dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment '${env_name}' is not installed."
+        return 1
+    fi
+}
+
+
+#  Initialize variables and arrays ============================================
+#  Initialize variables
+URL_begin="https://julialang-s3.julialang.org/bin"
+URL_mid=""
+tarball=""
+
+#  Detect operating system (OS) and system architecture
+os="$(uname -s)"
+arch="$(uname -m)"
+
+#  Based on OS and architecture, set the URL and tarball name
+case "${os}" in
+    "Linux")
+        URL_mid="linux/x64/1.9"
+        tarball="julia-1.9.3-linux-x86_64.tar.gz"
+        ;;
+    "Darwin")
+        if [[ "${arch}" = "x86_64" ]]; then
+            URL_mid="mac/x64/1.9"
+            tarball="julia-1.9.3-mac64.tar.gz"
+        elif [[ "${arch}" = "arm64" ]]; then
+            URL_mid="mac/aarch64/1.9"
+            tarball="julia-1.9.3-macaarch64.tar.gz"
+        else
+            error_and_return "Unsupported architecture: ${arch}"
+        fi
+        ;;
+    *)
+        error_and_return "Unsupported operating system: ${os}"
+        ;;
+esac
+
+#  Initialize variable for untarred directory in HOME
+untarred="$(echo ${tarball} | awk -F '-' '{ print $1"-"$2 }')"
+
+#  Initialize variable for name of conda/mamba environment for Atria
+#+ dependencies
+env_name="Atria_env"
+
+#  Define the directory for Atria installation
+atria_dir="${HOME}/Atria"
+
+
+#  Install Julia ==============================================================
+#  Set flags for running echo tests, operations, etc.
+check_variables=true  # Echo the variables assigned above
+check_binary=true     # Check if the Julia binary is installed/in PATH
+check_operation=true  # Check the operation to download and install Julia
+run_operation=false   # Run the operation to download and install Julia
+update_path=true      # Update PATH to include Julia binary
+
+#  Check and echo variables
+if ${check_variables}; then
+    echo "
+    URL_begin=${URL_begin}
+    URL_mid=${URL_mid}
+    tarball=${tarball}
+    "
+fi
+
+#  Check if Julia binary is in PATH
+if ${check_binary}; then
+    if type -P julia &>/dev/null; then
+        echo "Julia is in the PATH."
+        echo "Available Julia binaries:"
+        type -a julia
+    else
+        error_and_return "Julia is not in the PATH."
+    fi
+fi
+
+#  Check the operation to download Julia
+if ${check_operation}; then
+    echo "
+    curl \\
+        -L \"${URL_begin}/${URL_mid}/${tarball}\" \\
+        -o \"\${HOME}/${tarball}\"
+
+    if [[ ! -d "\${HOME}/${untarred}" ]]; then
+        tar zxf "\${HOME}/${tarball}"
+        export PATH=\${PATH}:\${HOME}/${untarred}/bin
+    fi
+
+    if \${update_path}; then
+        #  Determine which shell configuration file to update
+        local shell_config
+        if [[ -f \"\${HOME}/.bashrc\" ]]; then
+            shell_config=\"\${HOME}/.bashrc\"
+        elif [[ -f \"\${HOME}/.bash_profile\" ]]; then
+            shell_config=\"\${HOME}/.bash_profile\"
+        else
+            error_and_return \"No known shell configuration file found.\"
+        fi
+
+        # Call the function to update the configuration file
+        update_shell_config \"\${shell_config}\" \"${untarred}\"
+
+        echo \"To apply the update to PATH, please restart the terminal or\"
+        echo \"source the configuration file.\"
+    else
+        echo \"For ${untarred} to remain in PATH, please export ${untarred} to\"
+        echo \"PATH in the configuration file.\"
+    fi
+    "
+fi
+
+#  Run the operation to download Julia
+if ${run_operation}; then
+    curl \
+        -L "${URL_begin}/${URL_mid}/${tarball}" \
+        -o "${HOME}/${tarball}"
+
+    if [[ ! -d "${HOME}/${untarred}" ]]; then
+        tar zxf "${HOME}/${tarball}"
+        export PATH=${PATH}:${HOME}/${untarred}/bin
+    fi
+
+    if ${update_path}; then
+        #  Determine which shell configuration file to update
+        local shell_config
+        if [[ -f "${HOME}/.bashrc" ]]; then
+            shell_config="${HOME}/.bashrc"
+        elif [[ -f "${HOME}/.bash_profile" ]]; then
+            shell_config="${HOME}/.bash_profile"
+        else
+            error_and_return "No known shell configuration file found."
+        fi
+
+        #  Call the function to update the configuration file
+        update_shell_config "${shell_config}" "${untarred}"
+
+        echo "To apply the update to PATH, please restart the terminal or"
+        echo "source the configuration file."
+    else
+        echo "For ${untarred} to remain in PATH, please export ${untarred} to"
+        echo "PATH in the configuration file."
+    fi
+fi
+
+
+#  Install Atria dependencies =================================================
+#  Set flag(s)
+create_mamba_env=false  # Install mamba environment if not detected
+update_path=true        # Update PATH to include Atria binary  #TODO
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  Check that environment assigned to env_name is installed
+check_env_installed "${env_name}"
+
+#  If environment assigned to env_name is not installed, run the following
+if [[ $? -eq 0 ]]; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    if ! mamba activate "${env_name}" &> dev/null; then
+        #  If `mamba activate` fails, try using `source activate`
+        echo "Mamba activation failed. Trying with source activate..."
+
+        if ! source activate "${env_name}" &>/dev/null; then
+            #  If `source activate` also fails, return an error
+            error_and_return "Failed to activate environment \"${env_name}\"."
+        else
+            echo "Environment \"${env_name}\" activated using source activate."
+        fi
+    else
+        echo "Environment \"${env_name}\" activated using mamba."
+    fi
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        mamba create \
+            --yes \
+            --name "${env_name}" \
+            --channel conda-forge \
+                parallel \
+                pbzip2 \
+                pigz \
+                r-argparse \
+                r-ggsci \
+                r-plotly \
+                r-tidyverse
+    fi
+fi
+
+
+#  Install Atria ==============================================================
+#  Set flags
+install_atria=false  # Install Atria or not
+
+if ${install_atria}; then
+    #  Check if git and Julia are available
+    if ! type -P git &>/dev/null; then
+        error_and_return "Error: git is not installed or not in the PATH."
+    fi
+    if ! type -P julia &>/dev/null; then
+        error_and_return "Error: Julia is not installed or not in the PATH."
+    fi
+
+    #  Clone the Atria repository if it doesn't already exist
+    if [[ ! -d "${atria_dir}" ]]; then
+        cd "$(dirname "${atria_dir}")" \
+            || error_and_return "Failed to cd to $(dirname "${atria_dir}")."
+        git clone "https://github.com/cihga39871/Atria.git" \
+            || error_and_return "Failed to clone Atria repository."
+    else
+        echo "Atria directory already exists. Skipping git clone."
+    fi
+
+    #  Change to the Atria directory
+    cd "${atria_dir}" \
+        || error_and_return "Error: Failed to change to Atria directory."
+
+    #  Environment containing Atria dependencies must be activated prior to
+    #+ installation of Atria
+    if [[ "${CONDA_DEFAULT_ENV}" != "${env_name}" ]]; then
+        if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+            mamba deactivate
+        fi
+
+        if ! mamba activate "${env_name}" &> dev/null; then
+            #  If `mamba activate` fails, try using `source activate`
+            echo "Mamba activation failed. Trying with source activate..."
+            if ! source activate "${env_name}" &>/dev/null; then
+                #  If `source activate` also fails, return an error
+                error_and_return "Failed to activate environment \"${env_name}\"."
+            fi
+        fi
+    fi
+
+    #  Run the Julia script to build Atria
+    if ! julia build_atria.jl; then
+        error_and_return "Failed to build Atria."
+    fi
+
+    echo "Atria installed successfully."
+
+    #TODO
+    #  Add the trimming program to PATH if not already present
+    if ! grep -q "${trim_prog_dir}/bin" <<< "$PATH"; then
+        export PATH="${PATH}:${trim_prog_dir}/bin"
+        local shell_config="${HOME}/.bashrc"  # Adjust based on the user's shell
+        echo "export PATH=\"${PATH}:${trim_prog_dir}/bin\"" >> "${shell_config}"
+        echo "Path updated in ${shell_config}. Please restart the terminal or source the configuration file."
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="notes-1"></a>
+#### Notes
+<details>
+<summary><i>Notes: Install Atria and dependencies</i></summary>
+<br />
+
+`#TODO` Carefully explain all concepts in the above chunk.  
+`#TODO` Carefully test the code in the above chunk.
+</details>
+<br />
+
+<a id="adapter--and-quality-trim-the-fastq-files-using-atria"></a>
+### Adapter- and quality-trim the FASTQ files using Atria
+<a id="code-2"></a>
+#### Code
+<details>
+<summary><i>Code: Adapter- and quality-trim the FASTQ files using Atria</i></summary>
 
 ```bash
 #!/bin/bash
@@ -444,10 +813,10 @@ done
 </details>
 <br />
 
-<a id="notes-1"></a>
-### Notes
+<a id="notes-2"></a>
+#### Notes
 <details>
-<summary><i>Notes: </i></summary>
+<summary><i>Notes: Adapter- and quality-trim the FASTQ files using Atria</i></summary>
 
 
 </details>

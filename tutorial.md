@@ -23,10 +23,10 @@
         1. [Calls to `ln`](#calls-to-ln)
         1. [Calls to `ls`](#calls-to-ls)
 1. [2. Adapter- and quality-trim the FASTQ files](#2-adapter--and-quality-trim-the-fastq-files)
-    1. [Install Atria and dependencies](#install-atria-and-dependencies)
+    1. [a. Install Atria and dependencies](#a-install-atria-and-dependencies)
         1. [Code](#code-1)
         1. [Notes](#notes-1)
-    1. [Adapter- and quality-trim the FASTQ files using Atria](#adapter--and-quality-trim-the-fastq-files-using-atria)
+    1. [b. Adapter- and quality-trim the FASTQ files using Atria](#b-adapter--and-quality-trim-the-fastq-files-using-atria)
         1. [Code](#code-2)
         1. [Notes](#notes-2)
 
@@ -279,12 +279,12 @@ For more details on `ls` flags and shell commands in general, visit [ShellCheck]
 
 <a id="2-adapter--and-quality-trim-the-fastq-files"></a>
 ## 2. Adapter- and quality-trim the FASTQ files
-<a id="install-atria-and-dependencies"></a>
-### Install Atria and dependencies
+<a id="a-install-atria-and-dependencies"></a>
+### a. Install Atria and dependencies
 <a id="code-1"></a>
 #### Code
 <details>
-<summary><i>Code: Install Atria and dependencies</i></summary>
+<summary><i>Code: a. Install Atria and dependencies</i></summary>
 
 ```bash
 #!/bin/bash
@@ -602,7 +602,7 @@ fi
 <a id="notes-1"></a>
 #### Notes
 <details>
-<summary><i>Notes: Install Atria and dependencies</i></summary>
+<summary><i>Notes: a. Install Atria and dependencies</i></summary>
 <br />
 
 `#TODO` Carefully explain all concepts in the above chunk.  
@@ -610,12 +610,12 @@ fi
 </details>
 <br />
 
-<a id="adapter--and-quality-trim-the-fastq-files-using-atria"></a>
-### Adapter- and quality-trim the FASTQ files using Atria
+<a id="b-adapter--and-quality-trim-the-fastq-files-using-atria"></a>
+### b. Adapter- and quality-trim the FASTQ files using Atria
 <a id="code-2"></a>
 #### Code
 <details>
-<summary><i>Code: Adapter- and quality-trim the FASTQ files using Atria</i></summary>
+<summary><i>Code: b. Adapter- and quality-trim the FASTQ files using Atria</i></summary>
 
 ```bash
 #!/bin/bash
@@ -816,7 +816,7 @@ done
 <a id="notes-2"></a>
 #### Notes
 <details>
-<summary><i>Notes: Adapter- and quality-trim the FASTQ files using Atria</i></summary>
+<summary><i>Notes: b. Adapter- and quality-trim the FASTQ files using Atria</i></summary>
 
 
 </details>

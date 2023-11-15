@@ -627,7 +627,7 @@ if ${install_atria}; then
 
     #TODO
     #  Add the trimming program to PATH if not already present
-    if ! grep -q "${trim_prog_dir}/bin" <<< "$PATH"; then
+    if ! grep -q "${trim_prog_dir}/bin" <<< "${PATH}"; then
         export PATH="${PATH}:${trim_prog_dir}/bin"
         local shell_config="${HOME}/.bashrc"  # Adjust based on the user's shell
         echo "export PATH=\"${PATH}:${trim_prog_dir}/bin\"" >> "${shell_config}"
@@ -1073,6 +1073,8 @@ function download_file() {
         return 1
     fi
 }
+export -f download_file
+
 
 #  Function to download and extract a tarball
 function download_extract_tarball() {
@@ -1120,23 +1122,39 @@ unset gff3_SP && typeset -a gff3_SP=(
     ${string_SP}_mitochondrial_chromosome.gff3.gz
 )
 
+#  Time for jobs submitted to SLURM
+time="4:00:00"  # Adjust as needed
+
+#TODO Logic, variables for directories for stderr and stdout for SLURM jobs
+
 
 #  Do the main work ===========================================================
 #  Create directories for storing essential fasta and gff3 files --------------
 if [[ ! -d "${dir_genomes}" ]]; then
-    mkdir -p "${dir_genomes}/"{"${dir_SP}","${dir_SC}"}/{fasta,gff3}
+    mkdir -p ${dir_genomes}/{${dir_SP},${dir_SC}}/{fasta,gff3}/err_out
 fi
 
 
-#  Download and store S. cerevisiae fasta and gff3 files ----------------------
+#  Download and store Saccharomyces cerevisiae fasta and gff3 files -----------
 #  Set flags
 check_variables=false  # Check variable assignment
 check_operations=true  # Check operations to download genome files
-run_operations=true    # Run operations to download genome files
+run_operations=false    # Run operations to download genome files
+
+#  Echo the download logic if check_operations is true
+if ${check_operations}; then
+    if [[ ! -d "${dir_genomes}/${dir_SC}" ]]; then
+        echo "
+            download_extract_tarball \\
+                \"${URL_SC}/${tarball_SC}\" \\
+                \"${dir_genomes}/${dir_SC}\"
+        "
+    fi
+fi
 
 #  Download and extract the tarball for Saccharomyces cerevisiae
 if ${run_operations}; then
-    if [[ ! -d "${dir_genomes}/${dir_SC}" ]]; then
+    if [[ ! -d "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}" ]]; then
         download_extract_tarball \
             "${URL_SC}/${tarball_SC}" \
             "${dir_genomes}/${dir_SC}"
@@ -1147,7 +1165,7 @@ fi
 #  Set flags
 check_variables=false  # Check variable assignment
 check_operations=true  # Check operations to download genome files
-run_operations=true    # Run operations to download genome files
+run_operations=false    # Run operations to download genome files
 
 #  Loop through fasta and gff3 arrays for Schizosaccharomyces pombe
 iter=0
@@ -1156,9 +1174,10 @@ for file_type in "fasta" "gff3"; do
     url_base="URL_SP_${file_type}"
 
     for file in "${array[@]}"; do
+        (( iter++ ))
         local url="${!url_base}/${file}"
         local output_file="${dir_genomes}/${dir_SP}/${file_type}/${file}"
-        (( iter++ ))
+        local job_name="download.${file_type}.${iter}"
 
         #  Echo loop-dependent variables if check_variables is true
         if ${check_variables}; then
@@ -1175,18 +1194,40 @@ for file_type in "fasta" "gff3"; do
             ### ${iter} ###
 
             if \${run_operations} && [[ ! -f \"\${output_file}\" ]]; then
+                sbatch << EOF
+                #!/bin/bash
+
+                #SBATCH --job-name=\"${job_name}\"
+                #SBATCH --nodes=1
+                #SBATCH --time=${time}
+                #SBATCH --output=\"download_${iter}.out\"
+                #SBATCH --error=\"download_${iter}.err\"
+
+                # Download command
                 download_file \\
                     \"${url}\" \\
                     \"${output_file}\"
+                EOF
             fi
             "
         fi
 
         #  Download the file if run_operations is true
         if ${run_operations} && [[ ! -f "${output_file}" ]]; then
-            download_file \
-                "${url}" \
-                "${output_file}"
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name="${job_name}"
+#SBATCH --nodes=1
+#SBATCH --time=${time}
+#SBATCH --output="download_${iter}.out"
+#SBATCH --error="download_${iter}.err"
+
+# Download command
+download_file \
+    "${url}" \
+    "${output_file}"
+EOF
         fi
     done
 done

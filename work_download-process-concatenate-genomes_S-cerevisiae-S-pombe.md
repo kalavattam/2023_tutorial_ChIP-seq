@@ -4,7 +4,7 @@
 <br />
 
 <details>
-<summary><font size="+2"><b><i>Table of Contents</i></b></font></summary>
+<summary><font size="+2"><b><i>Table of contents</i></b></font></summary>
 <!-- MarkdownTOC -->
 
 1. [Get situated](#get-situated)

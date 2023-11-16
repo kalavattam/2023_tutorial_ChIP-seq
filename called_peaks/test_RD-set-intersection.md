@@ -169,8 +169,8 @@ fi
 #+ install package environments on the FHCC cluster, which uses a Linux
 #+ operating system with an Intel 64-bit architecture.
 
-#  Now, let's a create a shell (Bash, Zsh, etc.) alias to open RStudio in our
-#+ new environment, ensuring that RStudio's interactive R environment can access
+#  Now, let's create a shell (Bash, Zsh, etc.) alias to open RStudio in our new
+#+ environment, ensuring that RStudio's interactive R environment can access
 #+ the programs we just installed:
 alias R-overlap="(
     conda activate ${env_name}

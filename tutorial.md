@@ -357,7 +357,7 @@ function update_shell_config() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! type -P mamba &>/dev/null; then
+    if ! :  mamba &>/dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -396,16 +396,16 @@ arch="$(uname -m)"
 #  Based on OS and architecture, set the URL and tarball name
 case "${os}" in
     "Linux")
-        URL_mid="linux/x64/1.9"
-        tarball="julia-1.9.3-linux-x86_64.tar.gz"
+        URL_mid="linux/x64/1.8"
+        tarball="julia-1.8.5-linux-x86_64.tar.gz"
         ;;
     "Darwin")
         if [[ "${arch}" = "x86_64" ]]; then
-            URL_mid="mac/x64/1.9"
-            tarball="julia-1.9.3-mac64.tar.gz"
+            URL_mid="mac/x64/1.8"
+            tarball="julia-1.8.5-mac64.tar.gz"
         elif [[ "${arch}" = "arm64" ]]; then
-            URL_mid="mac/aarch64/1.9"
-            tarball="julia-1.9.3-macaarch64.tar.gz"
+            URL_mid="mac/aarch64/1.8"
+            tarball="julia-1.8.5-macaarch64.tar.gz"
         else
             error_and_return "Unsupported architecture: ${arch}"
         fi
@@ -432,7 +432,7 @@ atria_dir="${HOME}/Atria"
 check_variables=true  # Echo the variables assigned above
 check_binary=true     # Check if the Julia binary is installed/in PATH
 check_operation=true  # Check the operation to download and install Julia
-run_operation=false   # Run the operation to download and install Julia
+run_operation=true   # Run the operation to download and install Julia
 update_path=true      # Update PATH to include Julia binary
 
 #  Check and echo variables
@@ -446,7 +446,7 @@ fi
 
 #  Check if Julia binary is in PATH
 if ${check_binary}; then
-    if type -P julia &>/dev/null; then
+    if type julia &>/dev/null; then
         echo "Julia is in the PATH."
         echo "Available Julia binaries:"
         type -a julia
@@ -469,11 +469,12 @@ if ${check_operation}; then
 
     if \${update_path}; then
         #  Determine which shell configuration file to update
-        local shell_config
         if [[ -f \"\${HOME}/.bashrc\" ]]; then
             shell_config=\"\${HOME}/.bashrc\"
         elif [[ -f \"\${HOME}/.bash_profile\" ]]; then
             shell_config=\"\${HOME}/.bash_profile\"
+        elif [[ -f \"\${HOME}/.zshrc\" ]]; then
+            shell_config=\"\${HOME}/.zshrc\"
         else
             error_and_return \"No known shell configuration file found.\"
         fi
@@ -503,14 +504,21 @@ if ${run_operation}; then
 
     if ${update_path}; then
         #  Determine which shell configuration file to update
-        local shell_config
-        if [[ -f "${HOME}/.bashrc" ]]; then
-            shell_config="${HOME}/.bashrc"
-        elif [[ -f "${HOME}/.bash_profile" ]]; then
-            shell_config="${HOME}/.bash_profile"
-        else
-            error_and_return "No known shell configuration file found."
-        fi
+        case "${os}" in
+            "Linux")
+                if [[ -f "${HOME}/.bashrc" ]]; then
+                    shell_config="${HOME}/.bashrc"
+                elif [[ -f "${HOME}/.bash_profile" ]]; then
+                    shell_config="${HOME}/.bash_profile"
+                fi
+                ;;
+            "Darwin")
+                shell_config="${HOME}/.zshrc"
+                ;;
+            *)
+                error_and_return "No known shell configuration file found."
+                ;;
+        esac
 
         #  Call the function to update the configuration file
         update_shell_config "${shell_config}" "${untarred}"
@@ -526,29 +534,29 @@ fi
 
 #  Install Atria dependencies -------------------------------------------------
 #  Set flag(s)
-create_mamba_env=false  # Install mamba environment if not detected
-update_path=true        # Update PATH to include Atria binary  #TODO Write this
+create_mamba_env=true  # Install mamba environment if not detected
+update_path=true       # Update PATH to include Atria binary  #TODO Write this
 
 #  Check that Mamba is installed and in PATH
 check_mamba_installed
 
-#  Check that environment assigned to env_name is installed
-check_env_installed "${env_name}"
-
-#  If environment assigned to env_name is not installed, run the following
-if [[ $? -eq 0 ]]; then
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
     #  Handle the case when the environment is already installed
     echo "Activating environment ${env_name}"
     
     if ! mamba activate "${env_name}" &> dev/null; then
         #  If `mamba activate` fails, try using `source activate`
-        echo "Mamba activation failed. Trying with source activate..."
+        echo "Mamba activation failed. Trying with conda activate..."
 
-        if ! source activate "${env_name}" &>/dev/null; then
-            #  If `source activate` also fails, return an error
-            error_and_return "Failed to activate environment \"${env_name}\"."
-        else
-            echo "Environment \"${env_name}\" activated using source activate."
+        if ! conda activate "${env_name}" &>/dev/null; then
+            echo "Conda activation failed. Trying with source activate..."
+        
+            if ! source activate "${env_name}" &>/dev/null; then
+                #  If `source activate` also fails, return an error
+                error_and_return "Failed to activate environment \"${env_name}\"."
+            fi
         fi
     else
         echo "Environment \"${env_name}\" activated using mamba."
@@ -576,14 +584,15 @@ fi
 
 #  Install Atria --------------------------------------------------------------
 #  Set flags
-install_atria=false  # Install Atria or not
+install_atria=true  # Install Atria or not
 
 if ${install_atria}; then
     #  Check if git and Julia are available
-    if ! type -P git &>/dev/null; then
+    if ! type git &>/dev/null; then
         error_and_return "Error: git is not installed or not in the PATH."
     fi
-    if ! type -P julia &>/dev/null; then
+
+    if ! type julia &>/dev/null; then
         error_and_return "Error: Julia is not installed or not in the PATH."
     fi
 
@@ -608,16 +617,22 @@ if ${install_atria}; then
             mamba deactivate
         fi
 
-        if ! mamba activate "${env_name}" &> dev/null; then
+        if ! mamba activate "${env_name}" &> /dev/null; then
             #  If `mamba activate` fails, try using `source activate`
-            echo "Mamba activation failed. Trying with source activate..."
-            if ! source activate "${env_name}" &>/dev/null; then
-                #  If `source activate` also fails, return an error
-                error_and_return "Failed to activate environment \"${env_name}\"."
+            echo "Mamba activation failed. Trying with conda activate..."
+
+            if ! conda activate "${env_name}" &> /dev/null; then
+                echo "Mamba activation failed. Trying with source activate..."
+                
+                if ! source activate "${env_name}" &> /dev/null; then
+                    #  If `source activate` also fails, return an error
+                    error_and_return "Failed to activate environment \"${env_name}\"."
+                fi
             fi
         fi
     fi
 
+    #FIXME Installation issue on macOS: github.com/cihga39871/Atria/issues/14
     #  Run the Julia script to build Atria
     if ! julia build_atria.jl; then
         error_and_return "Failed to build Atria."
@@ -676,12 +691,12 @@ This function does the following: `#TODO`.
 
 <a id="if-statement-with-negation"></a>
 ##### `if` statement with negation
-- `if` statements (e.g., see the code starting with `if ! type -P mamba &> /dev/null; then`) check a condition and execute code based on whether the condition is true or false.
+- `if` statements (e.g., see the code starting with `if ! type mamba &> /dev/null; then`) check a condition and execute code based on whether the condition is true or false.
 - The `!` before a command negates its success status.
-- So, if `type -P mamba &> /dev/null` is successful and returns an exit code of 0, then the `!` in `! type -P mamba &> /dev/null` would convert that exit code of `0` to an exit code of `1`.
+- So, if `type mamba &> /dev/null` is successful and returns an exit code of 0, then the `!` in `! type mamba &> /dev/null` would convert that exit code of `0` to an exit code of `1`.
 - With that in mind, checking for the mamba command works in the following way:
-    + `! type -P mamba &> /dev/null` returns `0` if mamba is not actually in the PATH (as `!` converts `1` to `0`).
-    + Otherwise, `! type -P mamba &> /dev/null` returns `1` (as `!` converts `0` to `1`), thereby skipping the block of code within the `if` statement and leading to the `return 0` command.
+    + `! type mamba &> /dev/null` returns `0` if mamba is not actually in the PATH (as `!` converts `1` to `0`).
+    + Otherwise, `! type mamba &> /dev/null` returns `1` (as `!` converts `0` to `1`), thereby skipping the block of code within the `if` statement and leading to the `return 0` command.
 
 <a id="redirection--devnull"></a>
 ##### Redirection: `&> /dev/null`

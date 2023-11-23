@@ -357,7 +357,7 @@ function update_shell_config() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! :  mamba &>/dev/null; then
+    if ! :  mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -401,11 +401,11 @@ case "${os}" in
         ;;
     "Darwin")
         if [[ "${arch}" = "x86_64" ]]; then
-            URL_mid="mac/x64/1.8"
-            tarball="julia-1.8.5-mac64.tar.gz"
+            URL_mid="mac/x64/1.9"
+            tarball="julia-1.9.4-mac64.tar.gz"
         elif [[ "${arch}" = "arm64" ]]; then
-            URL_mid="mac/aarch64/1.8"
-            tarball="julia-1.8.5-macaarch64.tar.gz"
+            URL_mid="mac/aarch64/1.9"
+            tarball="julia-1.9.4-macaarch64.tar.gz"
         else
             error_and_return "Unsupported architecture: ${arch}"
         fi
@@ -432,7 +432,7 @@ atria_dir="${HOME}/Atria"
 check_variables=true  # Echo the variables assigned above
 check_binary=true     # Check if the Julia binary is installed/in PATH
 check_operation=true  # Check the operation to download and install Julia
-run_operation=true   # Run the operation to download and install Julia
+run_operation=true    # Run the operation to download and install Julia
 update_path=true      # Update PATH to include Julia binary
 
 #  Check and echo variables
@@ -446,7 +446,7 @@ fi
 
 #  Check if Julia binary is in PATH
 if ${check_binary}; then
-    if type julia &>/dev/null; then
+    if type julia &> /dev/null; then
         echo "Julia is in the PATH."
         echo "Available Julia binaries:"
         type -a julia
@@ -546,14 +546,10 @@ if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
     #  Handle the case when the environment is already installed
     echo "Activating environment ${env_name}"
     
-    if ! mamba activate "${env_name}" &> dev/null; then
+    if ! mamba activate "${env_name}" &> /dev/null; then
         #  If `mamba activate` fails, try using `source activate`
-        echo "Mamba activation failed. Trying with conda activate..."
-
-        if ! conda activate "${env_name}" &>/dev/null; then
-            echo "Conda activation failed. Trying with source activate..."
-        
-            if ! source activate "${env_name}" &>/dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
                 #  If `source activate` also fails, return an error
                 error_and_return "Failed to activate environment \"${env_name}\"."
             fi
@@ -588,12 +584,12 @@ install_atria=true  # Install Atria or not
 
 if ${install_atria}; then
     #  Check if git and Julia are available
-    if ! type git &>/dev/null; then
-        error_and_return "Error: git is not installed or not in the PATH."
+    if ! type git &> /dev/null; then
+        error_and_return "git is not installed or not in the PATH."
     fi
 
-    if ! type julia &>/dev/null; then
-        error_and_return "Error: Julia is not installed or not in the PATH."
+    if ! type julia &> /dev/null; then
+        error_and_return "Julia is not installed or not in the PATH."
     fi
 
     #  Clone the Atria repository if it doesn't already exist
@@ -608,7 +604,7 @@ if ${install_atria}; then
 
     #  Change to the Atria directory
     cd "${atria_dir}" \
-        || error_and_return "Error: Failed to change to Atria directory."
+        || error_and_return "Failed to change to Atria directory."
 
     #  Environment containing Atria dependencies must be activated prior to
     #+ installation of Atria
@@ -619,11 +615,8 @@ if ${install_atria}; then
 
         if ! mamba activate "${env_name}" &> /dev/null; then
             #  If `mamba activate` fails, try using `source activate`
-            echo "Mamba activation failed. Trying with conda activate..."
-
             if ! conda activate "${env_name}" &> /dev/null; then
-                echo "Mamba activation failed. Trying with source activate..."
-                
+                #  If `conda activate` fails, try using `source activate`
                 if ! source activate "${env_name}" &> /dev/null; then
                     #  If `source activate` also fails, return an error
                     error_and_return "Failed to activate environment \"${env_name}\"."

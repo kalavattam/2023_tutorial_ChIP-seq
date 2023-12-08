@@ -186,14 +186,14 @@ for i in "${!file_fastqs[@]}"; do
     if ${check_operations}; then
         echo "
         #  Check if the original file for read #1 exists before creating a symlink
-        if [[ -f "${dir_base}/${dir_orig}/${key}_R1_001.fastq.gz" ]]; then
+        if [[ -f \"${dir_base}/${dir_orig}/${key}_R1_001.fastq.gz\" ]]; then
             ln -s \\
                 \"${dir_base}/${dir_orig}/${key}_R1_001.fastq.gz\" \\
                 \"${dir_sym}/${value}_R1.fastq.gz\"
         fi
 
         #  Check if the original file for read #2 exists before creating a symlink
-        if [[ -f "${dir_base}/${dir_orig}/${key}_R2_001.fastq.gz" ]]; then
+        if [[ -f \"${dir_base}/${dir_orig}/${key}_R2_001.fastq.gz\" ]]; then
             ln -s \\
                 \"${dir_base}/${dir_orig}/${key}_R2_001.fastq.gz\" \\
                 \"${dir_sym}/${value}_R2.fastq.gz\"

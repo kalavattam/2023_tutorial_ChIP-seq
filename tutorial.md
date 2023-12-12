@@ -45,12 +45,13 @@
                 1. [Regular expressions and the caret \(`^`\) symbol:](#regular-expressions-and-the-caret-%5E-symbol)
                 1. [Escape characters and `\"`:](#escape-characters-and-)
                 1. [On the function's "control flow"](#on-the-functions-control-flow)
+        1. [To debug](#to-debug)
     1. [b. Adapter- and quality-trim the FASTQ files using Atria](#b-adapter--and-quality-trim-the-fastq-files-using-atria)
         1. [Code](#code-2)
         1. [Notes](#notes-2)
             1. [Calls to `unset`](#calls-to-unset)
             1. [Calls to `typeset`/`declare`](#calls-to-typesetdeclare)
-            1. [Common options for `typeset`](#common-options-for-typeset)
+            1. [Common options for `typeset`/`declare`](#common-options-for-typesetdeclare)
             1. [More on operators, particularly the logical operators `&&` and `||`](#more-on-operators-particularly-the-logical-operators--and-%7C%7C)
                 1. [`&&` Operator \(Logical AND\)](#-operator-logical-and)
                 1. [`||` Operator \(Logical OR\)](#%7C%7C-operator-logical-or)
@@ -63,6 +64,8 @@
         1. [Code](#code-3)
         1. [Notes](#notes-3)
             1. [Breaking down the call to `mkdir -p`, which makes use of brace expansion](#breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion)
+        1. [3.b. Use bowtie2 to align the trimmed FASTQ files](#3b-use-bowtie2-to-align-the-trimmed-fastq-files)
+            1. [Code](#code-4)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -92,7 +95,8 @@ function error_and_return() {
 dir_base="${HOME}/tsukiyamalab"                          # Base directory where lab data is stored
 dir_repo="Kris/2023_rDNA"                                # Repository directory for the specific project
 dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Working directory for storing results of this tutorial
-dir_orig="Rina/ChIP-seq/230915_hho1_hmo1_rhirano"        # Directory where original ChIP-seq data is stored
+# dir_orig="Rina/ChIP-seq/230915_hho1_hmo1_rhirano"        # Directory where original ChIP-seq data is stored
+dir_orig="Rachel/misc_data/experiments/ChIPs/HDAC_HAT_Q/230915_ChIPseq"  # Directory where original ChIP-seq data is stored
 dir_sym="01_sym"                                         # Directory name where symbolic links will be stored
 
 #  Create an associative array/hash map for renaming files through symbolic
@@ -103,37 +107,53 @@ dir_sym="01_sym"                                         # Directory name where 
 #+   i.e., the ChIP-seq data for the factor of interest
 #+ - "in" denotes the ChIP-seq "input" assay, the... #TODO Write this.
 unset file_fastqs && typeset -A file_fastqs=(
-    ["6336_G1_in_S15"]="in_G1_Hho1_6336"
-    ["6336_G1_lP_S27"]="IP_G1_Hho1_6336"
-    ["6336_G2M_in_S17"]="in_G2M_Hho1_6336"
-    ["6336_G2M_lP_S29"]="IP_G2M_Hho1_6336"
-    ["6336_Q-in_S19"]="in_Q_Hho1_6336"
-    ["6336_Q_lP_S31"]="IP_Q_Hho1_6336"
-    ["6337_G1_in_S16"]="in_G1_Hho1_6337"
-    ["6337_GI_IP_S28"]="IP_G1_Hho1_6337"
-    ["6337_G2M_in_S18"]="in_G2M_Hho1_6337"
-    ["6337_G2M_lP_S30"]="IP_G2M_Hho1_6337"
-    ["6337_Q_in_S20"]="in_Q_Hho1_6337"
-    ["6337_Q_lP_S32"]="IP_Q_Hho1_6337"
-    ["7750_G1_in_S21"]="in_G1_Hmo1_7750"
-    ["7750_G1_lP_S33"]="IP_G1_Hmo1_7750"
-    ["7750_G2M_in_S23"]="in_G2M_Hmo1_7750"
-    ["7750_G2M_lP_S35"]="IP_G2M_Hmo1_7750"
-    ["7750_Q_ln_S25"]="in_Q_Hmo1_7750"
-    ["7750_Q_lP_S37"]="IP_Q_Hmo1_7750"
-    ["7751_G1_in_S22"]="in_G1_Hmo1_7751"
-    ["7751_G1_lP_S34"]="IP_G1_Hmo1_7751"
-    ["7751_G2M_in_S24"]="in_G2M_Hmo1_7751"
-    ["7751_G2M_lP_S36"]="IP_G2M_Hmo1_7751"
-    ["7751_Q_ln_S26"]="in_Q_Hmo1_7751"
-    ["7751_Q_lP_S38"]="IP_Q_Hmo1_7751"
+    # ["6336_G1_in_S15"]="in_G1_Hho1_6336"
+    # ["6336_G1_lP_S27"]="IP_G1_Hho1_6336"
+    # ["6336_G2M_in_S17"]="in_G2M_Hho1_6336"
+    # ["6336_G2M_lP_S29"]="IP_G2M_Hho1_6336"
+    # ["6336_Q-in_S19"]="in_Q_Hho1_6336"
+    # ["6336_Q_lP_S31"]="IP_Q_Hho1_6336"
+    # ["6337_G1_in_S16"]="in_G1_Hho1_6337"
+    # ["6337_GI_IP_S28"]="IP_G1_Hho1_6337"
+    # ["6337_G2M_in_S18"]="in_G2M_Hho1_6337"
+    # ["6337_G2M_lP_S30"]="IP_G2M_Hho1_6337"
+    # ["6337_Q_in_S20"]="in_Q_Hho1_6337"
+    # ["6337_Q_lP_S32"]="IP_Q_Hho1_6337"
+    # ["7750_G1_in_S21"]="in_G1_Hmo1_7750"
+    # ["7750_G1_lP_S33"]="IP_G1_Hmo1_7750"
+    # ["7750_G2M_in_S23"]="in_G2M_Hmo1_7750"
+    # ["7750_G2M_lP_S35"]="IP_G2M_Hmo1_7750"
+    # ["7750_Q_ln_S25"]="in_Q_Hmo1_7750"
+    # ["7750_Q_lP_S37"]="IP_Q_Hmo1_7750"
+    # ["7751_G1_in_S22"]="in_G1_Hmo1_7751"
+    # ["7751_G1_lP_S34"]="IP_G1_Hmo1_7751"
+    # ["7751_G2M_in_S24"]="in_G2M_Hmo1_7751"
+    # ["7751_G2M_lP_S36"]="IP_G2M_Hmo1_7751"
+    # ["7751_Q_ln_S26"]="in_Q_Hmo1_7751"
+    # ["7751_Q_lP_S38"]="IP_Q_Hmo1_7751"
+    ["5781_input_S13"]="in_Q_untagged_5781"
+    ["5781_IP_S14"]="IP_Q_untagged_5781"
+    ["7041_input_S11"]="in_Q_Esa5_7041"
+    ["7041_IP_S12"]="IP_Q_Esa5_7041"
+    ["7568_input_S7"]="in_Q_Rpd3_7568"
+    ["7568_IP_S8"]="IP_Q_Rpd3_7568"
+    ["7569_input_S3"]="in_Q_Rpd3_7569"
+    ["7569_IP_S4"]="IP_Q_Rpd3_7569"
+    ["7691_input_S1"]="in_Q_Esa5_7691"
+    ["7691_IP_S2"]="IP_Q_Esa5_7691"
+    ["7692_input_S9"]="in_Q_Gcn5_7692"
+    ["7692_IP_S10"]="IP_Q_Gcn5_7692"
+    ["7709_input_S5"]="in_Q_Gcn5_7709"
+    ["7709_IP_S6"]="IP_Q_Gcn5_7709"
 )
+# _R1_001.fastq.gz
+# _R2_001.fastq.gz
 
 
 #  Do the main work ===========================================================
 #  Set flags to check variable and array assignments
-check_variables=false
-check_array=false
+check_variables=true
+check_array=true
 
 #  If check_variables is true, then echo the the variable assignments
 if ${check_variables}; then
@@ -175,7 +195,7 @@ fi
 
 #  Set flags for checking and running symlinking operations
 check_operations=true
-run_operations=false
+run_operations=true
 
 #  Loop through each entry in the associative array to create symbolic links
 for i in "${!file_fastqs[@]}"; do
@@ -185,6 +205,8 @@ for i in "${!file_fastqs[@]}"; do
     #  If check_operations is true, then echo the operations that will be run
     if ${check_operations}; then
         echo "
+        ### ${key} ###
+
         #  Check if the original file for read #1 exists before creating a symlink
         if [[ -f \"${dir_base}/${dir_orig}/${key}_R1_001.fastq.gz\" ]]; then
             ln -s \\
@@ -357,7 +379,7 @@ function update_shell_config() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! :  mamba &> /dev/null; then
+    if ! : mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -432,8 +454,8 @@ atria_dir="${HOME}/Atria"
 check_variables=true  # Echo the variables assigned above
 check_binary=true     # Check if the Julia binary is installed/in PATH
 check_operation=true  # Check the operation to download and install Julia
-run_operation=true    # Run the operation to download and install Julia
-update_path=true      # Update PATH to include Julia binary
+run_operation=false   # Run the operation to download and install Julia
+update_path=false     # Update PATH to include Julia binary
 
 #  Check and echo variables
 if ${check_variables}; then
@@ -469,15 +491,21 @@ if ${check_operation}; then
 
     if \${update_path}; then
         #  Determine which shell configuration file to update
-        if [[ -f \"\${HOME}/.bashrc\" ]]; then
-            shell_config=\"\${HOME}/.bashrc\"
-        elif [[ -f \"\${HOME}/.bash_profile\" ]]; then
-            shell_config=\"\${HOME}/.bash_profile\"
-        elif [[ -f \"\${HOME}/.zshrc\" ]]; then
-            shell_config=\"\${HOME}/.zshrc\"
-        else
-            error_and_return \"No known shell configuration file found.\"
-        fi
+        case \"${os}\" in
+            \"Linux\")
+                if [[ -f \"${HOME}/.bashrc\" ]]; then
+                    shell_config=\"${HOME}/.bashrc\"
+                elif [[ -f \"${HOME}/.bash_profile\" ]]; then
+                    shell_config=\"${HOME}/.bash_profile\"
+                fi
+                ;;
+            \"Darwin\")
+                shell_config=\"${HOME}/.zshrc\"
+                ;;
+            *)
+                error_and_return \"No known shell configuration file found.\"
+                ;;
+        esac
 
         # Call the function to update the configuration file
         update_shell_config \"\${shell_config}\" \"${untarred}\"
@@ -768,6 +796,53 @@ This function checks for the existence of a specified Conda environment. To achi
 </details>
 <br />
 
+<a id="to-debug"></a>
+### To debug
+Line 570
+<details>
+<summary><i>Error message: Line 570</i></summary>
+
+```txt
+❯ if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
+>     #  Handle the case when the environment is already installed
+>     echo "Activating environment ${env_name}"
+> 
+>     if ! mamba activate "${env_name}" &> /dev/null; then
+>         #  If `mamba activate` fails, try using `source activate`
+>         if ! conda activate "${env_name}" &> /dev/null; then
+>             if ! source activate "${env_name}" &> /dev/null; then
+>                 #  If `source activate` also fails, return an error
+>                 error_and_return "Failed to activate environment \"${env_name}\"."
+>             fi
+>         fi
+>     else
+>         echo "Environment \"${env_name}\" activated using mamba."
+>     fi
+> else
+>     #  Handle the case when the environment is not installed
+>     echo "Creating environment ${env_name}"
+> 
+>     if ${create_mamba_env}; then
+>         #  Switch `--yes` is set, which means no user input is required
+>         mamba create \
+>             --yes \
+>             --name "${env_name}" \
+>             --channel conda-forge \
+>                 parallel \
+>                 pbzip2 \
+>                 pigz \
+>                 r-argparse \
+>                 r-ggsci \
+>                 r-plotly \
+>                 r-tidyverse
+>     fi
+> fi
+-bash: [[: Environment "Atria_env" is not installed.: syntax error: invalid arithmetic operator (error token is ""Atria_env" is not installed.")
+Creating environment Atria_env
+```
+</details>
+<br />
+
 <a id="b-adapter--and-quality-trim-the-fastq-files-using-atria"></a>
 ## b. Adapter- and quality-trim the FASTQ files using Atria
 <a id="code-2"></a>
@@ -793,44 +868,58 @@ dir_repo="Kris/2023_rDNA"                                          # Repository 
 dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"            # Work directory
 dir_sym="01_sym"                                                   # Directory with symlinked FASTQs
 dir_trim="02_trim"                                                 # Directory for trimmed FASTQs
-env_atria="pairtools_env"                                          # Conda environment for Atria
+env_atria="Atria_env"                                              # Conda environment for Atria
 path_atria="${dir_base}/${dir_repo}/src/Atria/app-3.2.2/bin/atria" # Atria executable path
-time="1:00:00"
+time="1:00:00"                                                     # Job time for SLURM
 threads=4                                                          # Number of threads for SLURM jobs
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    "in_G1_Hho1_6336"
-    "IP_G1_Hho1_6336"
-    "in_G2M_Hho1_6336"
-    "IP_G2M_Hho1_6336"
-    "in_Q_Hho1_6336"
-    "IP_Q_Hho1_6336"
-    "in_G1_Hho1_6337"
-    "IP_G1_Hho1_6337"
-    "in_G2M_Hho1_6337"
-    "IP_G2M_Hho1_6337"
-    "in_Q_Hho1_6337"
-    "IP_Q_Hho1_6337"
-    "in_G1_Hmo1_7750"
-    "IP_G1_Hmo1_7750"
-    "in_G2M_Hmo1_7750"
-    "IP_G2M_Hmo1_7750"
-    "in_Q_Hmo1_7750"
-    "IP_Q_Hmo1_7750"
-    "in_G1_Hmo1_7751"
-    "IP_G1_Hmo1_7751"
-    "in_G2M_Hmo1_7751"
-    "IP_G2M_Hmo1_7751"
-    "in_Q_Hmo1_7751"
-    "IP_Q_Hmo1_7751"
+    # "in_G1_Hho1_6336"
+    # "IP_G1_Hho1_6336"
+    # "in_G2M_Hho1_6336"
+    # "IP_G2M_Hho1_6336"
+    # "in_Q_Hho1_6336"
+    # "IP_Q_Hho1_6336"
+    # "in_G1_Hho1_6337"
+    # "IP_G1_Hho1_6337"
+    # "in_G2M_Hho1_6337"
+    # "IP_G2M_Hho1_6337"
+    # "in_Q_Hho1_6337"
+    # "IP_Q_Hho1_6337"
+    # "in_G1_Hmo1_7750"
+    # "IP_G1_Hmo1_7750"
+    # "in_G2M_Hmo1_7750"
+    # "IP_G2M_Hmo1_7750"
+    # "in_Q_Hmo1_7750"
+    # "IP_Q_Hmo1_7750"
+    # "in_G1_Hmo1_7751"
+    # "IP_G1_Hmo1_7751"
+    # "in_G2M_Hmo1_7751"
+    # "IP_G2M_Hmo1_7751"
+    # "in_Q_Hmo1_7751"
+    # "IP_Q_Hmo1_7751"
+    "in_Q_untagged_5781"
+    "IP_Q_untagged_5781"
+    "in_Q_Esa5_7041"
+    "IP_Q_Esa5_7041"
+    "in_Q_Rpd3_7568"
+    "IP_Q_Rpd3_7568"
+    "in_Q_Rpd3_7569"
+    "IP_Q_Rpd3_7569"
+    "in_Q_Esa5_7691"
+    "IP_Q_Esa5_7691"
+    "in_Q_Gcn5_7692"
+    "IP_Q_Gcn5_7692"
+    "in_Q_Gcn5_7709"
+    "IP_Q_Gcn5_7709"
 )
 
 
 #  Do the main work ===========================================================
 #  Set flags for checking variable and array assignments
 check_variables=true
-check_array=false
+check_array=true
 
 #  If check_variables is true, then echo the variable assignments
 if ${check_variables}; then
@@ -871,7 +960,7 @@ fi
 cd "${dir_base}/${dir_repo}/${dir_work}" \
     || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
-#  If it doesn't exist, then create a directory to store symlinked FASTQ files
+#  If it doesn't exist, then create a directory to store trimmed FASTQ files
 if [[ ! -d "${dir_trim}" ]]; then
     mkdir -p "${dir_trim}/err_out"
 fi
@@ -994,8 +1083,8 @@ done
 - `typeset` (also known as `declare`) is used to declare shell variables and give them attributes or set certain properties. It's akin to setting up a box with specific characteristics (like size, color, or label) before putting something into it.
 - To declare a new variable with a specific attribute, you use `typeset` followed by options and the variable name. For example, `typeset -i my_num` declares `my_num` as an integer.
 
-<a id="common-options-for-typeset"></a>
-#### Common options for `typeset`
+<a id="common-options-for-typesetdeclare"></a>
+#### Common options for `typeset`/`declare`
 1. `-a` (array declaration):
     + Use this to declare a variable as an indexed array.
     + Example: `typeset -a my_array` makes `my_array` an indexed array, where you can store a list of values.
@@ -1137,17 +1226,17 @@ time="4:00:00"  # Adjust as needed
 
 
 #  Do the main work ===========================================================
-#  Create directories for storing essential fasta and gff3 files --------------
+#  Create directories for storing essential FASTA and GFF3 files --------------
 if [[ ! -d "${dir_genomes}" ]]; then
     mkdir -p ${dir_genomes}/{${dir_SP},${dir_SC}}/{fasta,gff3}/err_out
 fi
 
 
-#  Download and store Saccharomyces cerevisiae fasta and gff3 files -----------
+#  Download and store Saccharomyces cerevisiae FASTA and GFF3 files -----------
 #  Set flags
 check_variables=false  # Check variable assignment
 check_operations=true  # Check operations to download genome files
-run_operations=false    # Run operations to download genome files
+run_operations=false   # Run operations to download genome files
 
 #  Echo the download logic if check_operations is true
 if ${check_operations}; then
@@ -1169,13 +1258,13 @@ if ${run_operations}; then
     fi
 fi
 
-#  Download and store Schizosaccharomyces pombe fasta and gff3 files ----------
+#  Download and store Schizosaccharomyces pombe FASTA and GFF3 files ----------
 #  Set flags
 check_variables=false  # Check variable assignment
 check_operations=true  # Check operations to download genome files
 run_operations=false    # Run operations to download genome files
 
-#  Loop through fasta and gff3 arrays for Schizosaccharomyces pombe
+#  Loop through FASTA and GFF3 arrays for Schizosaccharomyces pombe
 iter=0
 for file_type in "fasta" "gff3"; do
     eval array=( \"\${${file_type}_SP[@]}\" )
@@ -1258,5 +1347,316 @@ done
         - `${HOME}/genomes/Schizosaccharomyces_pombe/gff3`
         - `${HOME}/genomes/Saccharomyces_cerevisiae/fasta`
         - `${HOME}/genomes/Saccharomyces_cerevisiae/gff3`
+</details>
+<br />
+
+<a id="3b-use-bowtie2-to-align-the-trimmed-fastq-files"></a>
+### 3.b. Use bowtie2 to align the trimmed FASTQ files
+<a id="code-4"></a>
+#### Code
+<details>
+<summary><i>Code: 3.b. Use bowtie2 to align the trimmed FASTQ files</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define function ============================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Initialize variables and arrays ============================================
+dir_base="${HOME}/tsukiyamalab"                                    # Base directory for lab data
+dir_repo="Kris/2023_rDNA"                                          # Repository directory
+dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"            # Work directory
+dir_trim="02_trim"                                                 # Directory for trimmed FASTQs
+dir_bwt2="03_bam/bowtie2"
+time="8:00:00"                                                     # Job time for SLURM
+threads=8                                                          # Number of threads for SLURM jobs
+
+#  Initialize an indexed array with FASTQ file stems
+unset file_fastqs && typeset -a file_fastqs=(
+    "in_G1_Hho1_6336"
+    "IP_G1_Hho1_6336"
+    "in_G2M_Hho1_6336"
+    "IP_G2M_Hho1_6336"
+    "in_Q_Hho1_6336"
+    "IP_Q_Hho1_6336"
+    "in_G1_Hho1_6337"
+    "IP_G1_Hho1_6337"
+    "in_G2M_Hho1_6337"
+    "IP_G2M_Hho1_6337"
+    "in_Q_Hho1_6337"
+    "IP_Q_Hho1_6337"
+    "in_G1_Hmo1_7750"
+    "IP_G1_Hmo1_7750"
+    "in_G2M_Hmo1_7750"
+    "IP_G2M_Hmo1_7750"
+    "in_Q_Hmo1_7750"
+    "IP_Q_Hmo1_7750"
+    "in_G1_Hmo1_7751"
+    "IP_G1_Hmo1_7751"
+    "in_G2M_Hmo1_7751"
+    "IP_G2M_Hmo1_7751"
+    "in_Q_Hmo1_7751"
+    "IP_Q_Hmo1_7751"
+    "in_Q_untagged_5781"
+    "IP_Q_untagged_5781"
+    "in_Q_Esa5_7041"
+    "IP_Q_Esa5_7041"
+    "in_Q_Rpd3_7568"
+    "IP_Q_Rpd3_7568"
+    "in_Q_Rpd3_7569"
+    "IP_Q_Rpd3_7569"
+    "in_Q_Esa5_7691"
+    "IP_Q_Esa5_7691"
+    "in_Q_Gcn5_7692"
+    "IP_Q_Gcn5_7692"
+    "in_Q_Gcn5_7709"
+    "IP_Q_Gcn5_7709"
+)
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable and array assignments
+check_variables=true
+check_array=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_base=${dir_base}
+    dir_repo=${dir_repo}
+    dir_work=${dir_work}
+    dir_trim=${dir_trim}
+    dir_bwt2=${dir_bwt2}
+    time=${time}
+    threads=${threads}
+    "
+fi
+
+#  Echo array contents if check_array is true
+if ${check_array}; then
+    for i in "${file_fastqs[@]}"; do
+        file="${i}"
+
+        echo "
+        read #1 ...... ${file}_R1.atria.fastq.gz
+        read #2 ...... ${file}_R2.atria.fastq.gz
+        "
+    done
+fi
+
+#  If the module for Bowtie2 is not loaded, then load it
+if ! module list 2>&1 | grep -iq "bowtie2"; then
+    echo "Loading Bowtie2 module..."
+    module load Bowtie2/2.4.4-GCC-11.2.0
+else
+    echo "Bowtie2 module is already loaded"
+fi
+
+#  If the corresponding Samtools module is not loaded, then load it
+if ! module list 2>&1 | grep -iq "samtools"; then
+    echo "Loading Samtools module..."
+    module load SAMtools/1.16.1-GCC-11.2.0
+else
+    echo "Samtools module is already loaded"
+fi
+
+#  Navigate to the work directory
+cd "${dir_base}/${dir_repo}/${dir_work}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+
+#  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
+if [[ ! -d "${dir_bwt2}" ]]; then
+    mkdir -p "${dir_bwt2}/err_out"
+fi
+
+#  Set flags: checking variables, checking and submitting Bowtie2 jobs
+check_variables=false
+check_operations=true
+run_operations=false
+
+for i in "${!file_fastqs[@]}"; do
+    # i=1
+    index="${i}"
+    iter=$(( index + 1 ))
+    stem=${file_fastqs["${index}"]}
+    job_name="${dir_trim}.${stem}"
+    trim_1="${dir_trim}/${stem}_R1.atria.fastq.gz"
+    trim_2="${dir_trim}/${stem}_R2.atria.fastq.gz"
+    bam="${dir_bwt2}/${stem}.bam"
+
+    #  Echo loop-dependent variables if check_variables is true
+    if ${check_variables}; then
+        echo "
+        index=${index}
+        iter=${iter}
+        stem=${stem}
+        job_name=${job_name}
+        trim_1=${trim_1}
+        trim_2=${trim_2}
+        bam=${bam}
+        "
+    fi
+
+    #  Echo the Atria trimming command if check_operations is true
+    if ${check_operations}; then
+        echo "
+        #  -------------------------------------
+        ### ${iter} ###
+
+        if [[
+                 -f \"${trim_1}\" \\
+            &&   -f \"${trim_2}\" \\
+            && ! -f \"${bam}\"
+        ]]; then
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name=\"${job_name}\"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
+#SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
+
+bowtie2 \\
+    -p ${threads} \\
+    -x \"${f_indices}\" \\
+    --very-sensitive-local \\
+    --no-unal \\
+    --no-mixed \\
+    --no-discordant \\
+    --no-overlap \\
+    --no-dovetail \\
+    --phred33 \\
+    -I 10 \\
+    -X 700 \\
+    -1 \"${trim_1}\" \\
+    -2 \"${trim_2}\" \\
+        | samtools sort \\
+            -@ ${threads} \\
+            -T \"${scratch}\" \\
+            -O bam \\
+            -o \"${bam}\"
+        else
+            echo \"
+            Warning: Bam for ${stem} exists; skipping trimming.
+            \"
+        fi
+        "
+    fi
+
+    #TODO Pick up here #TOMORROW: Write up/incluce code teaching how to
+    #+    generate Bowtie2 indices, and add variable above for the indices
+    #+    and the scratch directory, where sorting will take place
+
+    #  Submit the Atria trimming job if run_operations is true
+    if ${run_operations}; then
+        if [[
+                 -f "${read_1}" \
+            &&   -f "${read_2}" \
+            && ! -f "${trim_1}" \
+            && ! -f "${trim_2}"
+        ]]; then
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name="${job_name}"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error="${dir_trim}/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="${dir_trim}/err_out/${job_name}.%A.stdout.txt"
+
+"${path_atria}" \
+    -t "${threads}" \
+    -r "${read_1}" \
+    -R "${read_2}" \
+    -o "${dir_trim}" \
+    --length-range 35:500
+EOF
+        else
+            echo "
+            Warning: Trimmed fastqs for $(basename ${read_1%_R1.fastq.gz}) exist; skipping trimming.
+            "
+        fi
+    fi
+
+    sleep 0.2  # Short pause to prevent rapid job-submission overload
+done
+
+bowtie2 \
+    -p ${threads} \
+    -x "${f_indices}" \
+    --very-sensitive-local \
+    --no-unal \
+    --no-mixed \
+    --no-discordant \
+    --no-overlap \
+    --no-dovetail \
+    --phred33 \
+    -I 10 \
+    -X 700 \
+    -1 "${stem}_R1.atria.fastq.gz" \
+    -2 "${stem}_R2.atria.fastq.gz" \
+        | samtools sort \
+            -@ ${threads} \
+            -T "${scratch}" \
+            -O bam \
+            -o "${out_bam}"
+
+bwa mem \
+    -t ${threads} \
+    -k 19 -w 100 -d 100 -r 1.5 \
+    -M \
+    -I 10,700 \
+    "${f_indices}" \
+    "${stem}_R1.atria.fastq.gz" \
+    "${stem}_R2.atria.fastq.gz" \
+        | samtools sort \
+            -@ ${threads} \
+            -T "${scratch}" \
+            -O bam \
+            -o "${out_bam}"
+
+
+#  Index the sorted bams
+if [[ -f "${out_bam}" ]]; then
+    samtools index \
+        -@ ${threads} \
+        "${out_bam}"
+fi
+
+echo "
+
+
+bwa mem \\
+    -t ${threads} \\
+    -k 19 -w 100 -d 100 -r 1.5 \\
+    -M \\
+    -I 10,700 \\
+    \"${f_indices}\" \\
+    \"${stem}_R1.atria.fastq.gz\" \\
+    \"${stem}_R2.atria.fastq.gz\" \\
+        | samtools sort \\
+            -@ ${threads} \\
+            -T \"${scratch}\" \\
+            -O bam \\
+            -o \"${out_bam}\"
+
+#  Index the sorted bams
+if [[ -f \"${out_bam}\" ]]; then
+    samtools index \\
+        -@ ${threads} \\
+        \"${out_bam}\"
+fi
+"
+```
 </details>
 <br />

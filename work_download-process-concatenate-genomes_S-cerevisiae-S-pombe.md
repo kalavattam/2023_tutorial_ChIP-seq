@@ -330,7 +330,7 @@ if ${run_check}; then
         | sort \
         | uniq
 fi
-    ```
+```
 </details>
 <br />
 <br />

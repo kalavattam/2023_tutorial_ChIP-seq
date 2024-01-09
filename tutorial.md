@@ -62,14 +62,16 @@
 1. [3. Align trimmed FASTQ files](#3-align-trimmed-fastq-files)
     1. [a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes](#a-generate-a-concatenated-annotated-assembly-of-the-s-cerevisiae-and-s-pombe-genomes)
         1. [Code](#code-3)
+    1. [b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`](#b-concatenate-processed-fastas-and-gff3s-in-new-directory-combined_sc_sp)
+        1. [Code](#code-4)
+    1. [c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"](#c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz)
+        1. [Code](#code-5)
         1. [Notes](#notes-3)
             1. [Breaking down the call to `mkdir -p`, which makes use of brace expansion](#breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion)
-    1. [b. Create bowtie2 indices for the concatenated assembly](#b-create-bowtie2-indices-for-the-concatenated-assembly)
-        1. [Code](#code-4)
-    1. [c. Use bowtie2 to align the trimmed FASTQ files](#c-use-bowtie2-to-align-the-trimmed-fastq-files)
-        1. [Code](#code-5)
-    1. [e. Use bwa to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
+    1. [d. Use `bowtie2` to align the trimmed FASTQ files](#d-use-bowtie2-to-align-the-trimmed-fastq-files)
         1. [Code](#code-6)
+    1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
+        1. [Code](#code-7)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -1154,7 +1156,207 @@ In summary, `unset` is a tool for removing variables or functions, while `typese
 ```bash
 #!/bin/bash
 
-#  Define function ============================================================
+#  Initialize variables =======================================================
+dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
+dir_repo="Kris/2023_rDNA"                                # Repository directory
+dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+threads=1
+time=1:00:00
+job_name="download-preprocess_SC-SP"
+
+
+#  Do the main work ===========================================================
+cd "${dir_base}/${dir_repo}/${dir_work}" ||
+    echo "cd'ing failed; check on this"
+
+sbatch \
+    --job-name="${job_name}" \
+    --nodes=1 \
+    --cpus-per-task=${threads} \
+    --time=${time} \
+    --error="${job_name}.%A.stderr.txt" \
+    --output="${job_name}.%A.stdout.txt" \
+    download-preprocess_FASTA-GFF3_SC-SP.sh
+```
+</details>
+<br />
+
+<a id="b-concatenate-processed-fastas-and-gff3s-in-new-directory-combined_sc_sp"></a>
+## b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`
+<a id="code-4"></a>
+### Code
+<details>
+<summary><i>Code: 3.b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Initialize variables =======================================================
+dir_work="${HOME}/tsukiyamalab/kalavatt/genomes"
+dir_SC="${dir_work}/Saccharomyces_cerevisiae"
+dir_SP="${dir_work}/Schizosaccharomyces_pombe"
+name_comb="combined_SC_SP"
+
+dir_comb="${dir_work}/${name_comb}"
+#TODO Four individual arguments for SC and SP FASTA and GFF3 files
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable assignments and files
+check_variables=true
+check_file=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_work=${dir_work}
+    dir_SC=${dir_SC}
+    dir_SP=${dir_SP}
+    name_comb=${name_comb}
+    
+    dir_comb=${dir_comb}
+    "
+fi
+
+#  Get situated  #TODO Better description for this subsection
+#TODO Four individual arguments for SC and SP FASTA and GFF3 files
+if [[ ! -d "${dir_comb}" ]]; then
+    mkdir -p "${dir_comb}/"{fasta,gff3}
+fi
+
+cp \
+    "${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
+    "${dir_comb}/fasta"
+cp \
+    "${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
+    "${dir_comb}/fasta"
+
+cp \
+    "${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz" \
+    "${dir_comb}/gff3"
+cp \
+    "${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
+    "${dir_comb}/gff3"
+
+#  Handle FASTA files
+if [[ -f "${dir_comb}/fasta/${name_comb}.fa.gz" ]]; then
+    rm "${dir_comb}/fasta/${name_comb}.fa.gz"
+fi
+
+cat \
+    "${dir_comb}/fasta/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
+    "${dir_comb}/fasta/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
+        > "${dir_comb}/fasta/${name_comb}.fa.gz"
+
+if ${check_file}; then
+    ls -lhaFG "${dir_comb}/fasta"
+fi
+
+if ${check_file}; then
+    zcat "${dir_comb}/fasta/${name_comb}.fa.gz" | grep "^>"
+fi
+
+#  Handle GFF3 files
+if [[ -f "${dir_comb}/gff3/${name_comb}.gff3.gz" ]]; then
+    rm "${dir_comb}/gff3/${name_comb}.gff3.gz"
+fi
+
+cat \
+    "${dir_comb}/gff3/saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz" \
+    "${dir_comb}/gff3/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
+        > "${dir_comb}/gff3/${name_comb}.gff3.gz"
+
+#  Process the concatenated GFF3 file
+#+ 
+#+ 1. Initial pipe to awk: ARS_consensus_sequence records have strands labeled
+#+    "0"; these need to be adjusted or else downstream programs will throw
+#+    errors when encountering the "0" strands
+#+ 
+#+ 2. Subsequent pipe to sed: We need to replace or remove special characters
+#+    that IGV can't handle; also, these characters can break the formation of
+#+    data frames from gff3 via rtacklayer::import or readr::read_tsv, etc.
+#+ 
+#+ 3. Next pipe to awk: We want to create a concatenated S. cerevisiae/S. pombe
+#+    gff3 file with "intelligible feature names": "Name=" value is "ID="
+#+    value; this needs to be something that makes sense to a human; thus, we
+#+    run an `awk` command that does the following:
+#+    A. If field `$3` is `gene`, `blocked_reading_frame`, `ncRNA_gene`,
+#+       `pseudogene`, `rRNA_gene`, `snRNA_gene`, `snoRNA_gene`, `tRNA_gene`,
+#+       or `telomerase_RNA_gene`, then check for the presence of the `gene=`
+#+       attribute; if present, then replace the `ID=` value with the `gene=`
+#+       value
+#+    B. If field `$3` is `ARS`, then check for the presence of the `Alias=`
+#+       attribute; if present, then replace the `ID=` value with the `Alias=`
+#+       value
+zcat "${dir_comb}/gff3/${name_comb}.gff3.gz" \
+    | awk -F "\t" '
+        BEGIN { OFS = FS } {
+            if ($7=="0") { $7="."; print $0 } else { print $0 }
+        }
+    ' \
+    | sed -e 's/%20/-/g' \
+          -e 's/%2C//g' \
+          -e 's/%3B//g' \
+          -e 's/%28//g' \
+          -e 's/%29//g' \
+          -e 's/%//g' \
+    | awk '
+        BEGIN { FS=OFS="\t" }
+        $1 ~ /^#/ { print; next }  # Skip lines starting with #
+        $3 ~ /^(blocked_reading_frame|gene|ncRNA_gene|pseudogene|rRNA_gene|snRNA_gene|snoRNA_gene|tRNA_gene|telomerase_RNA_gene)$/ {
+            if (match($9, /gene=[^;]+/)) {
+                #  Extract the gene name
+                gene_name = substr($9, RSTART+5, RLENGTH-5)
+                #  Replace Name value with gene value
+                sub(/Name=[^;]+/, "Name=" gene_name, $9)
+            }
+        }
+        $3 == "ARS" {
+            if (match($9, /Alias=[^;]+/)) {
+                #  Extract the alias name
+                alias_name = substr($9, RSTART+6, RLENGTH-6)
+                #  Replace Name value with alias value
+                sub(/Name=[^;]+/, "Name=" alias_name, $9)
+            }
+        }
+        { print }
+    ' \
+    | gzip \
+        > "${dir_comb}/gff3/tmp.gff3.gz"
+
+if [[ -f "${dir_comb}/gff3/tmp.gff3.gz" ]]; then
+    mv -f \
+        "${dir_comb}/gff3/tmp.gff3.gz" \
+        "${dir_comb}/gff3/${name_comb}.gff3.gz"
+fi
+
+if ${check_file}; then
+    ls -lhaFG "${dir_comb}/gff3"
+fi
+
+if ${check_file}; then
+    zcat "${dir_comb}/gff3/${name_comb}.gff3.gz" \
+        | cut -f 1 \
+        | grep -v "#" \
+        | sort \
+        | uniq
+fi
+```
+</details>
+<br />
+<br />
+
+<a id="c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz"></a>
+## c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"
+<a id="code-5"></a>
+### Code
+<details>
+<summary><i>Code: 3.c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
 function error_and_return() {
@@ -1162,530 +1364,119 @@ function error_and_return() {
     return 1
 }
 
-
-#  Function to download a file
-function download_file() {
-    local url="${1}"
-    local output_path="${2}"
-
-    # if ! wget -q -O "${output_path}" "${url}"; then
-    if ! curl -s -o "${output_path}" "${url}"; then
-        echo "Failed to download ${url}"
-        return 1
+#  Function to check if a SLURM module is loaded or not; if not, the module is
+#+ loaded
+check_and_load_module() {
+    local module_name="${1}"
+    if ! module is-loaded "${module_name}" &> /dev/null; then
+        echo "Loading module: ${module_name}"
+        module load "${module_name}"
+    else
+        echo "Module already loaded: ${module_name}"
     fi
 }
-export -f download_file
 
 
-#  Function to download and extract a tarball
-function download_extract_tarball() {
-    local url="${1}"
-    local output_dir="${2}"
+#  Initialize variables =======================================================
+dir_work="${HOME}/tsukiyamalab/kalavatt/genomes/combined_SC_SP"
+file_fa="${dir_work}/fasta/combined_SC_SP.fa.gz"
+mod_samtools="SAMtools/1.16.1-GCC-11.2.0"
+mod_bowtie2="Bowtie2/2.4.4-GCC-11.2.0"
+mod_bwa="BWA/0.7.17-GCCcore-11.2.0"
+time="8:00:00"
 
-    # if ! wget -q -O - "${url}" | tar -xz -C "${output_dir}"; then
-    if ! curl -s "${url}" | tar -xz -C "${output_dir}"; then
-        echo "Failed to download and extract tarball from ${url}"
-        return 1
-    fi
-}
-export -f download_extract_tarball
-
-
-#  Initialize variables and arrays ============================================
-#  Initialize variables
-dir_genomes="${HOME}/genomes"
-string_SC="Saccharomyces_cerevisiae"
-string_SP="Schizosaccharomyces_pombe"
-dir_SC="${string_SC}"
-dir_SP="${string_SP}"
-
-URL_SC="http://sgd-archive.yeastgenome.org/sequence/S288C_reference/genome_releases"
-tarball_SC="S288C_reference_genome_R64-3-1_20210421.tgz"
-
-URL_SP_fasta="https://www.pombase.org/data/genome_sequence_and_features/genome_sequence"
-unset fasta_SP && typeset -a fasta_SP=(
-    ${string_SP}_all_chromosomes.fa.gz
-    ${string_SP}_chr_II_telomeric_gap.fa.gz
-    ${string_SP}_chromosome_I.fa.gz
-    ${string_SP}_chromosome_II.fa.gz
-    ${string_SP}_chromosome_III.fa.gz
-    ${string_SP}_mating_type_region.fa.gz
-    ${string_SP}_mitochondrial_chromosome.fa.gz
-)
-
-URL_SP_gff3="https://www.pombase.org/data/genome_sequence_and_features/gff3/"
-unset gff3_SP && typeset -a gff3_SP=(
-    ${string_SP}_all_chromosomes.gff3.gz
-    ${string_SP}_chr_II_telomeric_gap.gff3.gz
-    ${string_SP}_chromosome_I.gff3.gz
-    ${string_SP}_chromosome_II.gff3.gz
-    ${string_SP}_chromosome_III.gff3.gz
-    ${string_SP}_mating_type_region.gff3.gz
-    ${string_SP}_mitochondrial_chromosome.gff3.gz
-)
-
-#  Time for jobs submitted to SLURM
-time="4:00:00"  # Adjust as needed
-
-#TODO Logic, variables for directories for stderr and stdout for SLURM jobs
+job_bowtie2="build-indices_bowtie2"
+job_bwa="build-indices_bwa"
 
 
 #  Do the main work ===========================================================
-#  Create directories for storing essential FASTA and GFF3 files --------------
-if [[ ! -d "${dir_genomes}/${dir_SC}" ]]; then
-    mkdir -p ${dir_genomes}/${dir_SC}/{err_out,fasta,fasta-processed,gff3,gff3-processed,sgd}
+#  Set flags for checking variable assignments and files
+check_variables=true
+check_file=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_work=${dir_work}
+    file_fa=${file_fa}
+    mod_samtools=${mod_samtools}
+    mod_bowtie2=${mod_bowtie2}
+    mod_bwa=${mod_bwa}
+    time=${time}
+
+    job_bowtie2=${job_bowtie2}
+    job_bwa=${job_bwa}
+    "
 fi
 
-if [[ ! -d "${dir_genomes}/${dir_SP}" ]]; then
-    mkdir -p ${dir_genomes}/${dir_SP}/{err_out,fasta,fasta-processed,gff3,gff3-processed}
+#  If necessary, index fasta
+check_and_load_module "${mod_samtools}"
+
+if [[ "${file_fa}" == *.gz ]]; then
+    gzip -cd "${file_fa}" > "${file_fa%.gz}"
+    file_fa="${file_fa%.gz}"
 fi
 
-
-#  Download and store Saccharomyces cerevisiae FASTA and GFF3 files -----------
-#  Set flags
-check_variables=true   # Check variable assignment
-check_operations=true  # Check operations to download genome files
-run_operations=true    # Run operations to download genome files
-
-#  Echo the download logic if check_operations is true
-if ${check_operations}; then
-    if [[ ! -d "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}" ]]; then
-        job_name="download-extract.${tarball_SC%.tgz}"
-
-        echo "
-        sbatch << EOF
-#!/bin/bash
-
-#SBATCH --job-name=\"${job_name}\"
-#SBATCH --nodes=1
-#SBATCH --time=${time}
-#SBATCH --output=\"${dir_genomes}/${dir_SC}/err_out/${job_name}.out\"
-#SBATCH --error=\"${dir_genomes}/${dir_SC}/err_out/${job_name}.err\"
-
-# Extract tarball command
-download_extract_tarball \\
-    \"${URL_SC}/${tarball_SC}\" \\
-    \"${dir_genomes}/${dir_SC}\"
-EOF
-        "
-    else
-        echo "Warning: Path ${dir_genomes}/${dir_SC}/${tarball_SC%.tgz} exist; skipping download and extraction."
-    fi
+if ${check_file}; then
+    cat "${file_fa}" | grep "^>"
 fi
 
-#  Download and extract the tarball for Saccharomyces cerevisiae
-if ${run_operations}; then
-    if [[ ! -d "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}" ]]; then
-        job_name="download-extract.${tarball_SC%.tgz}"
+if [[ ! -f "${file_fa}.fai" ]]; then samtools faidx "${file_fa}"; fi
 
-        sbatch << EOF
-#!/bin/bash
+#  Create a "chrom-info" file
+cut -f 1,2 "${file_fa}.fai" > "${file_fa/.fa/.chrom-info.tsv}"
 
-#SBATCH --job-name="${job_name}"
-#SBATCH --nodes=1
-#SBATCH --time=${time}
-#SBATCH --output="${dir_genomes}/${dir_SC}/err_out/${job_name}.out"
-#SBATCH --error="${dir_genomes}/${dir_SC}/err_out/${job_name}.err"
+#  Build Bowtie 2 indices
+check_and_load_module "${mod_bowtie2}"
 
-# Extract tarball command
-download_extract_tarball \
-    "${URL_SC}/${tarball_SC}" \
-    "${dir_genomes}/${dir_SC}"
-EOF
-    else
-        echo "Warning: Path ${dir_genomes}/${dir_SC}/${tarball_SC%.tgz} exist; skipping download and extraction."
-    fi
+if [[ ! -d "${dir_work}/bowtie2" ]]; then
+    mkdir -p "${dir_work}/bowtie2/err_out"
 fi
 
-#  Move the downloaded S. cerevisiae files to appropriate storage locations
-if [[ -d "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}" ]]; then
-    mv \
-        "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}/"*.sgd.gz \
-        "${dir_genomes}/${dir_SC}/sgd"
-
-    mv \
-        "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}/"*.gff.gz \
-        "${dir_genomes}/${dir_SC}/gff3"
-
-    mv \
-        "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}/"*.{fasta,fsa}.gz \
-        "${dir_genomes}/${dir_SC}/fasta"
-
-    directory="/path/to/directory"
-
-    if [[ "$(
-        find "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}" \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -print \
-            -quit
-    )" ]]; then
-        echo "Warning: Path ${dir_genomes}/${dir_SC}/${tarball_SC%.tgz} is not empty; skipping directory removal."
-    else
-        rmdir "${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}"
-    fi
-fi
-
-
-#  Download and store Schizosaccharomyces pombe FASTA and GFF3 files ----------
-#  Set flags
-check_variables=true   # Check variable assignment
-check_operations=true  # Check operations to download genome files
-run_operations=true    # Run operations to download genome files
-
-#  Loop through FASTA and GFF3 arrays for Schizosaccharomyces pombe
-iter=0
-for file_type in "fasta" "gff3"; do
-    # file_type="fasta"
-
-    eval array=( \"\${${file_type}_SP[@]}\" )
-    url_base="URL_SP_${file_type}"
-
-    for file in "${array[@]}"; do
-        # file="${array[0]}"
-        
-        (( iter++ ))
-        url="${!url_base}/${file}"
-        output_file="${dir_genomes}/${dir_SP}/${file_type}/${file}"
-        job_name="download.${dir_SP}.${file_type}.${iter}"
-
-        #  Echo loop-dependent variables if check_variables is true
-        if ${check_variables}; then
-            echo "
-            file=${file}
-            url=${url}
-            output_file=${output_file}
-            "
-        fi
-
-        #  Echo the download logic if check_operations is true
-        if ${check_operations}; then
-            echo "
-            ### ${iter} ###
-
-            if \${run_operations} && [[ ! -f \"\${output_file}\" ]]; then
 sbatch << EOF
 #!/bin/bash
 
-#SBATCH --job-name=\"${job_name}\"
+#SBATCH --job-name="${job_bowtie2}"
 #SBATCH --nodes=1
 #SBATCH --time=${time}
-#SBATCH --output=\"${dir_genomes}/${dir_SP}/err_out/${job_name}.out\"
-#SBATCH --error=\"${dir_genomes}/${dir_SP}/err_out/${job_name}.err\"
+#SBATCH --error="${dir_work}/bowtie2/err_out/${job_bowtie2}.%A.stderr.txt"
+#SBATCH --output="${dir_work}/bowtie2/err_out/${job_bowtie2}.%A.stdout.txt"
 
-# Download command
-download_file \\
-    \"${url}\" \\
-    \"${output_file}\"
+bowtie2-build \
+    "${file_fa}" \
+    "${dir_work}/bowtie2/$(basename ${file_fa} .fa)"
 EOF
-            fi
-            "
-        fi
 
-        #  Download the file if run_operations is true
-        if ${run_operations} && [[ ! -f "${output_file}" ]]; then
+#  Build BWA indices
+check_and_load_module "${mod_bwa}"
+
+if [[ ! -d "${dir_work}/bwa" ]]; then
+    mkdir -p "${dir_work}/bwa/err_out"
+fi
+
+if [[ ! -f "${dir_work}/bwa/$(basename ${file_fa})" ]]; then
+    cp "${file_fa}" "${dir_work}/bwa/$(basename ${file_fa})"
+fi
+
+if [[ "$(pwd)" != "${dir_work}/bwa" ]]; then
+    cd "${dir_work}/bwa" \
+        || error_and_return "cd'ing failed; check on this."
+fi
+
 sbatch << EOF
 #!/bin/bash
 
-#SBATCH --job-name="${job_name}"
+#SBATCH --job-name="${job_bwa}"
 #SBATCH --nodes=1
 #SBATCH --time=${time}
-#SBATCH --output="${dir_genomes}/${dir_SP}/err_out/${job_name}.out"
-#SBATCH --error="${dir_genomes}/${dir_SP}/err_out/${job_name}.err"
+#SBATCH --error="${dir_work}/bwa/err_out/${job_bwa}.%A.stderr.txt"
+#SBATCH --output="${dir_work}/bwa/err_out/${job_bwa}.%A.stdout.txt"
 
-# Download command
-download_file \
-    "${url}" \
-    "${output_file}"
+bwa index "$(basename ${file_fa})"
 EOF
-        fi
-
-        sleep 0.2
-    done
-done
-
-
-#  Prepare S. cerevisiae fasta for concatenation with S. pombe fasta ----------
-check_file=true
-check_directory=true
-
-#  Copy relevant S. cerevisiae fasta from fasta/ to fasta-processed/
-cp \
-    "${dir_genomes}/${dir_SC}/fasta/S288C_reference_sequence_R64-3-1_20210421.fsa.gz" \
-    "${dir_genomes}/${dir_SC}/fasta-processed"
-
-#  Check the chromosome names in the fasta
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SC}/fasta-processed/"*.fsa.gz | grep "^>"
-fi
-
-#  Simplify the names of chromosomes in the S. cerevisiae fasta
-if [[ -f "${dir_genomes}/${dir_SC}/fasta-processed/tmp.fa" ]]; then
-    rm "${dir_genomes}/${dir_SC}/fasta-processed/tmp.fa"
-fi
-
-zcat "${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fsa.gz" \
-    | sed 's/^>ref|NC_001133|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=I\]/>I/g;s/^>ref|NC_001134|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=II\]/>II/g;s/^>ref|NC_001135|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=III\]/>III/g;s/^>ref|NC_001136|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=IV\]/>IV/g;s/^>ref|NC_001137|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=V\]/>V/g;s/^>ref|NC_001138|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=VI\]/>VI/g;s/^>ref|NC_001139|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=VII\]/>VII/g;s/^>ref|NC_001140|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=VIII\]/>VIII/g;s/^>ref|NC_001141|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=IX\]/>IX/g;s/^>ref|NC_001142|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=X\]/>X/g;s/^>ref|NC_001143|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XI\]/>XI/g;s/^>ref|NC_001144|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XII\]/>XII/g;s/^>ref|NC_001145|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XIII\]/>XIII/g;s/^>ref|NC_001146|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XIV\]/>XIV/g;s/^>ref|NC_001147|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XV\]/>XV/g;s/^>ref|NC_001148|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[chromosome=XVI\]/>XVI/g;s/^>ref|NC_001224|\ \[org=Saccharomyces\ cerevisiae\]\ \[strain=S288C\]\ \[moltype=genomic\]\ \[location=mitochondrion\]\ \[top=circular\]/>Mito/g' \
-        > "${dir_genomes}/${dir_SC}/fasta-processed/tmp.fa"
-
-#  Check the new chromosome names in "tmp.fa"
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SC}/fasta-processed/tmp.fa" | grep "^>"
-fi
-
-#  Remove the intial infile
-rm "${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fsa.gz"
-
-#  Rename "tmp.fa" to "S288C_reference_sequence_R64-3-1_20210421.fa"
-mv -f \
-    "${dir_genomes}/${dir_SC}/fasta-processed/tmp.fa" \
-    "${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa"
-
-#  Compress "S288C_reference_sequence_R64-3-1_20210421.fa"
-gzip "${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa"
-
-#  Check the directory contents
-if ${check_directory}; then
-    ls -lhaFG "${dir_genomes}/${dir_SC}/fasta-processed"
-fi
-
-#  Check the chromosome names
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
-        | grep "^>"
-fi
-
-
-#  Prepare S. cerevisiae gff3 for concatenation with S. pombe gff3 ------------
-check_file=true
-check_directory=true
-
-#  Copy relevant S. cerevisiae gff3 from gff3/ to gff3-processed/
-cp \
-    "${dir_genomes}/${dir_SC}/gff3/saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz" \
-    "${dir_genomes}/${dir_SC}/gff3-processed"
-
-#  What do chromosome names look like?
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz" \
-        | cut -f 1 \
-        | sort \
-        | uniq \
-        | head -100
-fi
-#NOTE There are fasta sequences in this file that need to be excluded
-
-#  Decompress "saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz"
-gzip -cd \
-    "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz" \
-        > "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff"
-
-#  Remove everything after line containing ### (fasta chromosome sequences)
-if [[ -f "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3" ]]; then
-    rm "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3"
-fi
-
-sed -n '/###/q;p' \
-    < "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff" \
-    > "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3"
-
-#  Check the chromosome names now that fasta sequences are gone
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
-
-#  Use sed to rename chromosomes; save the results to "tmp_2.gff3"
-cat "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3" \
-    | sed 's/^chr//g;s/^mt/Mito/g' \
-        > "${dir_genomes}/${dir_SC}/gff3-processed/tmp_2.gff3"
-
-#  Check the chromosome names in the updated file
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SC}/gff3-processed/tmp_2.gff3" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
-
-#  Check on the file contents
-if ${check_file}; then
-    echo "### head ###"
-    head -25 "${dir_genomes}/${dir_SC}/gff3-processed/tmp_2.gff3"
-    echo ""
-
-    echo "### tail ###"
-    tail "${dir_genomes}/${dir_SC}/gff3-processed/tmp_2.gff3"
-    echo ""
-fi
-
-#  Rename "tmp_2.gff3" to "saccharomyces_cerevisiae_R64-3-1_20210421.gff3"
-mv \
-    "${dir_genomes}/${dir_SC}/gff3-processed/tmp_2.gff3" \
-    "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3"
-
-#  Compress "saccharomyces_cerevisiae_R64-3-1_20210421.gff3"
-gzip "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3"
-
-#  Check the directory contents
-if ${check_directory}; then
-    ls -lhaFG "${dir_genomes}/${dir_SC}/gff3-processed"
-fi
-
-#  Remove unneeded files
-rm \
-    "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff" \
-    "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz" \
-    "${dir_genomes}/${dir_SC}/gff3-processed/tmp.gff3"
-
-#  Check the directory contents again
-if ${check_directory}; then
-    ls -lhaFG "${dir_genomes}/${dir_SC}/gff3-processed"
-fi
-
-#  Check chromosome names again
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
-
-
-#  Prepare S. pombe fasta for concatenation with S. cerevesiae fasta ----------
-check_file=true
-check_directory=true
-
-#  Copy relevant S. pombe fasta from fasta/ to fasta-processed/
-cp \
-    "${dir_genomes}/${dir_SP}/fasta/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
-    "${dir_genomes}/${dir_SP}/fasta-processed"
-
-#  What do chromosome names look like?
-if ${check_file}; then
-    zgrep "^>" "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz"
-fi
-
-#  Create a decompressed version of the fasta
-gzip -cd \
-    "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
-        > "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa"
-
-#  Use sed to rename chromosomes; save the results to "tmp.fa"
-if [[ -f "${dir_genomes}/${dir_SP}/fasta-processed/tmp.fa" ]]; then
-    rm "${dir_genomes}/${dir_SP}/fasta-processed/tmp.fa"
-fi
-
-cat "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa" \
-    | sed 's/^>chr_II_telomeric_gap\ Schizosaccharomyces_pombe/>SP_II_TG/g;s/^>I\ Schizosaccharomyces_pombe/>SP_I/g;s/^>II\ Schizosaccharomyces_pombe/>SP_II/g;s/^>III\ Schizosaccharomyces_pombe/>SP_III/g;s/^>mating_type_region\ Schizosaccharomyces_pombe/>SP_MTR/g;s/^>mitochondrial\ Schizosaccharomyces_pombe/>SP_Mito/g' \
-        > "${dir_genomes}/${dir_SP}/fasta-processed/tmp.fa"
-
-#  Check the new chromosome names
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SP}/fasta-processed/tmp.fa" | grep "^>"
-fi
-
-#  Overwrite the initial file with the contents of "tmp.fa"
-mv -f \
-    "${dir_genomes}/${dir_SP}/fasta-processed/tmp.fa" \
-    "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa"
-
-#  Double check chromosome names
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa" \
-        | grep "^>"
-fi
-
-#  Remove the compressed initial file
-rm "${dir_genomes}/${dir_SP}/fasta-processed/"*.gz
-
-#  Compress the updated file (with new chromosome names)
-gzip "${dir_genomes}/${dir_SP}/fasta-processed/"*.fa
-
-#  Check the directory
-if ${check_directory}; then
-    ls -lhaFG "${dir_genomes}/${dir_SP}/fasta-processed"
-fi
-
-#  Check chromosome names again
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz" \
-        | grep "^>"
-fi
-
-
-#  Prepare S. pombe gff3 for concatenation with S. cerevesiae gff3 ------------
-check_file=true
-check_directory=true
-
-#  Copy relevant S. pombe fasta from fasta/ to fasta-processed/
-cp \
-    "${dir_genomes}/${dir_SP}/gff3/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
-    "${dir_genomes}/${dir_SP}/gff3-processed"
-
-#  What do chromosome names look like?
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
-
-#  Use sed to rename chromosomes; save the results to "tmp.gff3"
-zcat "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
-    | sed 's/^chr_II_telomeric_gap/SP_II_TG/g;s/^I/SP_I/g;s/^II/SP_II/g;s/^III/SP_III/g;s/^mating_type_region/SP_MTR/g;s/^mitochondrial/SP_Mito/g' \
-        > "${dir_genomes}/${dir_SP}/gff3-processed/tmp.gff3"
-
-#  Check on the file contents
-if ${check_file}; then
-    echo "### head ###"
-    head "${dir_genomes}/${dir_SP}/gff3-processed/tmp.gff3"
-    echo ""
-
-    echo "### tail ###"
-    tail "${dir_genomes}/${dir_SP}/gff3-processed/tmp.gff3"
-    echo ""
-
-    echo "### tail (initial) ###"
-    zcat "${dir_genomes}/${dir_SP}/gff3/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
-        | tail
-fi
-
-#  Check on the chromosome names in "tmp.gff3"
-if ${check_file}; then
-    cat "${dir_genomes}/${dir_SP}/gff3-processed/tmp.gff3" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
-
-#  Rename "tmp.gff3" to "Schizosaccharomyces_pombe_all_chromosomes.gff3"
-mv -f \
-    "${dir_genomes}/${dir_SP}/gff3-processed/tmp.gff3" \
-    "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3"
-
-#  Remove the initial gzipped file
-rm "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz"
-
-#  Compress "Schizosaccharomyces_pombe_all_chromosomes.gff3"
-gzip "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3"
-
-#  Check the directory contents
-if ${check_directory}; then
-    ls -lhaFG "${dir_genomes}/${dir_SP}/gff3-processed"
-fi
-
-#  Check chromosome names again
-if ${check_file}; then
-    zcat "${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz" \
-        | cut -f 1 \
-        | sort \
-        | uniq
-fi
 ```
 </details>
+<br />
 <br />
 
 <a id="notes-3"></a>
@@ -1703,15 +1494,17 @@ fi
         - `${HOME}/genomes/Schizosaccharomyces_pombe/gff3`
         - `${HOME}/genomes/Saccharomyces_cerevisiae/fasta`
         - `${HOME}/genomes/Saccharomyces_cerevisiae/gff3`
+
+\#TODO To be continued after modularizing the above
 </details>
 <br />
 
-<a id="b-create-bowtie2-indices-for-the-concatenated-assembly"></a>
-## b. Create bowtie2 indices for the concatenated assembly
-<a id="code-4"></a>
+<a id="d-use-bowtie2-to-align-the-trimmed-fastq-files"></a>
+## d. Use `bowtie2` to align the trimmed FASTQ files
+<a id="code-6"></a>
 ### Code
 <details>
-<summary><i>Code: 3.b. Create bowtie2 indices for the concatenated assembly</i></summary>
+<summary><i>Code: 3.d. Use `bowtie2` to align the trimmed FASTQ files</i></summary>
 
 ```bash
 #!/bin/bash
@@ -1725,26 +1518,16 @@ function error_and_return() {
 }
 
 
-```
-</details>
-<br />
-
-<a id="c-use-bowtie2-to-align-the-trimmed-fastq-files"></a>
-## c. Use bowtie2 to align the trimmed FASTQ files
-<a id="code-5"></a>
-### Code
-<details>
-<summary><i>Code: 3.c. Use bowtie2 to align the trimmed FASTQ files</i></summary>
-
-```bash
-#!/bin/bash
-
-#  Define function ============================================================
-#  Function to return an error message and exit code 1, which stops the
-#+ interactive execution of code
-function error_and_return() {
-    echo "Error: ${1}" >&2
-    return 1
+#  Function to check if a SLURM module is loaded or not; if not, the module is
+#+ loaded
+check_and_load_module() {
+    local module_name="${1}"
+    if ! module is-loaded "${module_name}" &> /dev/null; then
+        echo "Loading module: ${module_name}"
+        module load "${module_name}"
+    else
+        echo "Module already loaded: ${module_name}"
+    fi
 }
 
 
@@ -1756,6 +1539,10 @@ dir_trim="02_trim"                                       # Directory for trimmed
 dir_bwt2="03_bam/bowtie2"
 time="8:00:00"                                           # Job time for SLURM
 threads=8                                                # Number of threads for SLURM jobs
+
+mod_bowtie2="Bowtie2/2.4.4-GCC-11.2.0"
+mod_samtools="SAMtools/1.16.1-GCC-11.2.0"
+mod_bedtools="BEDTools/2.30.0-GCC-11.2.0"
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
@@ -1815,6 +1602,9 @@ if ${check_variables}; then
     dir_bwt2=${dir_bwt2}
     time=${time}
     threads=${threads}
+
+    mod_bowtie2=${mod_bowtie2}
+    mod_samtools=${mod_samtools}
     "
 fi
 
@@ -1831,20 +1621,13 @@ if ${check_array}; then
 fi
 
 #  If the module for Bowtie2 is not loaded, then load it
-if ! module list 2>&1 | grep -iq "bowtie2"; then
-    echo "Loading Bowtie2 module..."
-    module load Bowtie2/2.4.4-GCC-11.2.0
-else
-    echo "Bowtie2 module is already loaded"
-fi
+check_and_load_module "${mod_bowtie2}"
 
 #  If the corresponding Samtools module is not loaded, then load it
-if ! module list 2>&1 | grep -iq "samtools"; then
-    echo "Loading Samtools module..."
-    module load SAMtools/1.16.1-GCC-11.2.0
-else
-    echo "Samtools module is already loaded"
-fi
+check_and_load_module "${mod_samtools}"
+
+#  Load also BEDtools
+check_and_load_module "${mod_bedtools}"
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
@@ -1856,6 +1639,7 @@ if [[ ! -d "${dir_bwt2}" ]]; then
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
+print_iteration=true
 check_variables=true
 check_operations=true
 run_operations=false
@@ -1870,6 +1654,14 @@ for i in "${!file_fastqs[@]}"; do
     trim_2="${dir_trim}/${stem}_R2.atria.fastq.gz"
     bam="${dir_bwt2}/${stem}.bam"
 
+    #  Echo current iteration
+    if ${print_iteration}; then
+        echo "
+        #  -------------------------------------
+        ### ${iter} ###
+        "
+    fi
+    
     #  Echo loop-dependent variables if check_variables is true
     if ${check_variables}; then
         echo "
@@ -1886,9 +1678,6 @@ for i in "${!file_fastqs[@]}"; do
     #  Echo the Atria trimming command if check_operations is true
     if ${check_operations}; then
         echo "
-        #  -------------------------------------
-        ### ${iter} ###
-
         if [[
                  -f \"${trim_1}\" \\
             &&   -f \"${trim_2}\" \\
@@ -2016,11 +1805,11 @@ fi
 <br />
 
 <a id="e-use-bwa-to-align-the-trimmed-fastq-files"></a>
-## e. Use bwa to align the trimmed FASTQ files
-<a id="code-6"></a>
+## e. Use `bwa` to align the trimmed FASTQ files
+<a id="code-7"></a>
 ### Code
 <details>
-<summary><i>Code: 3.e. Use bwa to align the trimmed FASTQ files</i></summary>
+<summary><i>Code: 3.e. Use `bwa` to align the trimmed FASTQ files</i></summary>
 
 ```bash
 #!/bin/bash

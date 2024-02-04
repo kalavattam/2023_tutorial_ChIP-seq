@@ -72,6 +72,20 @@
         1. [Code](#code-6)
     1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
         1. [Code](#code-7)
+1. [4. Miscellaneous \(to be organized\)](#4-miscellaneous-to-be-organized)
+    1. [a. Determination of low-complexity regions \(semi-blacklisting\)](#a-determination-of-low-complexity-regions-semi-blacklisting)
+        1. [i. Install sdust via minimap](#i-install-sdust-via-minimap)
+            1. [Code](#code-8)
+            1. [Printed](#printed)
+        1. [ii. Run sdust via minimap](#ii-run-sdust-via-minimap)
+            1. [Code](#code-9)
+    1. [b. Determination of *S. cerevisiae* effective genome sizes](#b-determination-of-s-cerevisiae-effective-genome-sizes)
+        1. [i. Install khmer](#i-install-khmer)
+            1. [Code](#code-10)
+            1. [Printed](#printed-1)
+        1. [ii. Run khmer](#ii-run-khmer)
+            1. [Code](#code-11)
+            1. [Printed](#printed-2)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -111,7 +125,7 @@ dir_sym="01_sym"                                         # Directory name where 
 #+ 
 #+ - Here, "IP" signifies ChIP-seq "immunoprecipitate" assay or experiment,
 #+   i.e., the ChIP-seq data for the factor of interest
-#+ - "in" denotes the ChIP-seq "input" assay, the... #TODO Write this.
+#+ - "in" denotes the ChIP-seq "input" assay, the... #TODO Write this
 unset file_fastqs && typeset -A file_fastqs=(
     # ["6336_G1_in_S15"]="in_G1_Hho1_6336"
     # ["6336_G1_lP_S27"]="IP_G1_Hho1_6336"
@@ -881,44 +895,44 @@ threads=4                                                          # Number of t
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    # "in_G1_Hho1_6336"
-    # "IP_G1_Hho1_6336"
-    # "in_G2M_Hho1_6336"
-    # "IP_G2M_Hho1_6336"
-    # "in_Q_Hho1_6336"
-    # "IP_Q_Hho1_6336"
-    # "in_G1_Hho1_6337"
-    # "IP_G1_Hho1_6337"
-    # "in_G2M_Hho1_6337"
-    # "IP_G2M_Hho1_6337"
-    # "in_Q_Hho1_6337"
-    # "IP_Q_Hho1_6337"
-    # "in_G1_Hmo1_7750"
-    # "IP_G1_Hmo1_7750"
-    # "in_G2M_Hmo1_7750"
-    # "IP_G2M_Hmo1_7750"
-    # "in_Q_Hmo1_7750"
-    # "IP_Q_Hmo1_7750"
-    # "in_G1_Hmo1_7751"
-    # "IP_G1_Hmo1_7751"
-    # "in_G2M_Hmo1_7751"
-    # "IP_G2M_Hmo1_7751"
-    # "in_Q_Hmo1_7751"
-    # "IP_Q_Hmo1_7751"
-    "in_Q_untagged_5781"
-    "IP_Q_untagged_5781"
-    "in_Q_Esa5_7041"
-    "IP_Q_Esa5_7041"
-    "in_Q_Rpd3_7568"
-    "IP_Q_Rpd3_7568"
-    "in_Q_Rpd3_7569"
-    "IP_Q_Rpd3_7569"
-    "in_Q_Esa5_7691"
-    "IP_Q_Esa5_7691"
-    "in_Q_Gcn5_7692"
-    "IP_Q_Gcn5_7692"
-    "in_Q_Gcn5_7709"
-    "IP_Q_Gcn5_7709"
+    "in_G1_Hho1_6336"
+    "IP_G1_Hho1_6336"
+    "in_G2M_Hho1_6336"
+    "IP_G2M_Hho1_6336"
+    "in_Q_Hho1_6336"
+    "IP_Q_Hho1_6336"
+    "in_G1_Hho1_6337"
+    "IP_G1_Hho1_6337"
+    "in_G2M_Hho1_6337"
+    "IP_G2M_Hho1_6337"
+    "in_Q_Hho1_6337"
+    "IP_Q_Hho1_6337"
+    "in_G1_Hmo1_7750"
+    "IP_G1_Hmo1_7750"
+    "in_G2M_Hmo1_7750"
+    "IP_G2M_Hmo1_7750"
+    "in_Q_Hmo1_7750"
+    "IP_Q_Hmo1_7750"
+    "in_G1_Hmo1_7751"
+    "IP_G1_Hmo1_7751"
+    "in_G2M_Hmo1_7751"
+    "IP_G2M_Hmo1_7751"
+    "in_Q_Hmo1_7751"
+    "IP_Q_Hmo1_7751"
+    # "in_Q_untagged_5781"
+    # "IP_Q_untagged_5781"
+    # "in_Q_Esa5_7041"
+    # "IP_Q_Esa5_7041"
+    # "in_Q_Rpd3_7568"
+    # "IP_Q_Rpd3_7568"
+    # "in_Q_Rpd3_7569"
+    # "IP_Q_Rpd3_7569"
+    # "in_Q_Esa5_7691"
+    # "IP_Q_Esa5_7691"
+    # "in_Q_Gcn5_7692"
+    # "IP_Q_Gcn5_7692"
+    # "in_Q_Gcn5_7709"
+    # "IP_Q_Gcn5_7709"
 )
 
 
@@ -1169,6 +1183,8 @@ job_name="download-preprocess_SC-SP"
 cd "${dir_base}/${dir_repo}/${dir_work}" ||
     echo "cd'ing failed; check on this"
 
+#  Submit to SLURM a script that downloads and preprocesses the FASTA and GFF3
+#+ files for S. cerevisiae and S. pombe
 sbatch \
     --job-name="${job_name}" \
     --nodes=1 \
@@ -1366,7 +1382,7 @@ function error_and_return() {
 
 #  Function to check if a SLURM module is loaded or not; if not, the module is
 #+ loaded
-check_and_load_module() {
+function check_and_load_module() {
     local module_name="${1}"
     if ! module is-loaded "${module_name}" &> /dev/null; then
         echo "Loading module: ${module_name}"
@@ -1409,30 +1425,35 @@ if ${check_variables}; then
     "
 fi
 
-#  If necessary, index fasta
+
+#  Index the FASTA file -----------------------------------
 check_and_load_module "${mod_samtools}"
 
+#  If necessary, unzip the FASTA file
 if [[ "${file_fa}" == *.gz ]]; then
     gzip -cd "${file_fa}" > "${file_fa%.gz}"
     file_fa="${file_fa%.gz}"
 fi
 
-if ${check_file}; then
-    cat "${file_fa}" | grep "^>"
-fi
+#  Check on the chromosomes in the FASTA file
+if ${check_file}; then cat "${file_fa}" | grep "^>"; fi
 
+#  If necessary, index the FASTA file
 if [[ ! -f "${file_fa}.fai" ]]; then samtools faidx "${file_fa}"; fi
 
-#  Create a "chrom-info" file
+#  Create a CHROM-INFO file using the FASTA index
 cut -f 1,2 "${file_fa}.fai" > "${file_fa/.fa/.chrom-info.tsv}"
 
-#  Build Bowtie 2 indices
+
+#  Build Bowtie 2 indices ---------------------------------
 check_and_load_module "${mod_bowtie2}"
 
+#  Create a directory for storing the Bowtie 2 indices
 if [[ ! -d "${dir_work}/bowtie2" ]]; then
     mkdir -p "${dir_work}/bowtie2/err_out"
 fi
 
+#  Using a HEREDOC, submit to SLURM a job for creating Bowtie 2 indices
 sbatch << EOF
 #!/bin/bash
 
@@ -1447,22 +1468,27 @@ bowtie2-build \
     "${dir_work}/bowtie2/$(basename ${file_fa} .fa)"
 EOF
 
-#  Build BWA indices
+
+#  Build BWA indices --------------------------------------
 check_and_load_module "${mod_bwa}"
 
+#  Create a directory for storing the BWA indices
 if [[ ! -d "${dir_work}/bwa" ]]; then
     mkdir -p "${dir_work}/bwa/err_out"
 fi
 
+#  Copy the FASTA info the directory for storing BWA indices
 if [[ ! -f "${dir_work}/bwa/$(basename ${file_fa})" ]]; then
     cp "${file_fa}" "${dir_work}/bwa/$(basename ${file_fa})"
 fi
 
+#  Relocate to the directory for storing BWA indices
 if [[ "$(pwd)" != "${dir_work}/bwa" ]]; then
     cd "${dir_work}/bwa" \
         || error_and_return "cd'ing failed; check on this."
 fi
 
+#  Using a HEREDOC, submit to SLURM a job for creating BWA indices
 sbatch << EOF
 #!/bin/bash
 
@@ -1520,7 +1546,7 @@ function error_and_return() {
 
 #  Function to check if a SLURM module is loaded or not; if not, the module is
 #+ loaded
-check_and_load_module() {
+function check_and_load_module() {
     local module_name="${1}"
     if ! module is-loaded "${module_name}" &> /dev/null; then
         echo "Loading module: ${module_name}"
@@ -1535,8 +1561,10 @@ check_and_load_module() {
 dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
 dir_repo="Kris/2023_rDNA"                                # Repository directory
 dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+dir_untr="01_sym"                                        # Directory for initial, non-trimmed FASTQs
 dir_trim="02_trim"                                       # Directory for trimmed FASTQs
 dir_bwt2="03_bam/bowtie2"
+dir_indx="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
 time="8:00:00"                                           # Job time for SLURM
 threads=8                                                # Number of threads for SLURM jobs
 
@@ -1546,44 +1574,44 @@ mod_bedtools="BEDTools/2.30.0-GCC-11.2.0"
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    "in_G1_Hho1_6336"
-    "IP_G1_Hho1_6336"
-    "in_G2M_Hho1_6336"
-    "IP_G2M_Hho1_6336"
-    "in_Q_Hho1_6336"
-    "IP_Q_Hho1_6336"
-    "in_G1_Hho1_6337"
-    "IP_G1_Hho1_6337"
-    "in_G2M_Hho1_6337"
-    "IP_G2M_Hho1_6337"
-    "in_Q_Hho1_6337"
-    "IP_Q_Hho1_6337"
-    "in_G1_Hmo1_7750"
-    "IP_G1_Hmo1_7750"
-    "in_G2M_Hmo1_7750"
-    "IP_G2M_Hmo1_7750"
-    "in_Q_Hmo1_7750"
-    "IP_Q_Hmo1_7750"
-    "in_G1_Hmo1_7751"
-    "IP_G1_Hmo1_7751"
-    "in_G2M_Hmo1_7751"
-    "IP_G2M_Hmo1_7751"
-    "in_Q_Hmo1_7751"
-    "IP_Q_Hmo1_7751"
-    "in_Q_untagged_5781"
-    "IP_Q_untagged_5781"
-    "in_Q_Esa5_7041"
-    "IP_Q_Esa5_7041"
-    "in_Q_Rpd3_7568"
-    "IP_Q_Rpd3_7568"
-    "in_Q_Rpd3_7569"
-    "IP_Q_Rpd3_7569"
-    "in_Q_Esa5_7691"
-    "IP_Q_Esa5_7691"
-    "in_Q_Gcn5_7692"
-    "IP_Q_Gcn5_7692"
-    "in_Q_Gcn5_7709"
-    "IP_Q_Gcn5_7709"
+    "${dir_trim}/in_G1_Hho1_6336"
+    "${dir_trim}/IP_G1_Hho1_6336"
+    "${dir_trim}/in_G2M_Hho1_6336"
+    "${dir_trim}/IP_G2M_Hho1_6336"
+    "${dir_trim}/in_Q_Hho1_6336"
+    "${dir_trim}/IP_Q_Hho1_6336"
+    "${dir_trim}/in_G1_Hho1_6337"
+    "${dir_trim}/IP_G1_Hho1_6337"
+    "${dir_trim}/in_G2M_Hho1_6337"
+    "${dir_trim}/IP_G2M_Hho1_6337"
+    "${dir_trim}/in_Q_Hho1_6337"
+    "${dir_trim}/IP_Q_Hho1_6337"
+    "${dir_trim}/in_G1_Hmo1_7750"
+    "${dir_trim}/IP_G1_Hmo1_7750"
+    "${dir_trim}/in_G2M_Hmo1_7750"
+    "${dir_trim}/IP_G2M_Hmo1_7750"
+    "${dir_trim}/in_Q_Hmo1_7750"
+    "${dir_trim}/IP_Q_Hmo1_7750"
+    "${dir_trim}/in_G1_Hmo1_7751"
+    "${dir_trim}/IP_G1_Hmo1_7751"
+    "${dir_trim}/in_G2M_Hmo1_7751"
+    "${dir_trim}/IP_G2M_Hmo1_7751"
+    "${dir_trim}/in_Q_Hmo1_7751"
+    "${dir_trim}/IP_Q_Hmo1_7751"
+    "${dir_untr}/in_Q_untagged_5781"
+    "${dir_untr}/IP_Q_untagged_5781"
+    "${dir_untr}/in_Q_Esa5_7041"
+    "${dir_untr}/IP_Q_Esa5_7041"
+    "${dir_untr}/in_Q_Rpd3_7568"
+    "${dir_untr}/IP_Q_Rpd3_7568"
+    "${dir_untr}/in_Q_Rpd3_7569"
+    "${dir_untr}/IP_Q_Rpd3_7569"
+    "${dir_untr}/in_Q_Esa5_7691"
+    "${dir_untr}/IP_Q_Esa5_7691"
+    "${dir_untr}/in_Q_Gcn5_7692"
+    "${dir_untr}/IP_Q_Gcn5_7692"
+    "${dir_untr}/in_Q_Gcn5_7709"
+    "${dir_untr}/IP_Q_Gcn5_7709"
 )
 
 
@@ -1598,25 +1626,37 @@ if ${check_variables}; then
     dir_base=${dir_base}
     dir_repo=${dir_repo}
     dir_work=${dir_work}
+    dir_untr=${dir_untr}
     dir_trim=${dir_trim}
     dir_bwt2=${dir_bwt2}
+    dir_indx=${dir_indx}
     time=${time}
     threads=${threads}
 
     mod_bowtie2=${mod_bowtie2}
     mod_samtools=${mod_samtools}
+    mod_bedtools=${mod_bedtools}
     "
 fi
 
 #  Echo array contents if check_array is true
 if ${check_array}; then
-    for i in "${file_fastqs[@]}"; do
-        file="${i}"
+    for i in "${!file_fastqs[@]}"; do
+        file="${file_fastqs[${i}]}"
 
-        echo "
-        read #1 ...... ${file}_R1.atria.fastq.gz
-        read #2 ...... ${file}_R2.atria.fastq.gz
-        "
+        if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
+            echo "
+            read #1 ...... ${file}_R1.atria.fastq.gz
+            read #2 ...... ${file}_R2.atria.fastq.gz
+            "
+        elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
+            echo "
+            read #1 ...... ${file}_R1.fastq.gz
+            read #2 ...... ${file}_R2.fastq.gz
+            "
+        else
+            error_and_return "Processing logic problem for ${file}."
+        fi
     done
 fi
 
@@ -1635,7 +1675,7 @@ cd "${dir_base}/${dir_repo}/${dir_work}" \
 
 #  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
 if [[ ! -d "${dir_bwt2}" ]]; then
-    mkdir -p "${dir_bwt2}/err_out"
+    mkdir -p "${dir_bwt2}/"{err_out,bam,bed,txt}
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
@@ -1648,11 +1688,28 @@ for i in "${!file_fastqs[@]}"; do
     # i=0
     index="${i}"
     iter=$(( index + 1 ))
-    stem=${file_fastqs["${index}"]}
+    file="${file_fastqs[${index}]}"
+    stem="$(basename ${file})"
     job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
-    trim_1="${dir_trim}/${stem}_R1.atria.fastq.gz"
-    trim_2="${dir_trim}/${stem}_R2.atria.fastq.gz"
-    bam="${dir_bwt2}/${stem}.bam"
+    
+    if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
+        fastq_1=${file}_R1.atria.fastq.gz
+        fastq_2=${file}_R2.atria.fastq.gz
+    elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
+        fastq_1=${file}_R1.fastq.gz
+        fastq_2=${file}_R2.fastq.gz
+    else
+        error_and_return "Processing logic problem for ${file}."
+    fi
+    
+    bam="${dir_bwt2}/bam/${stem}.bam"
+    bam_coor="${bam/.bam/.sort-coord.bam}"
+    bam_quer="${bam/.bam/.sort-qname.bam}"
+    bed="${dir_bwt2}/bed/${stem}.bed.gz"
+
+    txt_flg="${dir_bwt2}/txt/${stem}.samtools-flagstat.txt"
+    txt_idx="${dir_bwt2}/txt/${stem}.samtools-idxstats.txt"
+    txt_dep="${dir_bwt2}/txt/${stem}.samtools-depth.txt"
 
     #  Echo current iteration
     if ${print_iteration}; then
@@ -1667,11 +1724,21 @@ for i in "${!file_fastqs[@]}"; do
         echo "
         index=${index}
         iter=${iter}
+        file=${file}
         stem=${stem}
         job_name=${job_name}
-        trim_1=${trim_1}
-        trim_2=${trim_2}
+        
+        fastq_1=${fastq_1}
+        fastq_2=${fastq_2}
+
         bam=${bam}
+        bam_coor=${bam_coor}
+        bam_quer=${bam_quer}
+        bed=${bed}
+
+        txt_flg=${txt_flg}
+        txt_idx=${txt_idx}
+        txt_dep=${txt_dep}
         "
     fi
 
@@ -1679,9 +1746,11 @@ for i in "${!file_fastqs[@]}"; do
     if ${check_operations}; then
         echo "
         if [[
-                 -f \"${trim_1}\" \\
-            &&   -f \"${trim_2}\" \\
-            && ! -f \"${bam}\"
+                 -f \"${fastq_1}\" \\
+            &&   -f \"${fastq_2}\" \\
+            && ! -f \"${bam_coor}\" \\
+            && ! -f \"${bam_quer}\" \\
+            && ! -f \"${bed}\"
         ]]; then
 sbatch << EOF
 #!/bin/bash
@@ -1693,28 +1762,156 @@ sbatch << EOF
 #SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
 #SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
 
-bowtie2 \\
-    -p ${threads} \\
-    -x \"${f_indices}\" \\
-    --very-sensitive-local \\
-    --no-unal \\
-    --no-mixed \\
-    --no-discordant \\
-    --no-overlap \\
-    --no-dovetail \\
-    --phred33 \\
-    -I 10 \\
-    -X 700 \\
-    -1 \"${trim_1}\" \\
-    -2 \"${trim_2}\" \\
-        | samtools sort \\
+#  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
+#+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
+#+ retain only properly paired reads (-f 2) that are high-quality multi-reads
+#+ or any-quality maxi-reads (-q 1)
+#+ 
+#+ On how to interpret Bowtie 2 MAPQ scores:
+#+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+if [[ ! -f \"${bam}\" ]]; then
+    bowtie2 \\
+        -p ${threads} \\
+        -x \"${dir_indx}\" \\
+        --very-sensitive-local \\
+        --no-unal \\
+        --no-mixed \\
+        --no-discordant \\
+        --no-overlap \\
+        --no-dovetail \\
+        --phred33 \\
+        -I 10 \\
+        -X 700 \\
+        -1 \"${fastq_1}\" \\
+        -2 \"${fastq_2}\" \\
+            | samtools view \\
+                -@ ${threads} \\
+                -b \\
+                -f 2 \\
+                -q 1 \\
+                -o \"${bam}\"
+fi
+
+#  Check if the BAM file exists to perform further operations
+if [[ -f \"${bam}\" ]]; then
+    #  Sort the BAM file by queryname if not already done
+    if [[ ! -f \"${bam_quer}\" ]]; then
+        samtools sort \\
             -@ ${threads} \\
-            -T \"${scratch}\" \\
-            -O bam \\
-            -o \"${bam}\"
+            -n \\
+            -o \"${bam_quer}\" \\
+            \"${bam}\"
+    fi
+
+    #  Fix the paired read mate information, which is required after sorting by
+    #+ queryname for subsequent operations
+    if [[ -f \"${bam_quer}\" ]]; then
+        samtools fixmate \\
+            -@ ${threads} \\
+            -m \\
+            \"${bam_quer}\" \\
+            \"${bam_quer%.bam}.tmp.bam\"
+
+        #  Replace the original queryname-sorted BAM with queryname-sorted
+        #+ mate-fixed BAM
+        if [[ -f \"${bam_quer%.bam}.tmp.bam\" ]]; then
+            mv -f \\
+                \"${bam_quer%.bam}.tmp.bam\" \\
+                \"${bam_quer}\"
+        fi
+    fi
+
+    #  For downstream analyses, sort the queryname-sorted BAM by coordinates
+    if [[ ! -f \"${bam_coor}\" ]]; then
+        samtools sort \\
+            -@ ${threads} \\
+            -o \"${bam_coor}\" \\
+            \"${bam_quer}\"
+    fi
+
+    #  Index the coordinate-sorted BAM file
+    if [[ ! -f \"${bam_coor}.bai\" ]]; then
+        samtools index \\
+            -@ ${threads} \\
+            \"${bam_coor}\"
+    fi
+
+    #  Mark duplicate alignments in the coordinate-sorted BAM file
+    if [[
+           -f \"${bam_coor}\" \\
+        && -f \"${bam_coor}.bai\"
+    ]]; then
+        samtools markdup \\
+            -@ ${threads} \\
+            \"${bam_coor}\" \\
+            \"${bam_coor%.bam}.tmp.bam\"
+
+        #  Replace the original coordinate-sorted BAM with one in which
+        #+ duplicates alignments are marked
+        if [[ -f \"${bam_coor%.bam}.tmp.bam\" ]]; then
+            mv -f \\
+                \"${bam_coor%.bam}.tmp.bam\" \\
+                \"${bam_coor}\"
+        fi
+
+        #  If duplicate marking was successful, then generate flagstat and
+        #+ idxstats reports
+        if [[ $? -eq 0 ]]; then
+            samtools flagstat \\
+                -@ ${threads} \\
+                \"${bam_coor}\" \\
+                    > \"${txt_flg}\"
+
+            samtools idxstats \\
+                \"${bam_coor}\" \\
+                    > \"${txt_idx}\"
+        fi
+    fi
+
+    #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
+    if [[
+         ! -f \"${bed}\" \\
+        && -f \"${bam_quer}\"
+    ]]; then
+        #  Extract fragment information to create the BED file, excluding
+        #+ chromosomes starting with \"SP_\"
+        samtools view \"${bam_quer}\" \\
+            | awk '{
+                if (NR % 2 == 1) {
+                    chr_1 = \$3; 
+                    start_1 = \$4; 
+                    len_1 = length(\$10);
+                } else {
+                    chr_2 = \$3;
+                    start_2 = \$4; 
+                    len_2 = length(\$10);
+                    if (chr_1 == chr_2 && substr(chr_1, 1, 3) != \"SP_\") {
+                        start = (start_1 < start_2) ? start_1 : start_2;
+                        end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+                        frag_length = end - start + 1; 
+                        print chr_1, start, end, frag_length;
+                    }
+                }
+            }' OFS='\t' \\
+            | sort -k1,1 -k2,2n \\
+            | gzip \\
+                > \"${bed}\"
+    fi
+
+    #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
+    #+ all other files have been successfully created
+    if [[ 
+           -f \"${bam_coor}\" \\
+        && -f \"${bam_quer}\" \\
+        && -f \"${bed}\"
+    ]]; then
+        rm \"${bam}\"
+    fi
+fi
+EOF
         else
             echo \"
-            Warning: Bam for ${stem} exists; skipping trimming.
+            Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
             \"
         fi
         "
@@ -1727,10 +1924,11 @@ bowtie2 \\
     #  Submit the Atria trimming job if run_operations is true
     if ${run_operations}; then
         if [[
-                 -f "${read_1}" \
-            &&   -f "${read_2}" \
-            && ! -f "${trim_1}" \
-            && ! -f "${trim_2}"
+                 -f "${fastq_1}" \
+            &&   -f "${fastq_2}" \
+            && ! -f "${bam_coor}" \
+            && ! -f "${bam_quer}" \
+            && ! -f "${bed}"
         ]]; then
 sbatch << EOF
 #!/bin/bash
@@ -1739,67 +1937,165 @@ sbatch << EOF
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=${threads}
 #SBATCH --time=${time}
-#SBATCH --error="${dir_trim}/err_out/${job_name}.%A.stderr.txt"
-#SBATCH --output="${dir_trim}/err_out/${job_name}.%A.stdout.txt"
+#SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
 
-"${path_atria}" \
-    -t "${threads}" \
-    -r "${read_1}" \
-    -R "${read_2}" \
-    -o "${dir_trim}" \
-    --length-range 35:500
+#  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
+#+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
+#+ retain only properly paired reads (-f 2) that are high-quality multi-reads
+#+ or any-quality maxi-reads (-q 1)
+#+ 
+#+ On how to interpret Bowtie 2 MAPQ scores:
+#+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+if [[ ! -f "${bam}" ]]; then
+    bowtie2 \
+        -p ${threads} \
+        -x "${dir_indx}" \
+        --very-sensitive-local \
+        --no-unal \
+        --no-mixed \
+        --no-discordant \
+        --no-overlap \
+        --no-dovetail \
+        --phred33 \
+        -I 10 \
+        -X 700 \
+        -1 "${fastq_1}" \
+        -2 "${fastq_2}" \
+            | samtools view \
+                -@ ${threads} \
+                -b \
+                -f 2 \
+                -q 1 \
+                -o "${bam}"
+fi
+
+#  Check if the BAM file exists to perform further operations
+if [[ -f "${bam}" ]]; then
+    #  Sort the BAM file by queryname if not already done
+    if [[ ! -f "${bam_quer}" ]]; then
+        samtools sort \
+            -@ ${threads} \
+            -n \
+            -o "${bam_quer}" \
+            "${bam}"
+    fi
+
+    #  Fix the paired read mate information, which is required after sorting by
+    #+ queryname for subsequent operations
+    if [[ -f "${bam_quer}" ]]; then
+        samtools fixmate \
+            -@ ${threads} \
+            -m \
+            "${bam_quer}" \
+            "${bam_quer%.bam}.tmp.bam"
+
+        #  Replace the original queryname-sorted BAM with queryname-sorted
+        #+ mate-fixed BAM
+        if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
+            mv -f \
+                "${bam_quer%.bam}.tmp.bam" \
+                "${bam_quer}"
+        fi
+    fi
+
+    #  For downstream analyses, sort the queryname-sorted BAM by coordinates
+    if [[ ! -f "${bam_coor}" ]]; then
+        samtools sort \
+            -@ ${threads} \
+            -o "${bam_coor}" \
+            "${bam_quer}"
+    fi
+
+    #  Index the coordinate-sorted BAM file
+    if [[ ! -f "${bam_coor}.bai" ]]; then
+        samtools index \
+            -@ ${threads} \
+            "${bam_coor}"
+    fi
+
+    #  Mark duplicate alignments in the coordinate-sorted BAM file
+    if [[
+           -f "${bam_coor}" \
+        && -f "${bam_coor}.bai"
+    ]]; then
+        samtools markdup \
+            -@ ${threads} \
+            "${bam_coor}" \
+            "${bam_coor%.bam}.tmp.bam"
+
+        #  Replace the original coordinate-sorted BAM with one in which
+        #+ duplicates alignments are marked
+        if [[ -f "${bam_coor%.bam}.tmp.bam" ]]; then
+            mv -f \
+                "${bam_coor%.bam}.tmp.bam" \
+                "${bam_coor}"
+        fi
+
+        #  If duplicate marking was successful, then generate flagstat and
+        #+ idxstats reports
+        if [[ $? -eq 0 ]]; then
+            samtools flagstat \
+                -@ ${threads} \
+                "${bam_coor}" \
+                    > "${txt_flg}"
+
+            samtools idxstats \
+                "${bam_coor}" \
+                    > "${txt_idx}"
+        fi
+    fi
+
+    #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
+    if [[
+         ! -f "${bed}" \
+        && -f "${bam_quer}"
+    ]]; then
+        #  Extract fragment information to create the BED file, excluding
+        #+ chromosomes starting with "SP_"
+        samtools view "${bam_quer}" \
+            | awk '{
+                if (NR % 2 == 1) {
+                    chr_1 = \$3; 
+                    start_1 = \$4; 
+                    len_1 = length(\$10);
+                } else {
+                    chr_2 = \$3;
+                    start_2 = \$4; 
+                    len_2 = length(\$10);
+                    if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
+                        start = (start_1 < start_2) ? start_1 : start_2;
+                        end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+                        frag_length = end - start + 1; 
+                        print chr_1, start, end, frag_length;
+                    }
+                }
+            }' OFS='\t' \
+            | sort -k1,1 -k2,2n \
+            | gzip \
+                > "${bed}"
+    fi
+
+    #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
+    #+ all other files have been successfully created
+    if [[ 
+           -f "${bam_coor}" \
+        && -f "${bam_quer}" \
+        && -f "${bed}"
+    ]]; then
+        rm "${bam}"
+    fi
+fi
 EOF
         else
             echo "
-            Warning: Trimmed fastqs for $(basename ${read_1%_R1.fastq.gz}) exist; skipping trimming.
+            Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
             "
         fi
     fi
 
     sleep 0.2  # Short pause to prevent rapid job-submission overload
 done
-
-bowtie2 \
-    -p ${threads} \
-    -x "${f_indices}" \
-    --very-sensitive-local \
-    --no-unal \
-    --no-mixed \
-    --no-discordant \
-    --no-overlap \
-    --no-dovetail \
-    --phred33 \
-    -I 10 \
-    -X 700 \
-    -1 "${stem}_R1.atria.fastq.gz" \
-    -2 "${stem}_R2.atria.fastq.gz" \
-        | samtools sort \
-            -@ ${threads} \
-            -T "${scratch}" \
-            -O bam \
-            -o "${out_bam}"
-
-bwa mem \
-    -t ${threads} \
-    -k 19 -w 100 -d 100 -r 1.5 \
-    -M \
-    -I 10,700 \
-    "${f_indices}" \
-    "${stem}_R1.atria.fastq.gz" \
-    "${stem}_R2.atria.fastq.gz" \
-        | samtools sort \
-            -@ ${threads} \
-            -T "${scratch}" \
-            -O bam \
-            -o "${out_bam}"
-
-
-#  Index the sorted bams
-if [[ -f "${out_bam}" ]]; then
-    samtools index \
-        -@ ${threads} \
-        "${out_bam}"
-fi
 ```
 </details>
 <br />
@@ -1815,8 +2111,6 @@ fi
 #!/bin/bash
 
 echo "
-
-
 bwa mem \\
     -t ${threads} \\
     -k 19 -w 100 -d 100 -r 1.5 \\
@@ -1838,6 +2132,710 @@ if [[ -f \"${out_bam}\" ]]; then
         \"${out_bam}\"
 fi
 "
+
+bwa mem \
+    -t ${threads} \
+    -k 19 -w 100 -d 100 -r 1.5 \
+    -M \
+    -I 10,700 \
+    "${f_indices}" \
+    "${stem}_R1.atria.fastq.gz" \
+    "${stem}_R2.atria.fastq.gz" \
+        | samtools sort \
+            -@ ${threads} \
+            -O bam \
+            -o "${out_bam}"
+
+
+#  Index the sorted bams
+if [[ -f "${out_bam}" ]]; then
+    samtools index \
+        -@ ${threads} \
+        "${out_bam}"
+fi
+```
+</details>
+<br />
+
+<a id="4-miscellaneous-to-be-organized"></a>
+# 4. Miscellaneous (to be organized)
+<a id="a-determination-of-low-complexity-regions-semi-blacklisting"></a>
+## a. Determination of low-complexity regions (semi-blacklisting)
+<a id="i-install-sdust-via-minimap"></a>
+### i. Install [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
+<a id="code-8"></a>
+#### Code
+<details>
+<summary><i>Code: i. Install sdust via minimap</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Initialize variables and arrays ============================================
+env_name="minimap_env"
+
+
+#  Do the main work ===========================================================
+#  Install minimap ------------------------------------------------------------
+#  Set flag(s)
+create_mamba_env=true  # Install mamba environment if not detected
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        #  If `mamba activate` fails, try using `source activate`
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                #  If `source activate` also fails, return an error
+                error_and_return "Failed to activate environment \"${env_name}\"."
+            fi
+        fi
+    else
+        echo "Environment \"${env_name}\" activated using mamba."
+    fi
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --yes \
+            --name "${env_name}" \
+            --channel bioconda \
+                minimap
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="printed"></a>
+#### Printed
+<details>
+<summary><i>Printed: i. Install sdust via minimap</i></summary>
+
+```txt
+❯ mamba create \
+>     --yes \
+>     --name "${env_name}" \
+>     --channel bioconda \
+>         minimap
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (1.3.1) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['minimap']
+
+bioconda/linux-64                                           Using cache
+bioconda/noarch                                             Using cache
+conda-forge/noarch                                          Using cache
+pkgs/main/noarch                                              No change
+pkgs/main/linux-64                                            No change
+pkgs/r/linux-64                                               No change
+pkgs/r/noarch                                                 No change
+conda-forge/linux-64                                37.7MB @   6.8MB/s  6.4s
+Transaction
+
+  Prefix: /home/kalavatt/miniconda3/envs/minimap_env
+
+  Updating specs:
+
+   - minimap
+
+
+  Package          Version  Build        Channel                    Size
+──────────────────────────────────────────────────────────────────────────
+  Install:
+──────────────────────────────────────────────────────────────────────────
+
+  + _libgcc_mutex      0.1  conda_forge  conda-forge/linux-64     Cached
+  + _openmp_mutex      4.5  2_gnu        conda-forge/linux-64     Cached
+  + libgcc           7.2.0  h69d50b8_2   conda-forge/linux-64     Cached
+  + libgcc-ng       13.2.0  h807b86a_4   conda-forge/linux-64      774kB
+  + libgomp         13.2.0  h807b86a_4   conda-forge/linux-64      422kB
+  + libstdcxx-ng    13.2.0  h7e041cc_4   conda-forge/linux-64        4MB
+  + minimap            0.2  0            bioconda/linux-64         112kB
+
+  Summary:
+
+  Install: 7 packages
+
+  Total download: 5MB
+
+──────────────────────────────────────────────────────────────────────────
+
+
+libgomp                                            422.1kB @   2.9MB/s  0.1s
+libgcc-ng                                          773.8kB @   5.3MB/s  0.2s
+libstdcxx-ng                                         3.8MB @  20.2MB/s  0.2s
+minimap                                            112.5kB @ 316.6kB/s  0.4s
+
+Downloading and Extracting Packages
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+To activate this environment, use
+
+     $ mamba activate minimap_env
+
+To deactivate an active environment, use
+
+     $ mamba deactivate
+```
+</details>
+<br />
+
+<a id="ii-run-sdust-via-minimap"></a>
+### ii. Run [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
+<a id="code-9"></a>
+#### Code
+<details>
+<summary><i>Code: ii. Run sdust via minimap</i></summary>
+
+```bash
+#!/bin/bash
+
+grabnode  # 1, 20, 1, N
+
+
+#  Define functions ===========================================================
+
+
+#  Initialize variables and arrays ============================================
+d_fa="${HOME}/genomes/Saccharomyces_cerevisiae/fasta-processed"
+f_fa="S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+a_fa="${d_fa}/${f_fa}"
+
+f_bed="S288C_reference_sequence_R64-3-1_20210421.low_complexity.bed"
+a_bed="${d_fa}/${f_bed}"
+
+env_minimap="minimap_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+check_variables=true
+check_file_exists=true
+check_command=true
+run_command=true
+
+#  Check variables
+if ${check_variables}; then
+    echo "
+           d_fa=${d_fa}
+           f_fa=${f_fa}
+           a_fa=${a_fa}
+
+          f_bed=${f_bed}
+          a_bed=${a_bed}
+
+    env_minimap=${env_minimap}
+    "
+fi
+
+#  Check that input FASTQ file exists
+if ${check_file_exists}; then ls -lhaFG "${a_fa}"; fi
+
+#  If not already activated, the activate conda environment
+if [[ "${CONDA_DEFAULT_ENV}" != "${env_minimap}" ]]; then
+    if [[ ${CONDA_DEFAULT_ENV} != "base" ]]; then
+        conda deactivate
+    fi
+
+    source activate "${env_minimap}"
+fi
+
+#  Create a BED file for S. cerevisiae regions of low complexity
+if ${check_command}; then
+    echo "
+        if [[ ! -f \"${a_bed}\" ]]; then
+            if [[ ! -f "${a_fa%.gz}" ]]; then
+                gzip -cd \\
+                    \"${a_fa}\" \\
+                        > \"${a_fa%.gz}\"
+            fi
+            
+            if [[ -f \"${a_fa%.gz}\" ]]; then
+                sdust \\
+                    \"${a_fa}\" \\
+                        > \"${a_bed}\"
+            fi
+        fi
+    "
+fi
+
+if ${run_command}; then
+    if [[ ! -f "${a_bed}" ]]; then
+        if [[ ! -f "${a_fa%.gz}" ]]; then
+            gzip -cd "${a_fa}" > "${a_fa%.gz}"
+        fi
+
+        if [[ -f "${a_fa%.gz}" ]]; then
+            sdust "${a_fa%.gz}" > "${a_bed}"
+        fi
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="b-determination-of-s-cerevisiae-effective-genome-sizes"></a>
+## b. Determination of *S. cerevisiae* effective genome sizes
+<a id="i-install-khmer"></a>
+### i. Install [khmer](https://khmer.readthedocs.io/en/latest/)
+<a id="code-10"></a>
+#### Code
+<details>
+<summary><i>Code: i. Install khmer</i></summary>
+
+```bash
+#!/bin/bash
+
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Initialize variables and arrays ============================================
+env_name="khmer_env"
+
+
+#  Do the main work ===========================================================
+#  Install minimap ------------------------------------------------------------
+#  Set flag(s)
+create_mamba_env=true  # Install mamba environment if not detected
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        #  If `mamba activate` fails, try using `source activate`
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                #  If `source activate` also fails, return an error
+                error_and_return "Failed to activate environment \"${env_name}\"."
+            fi
+        fi
+    else
+        echo "Environment \"${env_name}\" activated using mamba."
+    fi
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --yes \
+            --name "${env_name}" \
+            --channel bioconda \
+                khmer
+    fi
+fi
+
+#TODO Check this error message: -bash: [[: Environment "khmer_env" is not installed.: syntax error: invalid arithmetic operator (error token is ""khmer_env" is not installed.")
+```
+</details>
+<br />
+
+<a id="printed-1"></a>
+#### Printed
+<details>
+<summary><i>Printed: ii. Run khmer</i></summary>
+
+```txt
+❯ mamba create \
+>     --yes \
+>     --name khmer_env \
+>     --channel bioconda \
+>         khmer
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (1.3.1) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['khmer']
+
+bioconda/linux-64                                           Using cache
+bioconda/noarch                                             Using cache
+conda-forge/linux-64                                        Using cache
+conda-forge/noarch                                          Using cache
+pkgs/main/linux-64                                            No change
+pkgs/main/noarch                                              No change
+pkgs/r/linux-64                                               No change
+pkgs/r/noarch                                                 No change
+Transaction
+
+  Prefix: /home/kalavatt/miniconda3/envs/khmer_env
+
+  Updating specs:
+
+   - khmer
+
+
+  Package                Version  Build               Channel                    Size
+───────────────────────────────────────────────────────────────────────────────────────
+  Install:
+───────────────────────────────────────────────────────────────────────────────────────
+
+  + _libgcc_mutex            0.1  conda_forge         conda-forge/linux-64     Cached
+  + _openmp_mutex            4.5  2_gnu               conda-forge/linux-64     Cached
+  + bz2file                 0.98  py_0                conda-forge/noarch          9kB
+  + bzip2                  1.0.8  hd590300_5          conda-forge/linux-64     Cached
+  + ca-certificates   2023.11.17  hbcca054_0          conda-forge/linux-64     Cached
+  + khmer                3.0.0a3  py38h94ffb2d_3      bioconda/linux-64          11MB
+  + ld_impl_linux-64        2.40  h41732ed_0          conda-forge/linux-64     Cached
+  + libffi                 3.4.2  h7f98852_5          conda-forge/linux-64     Cached
+  + libgcc-ng             13.2.0  h807b86a_4          conda-forge/linux-64     Cached
+  + libgomp               13.2.0  h807b86a_4          conda-forge/linux-64     Cached
+  + libnsl                 2.0.1  hd590300_0          conda-forge/linux-64     Cached
+  + libsqlite             3.44.2  h2797004_0          conda-forge/linux-64     Cached
+  + libstdcxx-ng          13.2.0  h7e041cc_4          conda-forge/linux-64     Cached
+  + libuuid               2.38.1  h0b41bf4_0          conda-forge/linux-64     Cached
+  + libxcrypt             4.4.36  hd590300_1          conda-forge/linux-64      100kB
+  + libzlib               1.2.13  hd590300_5          conda-forge/linux-64     Cached
+  + ncurses                  6.4  h59595ed_2          conda-forge/linux-64     Cached
+  + openssl                3.2.1  hd590300_0          conda-forge/linux-64        3MB
+  + pip                   23.3.2  pyhd8ed1ab_0        conda-forge/noarch          1MB
+  + python                3.8.18  hd12c33a_1_cpython  conda-forge/linux-64       24MB
+  + python_abi               3.8  4_cp38              conda-forge/linux-64     Cached
+  + readline                 8.2  h8228510_1          conda-forge/linux-64     Cached
+  + screed                 1.0.4  py_0                bioconda/noarch            83kB
+  + setuptools            69.0.3  pyhd8ed1ab_0        conda-forge/noarch        471kB
+  + tk                    8.6.13  noxft_h4845f30_101  conda-forge/linux-64     Cached
+  + wheel                 0.42.0  pyhd8ed1ab_0        conda-forge/noarch       Cached
+  + xz                     5.2.6  h166bdaf_0          conda-forge/linux-64     Cached
+  + zlib                  1.2.13  hd590300_5          conda-forge/linux-64     Cached
+
+  Summary:
+
+  Install: 28 packages
+
+  Total download: 40MB
+
+───────────────────────────────────────────────────────────────────────────────────────
+
+
+pip                                                  1.4MB @  17.7MB/s  0.1s
+libxcrypt                                          100.4kB @ 989.8kB/s  0.1s
+setuptools                                         470.5kB @   3.4MB/s  0.1s
+openssl                                              2.9MB @  16.7MB/s  0.2s
+bz2file                                              8.8kB @  44.5kB/s  0.1s
+screed                                              83.2kB @ 331.6kB/s  0.1s
+python                                              24.0MB @  54.8MB/s  0.4s
+khmer                                               10.8MB @  11.9MB/s  0.8s
+
+Downloading and Extracting Packages
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+To activate this environment, use
+
+     $ mamba activate khmer_env
+
+To deactivate an active environment, use
+
+     $ mamba deactivate
+```
+</details>
+<br />
+
+<a id="ii-run-khmer"></a>
+### ii. Run [khmer](https://khmer.readthedocs.io/en/latest/)
+<a id="code-11"></a>
+#### Code
+<details>
+<summary><i>Code: ii. Install khmer</i></summary>
+
+```bash
+#!/bin/bash
+
+grabnode  # 1, 20, 1, N
+
+
+#  Define functions ===========================================================
+
+
+#  Initialize variables and arrays ============================================
+d_fa="${HOME}/genomes/Saccharomyces_cerevisiae/fasta-processed"
+f_fa="S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+a_fa="${d_fa}/${f_fa}"
+
+f_rep="S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt"
+a_rep="${d_fa}/${f_rep}"
+
+env_khmer="khmer_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+check_variables=true
+check_file_exists=true
+check_command=true
+run_command=true
+
+#  Check variables
+if ${check_variables}; then
+    echo "
+           d_fa=${d_fa}
+           f_fa=${f_fa}
+           a_fa=${a_fa}
+
+          f_rep=${f_rep}
+          a_rep=${a_rep}
+
+    env_khmer=${env_khmer}
+    "
+fi
+
+#  Check that input FASTQ file exists
+if ${check_file_exists}; then ls -lhaFG "${a_fa}"; fi
+
+#  If not already activated, the activate conda environment
+if [[ "${CONDA_DEFAULT_ENV}" != "${env_khmer}" ]]; then
+    if [[ ${CONDA_DEFAULT_ENV} != "base" ]]; then
+        conda deactivate
+    fi
+
+    source activate "${env_khmer}"
+fi
+
+#  Estimate the number of unique 50-mers in S. cerevisiae
+if ${check_command}; then
+    echo "
+        if [[ ! -f \"${a_rep}\" ]]; then
+            if [[ ! -f "${a_fa%.gz}" ]]; then
+                gzip -cd \\
+                    \"${a_fa}\" \\
+                        > \"${a_fa%.gz}\"
+            fi
+            
+            if [[ -f \"${a_fa%.gz}\" ]]; then
+                unique-kmers.py \\
+                    -R \"${a_rep}\" \\
+                    -k 50 \\
+                    \"${a_fa}\"
+            fi
+        fi
+    "
+fi
+
+if ${run_command}; then
+    if [[ ! -f "${a_bed}" ]]; then
+        if [[ ! -f "${a_fa%.gz}" ]]; then
+            gzip -cd "${a_fa}" > "${a_fa%.gz}"
+        fi
+
+        if [[ -f "${a_fa%.gz}" ]]; then
+            unique-kmers.py \
+                -R "${a_rep}" \
+                -k 50 \
+                "${a_fa}"
+        fi
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="printed-2"></a>
+#### Printed
+<details>
+<summary><i>Printed: ii. Install khmer</i></summary>
+
+```txt
+❯ if ${check_command}; then
+>     echo "
+>         if [[ ! -f \"${a_rep}\" ]]; then
+>             if [[ ! -f "${a_fa%.gz}" ]]; then
+>                 gzip -cd \\
+>                     \"${a_fa}\" \\
+>                         > \"${a_fa%.gz}\"
+>             fi
+> 
+>             if [[ -f \"${a_fa%.gz}\" ]]; then
+>                 unique-kmers.py \\
+>                     -R \"${a_rep}\" \\
+>                     -k 50 \\
+>                     \"${a_fa}\"
+>             fi
+>         fi
+>     "
+> fi
+
+        if [[ ! -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" ]]; then
+            if [[ ! -f /home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa ]]; then
+                gzip -cd \
+                    "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
+                        > "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa"
+            fi
+
+            if [[ -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa" ]]; then
+                unique-kmers.py \
+                    -R "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" \
+                    -k 50 \
+                    "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+            fi
+        fi
+
+
+❯ if ${run_command}; then
+>     if [[ ! -f "${a_bed}" ]]; then
+>         if [[ ! -f "${a_fa%.gz}" ]]; then
+>             gzip -cd "${a_fa}" > "${a_fa%.gz}"
+>         fi
+> 
+>         if [[ -f "${a_fa%.gz}" ]]; then
+>             unique-kmers.py \
+>                 -R "${a_rep}" \
+>                 -k 50 \
+>                 "${a_fa}"
+>         fi
+>     fi
+> fi
+
+|| This is the script unique-kmers.py in khmer.
+|| You are running khmer version 3.0.0a3
+|| You are also using screed version 1.0.4
+||
+|| If you use this script in a publication, please cite EACH of the following:
+||
+||   * MR Crusoe et al., 2015. https://doi.org/10.12688/f1000research.6924.1
+||   * A. Döring et al. https://doi.org:80/10.1186/1471-2105-9-11
+||   * Irber and Brown. https://doi.org/10.1101/056846
+||
+|| Please see http://khmer.readthedocs.io/en/latest/citations.html for details.
+
+Estimated number of unique 50-mers in /home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz: 11624332
+Total estimated number of unique 50-mers: 11624332
 ```
 </details>
 <br />

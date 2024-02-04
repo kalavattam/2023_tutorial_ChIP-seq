@@ -49,7 +49,7 @@ function download_extract_tarball() {
 
 #  Function to download and extract tarball of S. cerevisiae FASTA, GFF3, and
 #+ SGD files
-download_extract_SC() {
+function download_extract_SC() {
     local tarball_path="${dir_genomes}/${dir_SC}/${tarball_SC}"
 
     if [[ -d "${tarball_path%.tgz}" ]]; then
@@ -62,7 +62,7 @@ download_extract_SC() {
 }
 
 
-organize_SC_files() {
+function organize_SC_files() {
     local tarball_path="${dir_genomes}/${dir_SC}/${tarball_SC%.tgz}"
 
     if [[ -d "${tarball_path}" ]]; then
@@ -87,7 +87,7 @@ organize_SC_files() {
 }
 
 
-download_SP_files() {
+function download_SP_files() {
     local file_type="${1}"
     local array=("${!2}")
     local url_base="${3}"
@@ -107,7 +107,7 @@ download_SP_files() {
 
 #  Function to prepare S. cerevisiae FASTA for concatenation with S. pombe
 #+ FASTA
-process_SC_fasta() {
+function process_SC_fasta() {
     local source_fasta="${dir_genomes}/${dir_SC}/fasta/S288C_reference_sequence_R64-3-1_20210421.fsa.gz"
     local processed_fasta="${dir_genomes}/${dir_SC}/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz"
     
@@ -141,7 +141,7 @@ process_SC_fasta() {
 
 
 #  Function to prepare S. cerevisiae GFF3 for concatenation with S. pombe GFF3
-process_SC_gff3() {
+function process_SC_gff3() {
     local source_gff3="${dir_genomes}/${dir_SC}/gff3/saccharomyces_cerevisiae_R64-3-1_20210421.gff.gz"
     local processed_gff3="${dir_genomes}/${dir_SC}/gff3-processed/saccharomyces_cerevisiae_R64-3-1_20210421.gff3.gz"
     
@@ -164,7 +164,7 @@ process_SC_gff3() {
 
 #  Function to prepare S. pombe FASTA for concatenation with S. cerevesiae
 #+ FASTA
-process_SP_fasta() {
+function process_SP_fasta() {
     local source_fasta="${dir_genomes}/${dir_SP}/fasta/Schizosaccharomyces_pombe_all_chromosomes.fa.gz"
     local processed_fasta="${dir_genomes}/${dir_SP}/fasta-processed/Schizosaccharomyces_pombe_all_chromosomes.fa.gz"
     
@@ -188,7 +188,7 @@ process_SP_fasta() {
 
 
 #  Function to prepare S. pombe GFF3 for concatenation with S. cerevesiae GFF3
-process_SP_gff3() {
+function process_SP_gff3() {
     local source_gff3="${dir_genomes}/${dir_SP}/gff3/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz"
     local processed_gff3="${dir_genomes}/${dir_SP}/gff3-processed/Schizosaccharomyces_pombe_all_chromosomes.gff3.gz"
 

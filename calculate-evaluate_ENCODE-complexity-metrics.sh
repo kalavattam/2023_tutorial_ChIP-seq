@@ -3,12 +3,14 @@
 #  calculate-evaluate_ENCODE-complexity-metrics.sh
 #  KA
 
+debug=true
+
 
 #  Define functions ===========================================================
-#TODO Description of function
+#TODO Function to print hep information for the script
 function show_help() {
     cat << EOM
-Usage: calculate-evaluate_ENCODE-complexity-metrics.sh [OPTIONS]
+Usage: ${0} [OPTIONS]
 
 This script runs analyses to calculate, evaluate, and return various ENCODE
 library complexity metrics: encodeproject.org/data-standards/terms/#library
@@ -29,14 +31,24 @@ Dependencies:
   wc        Involved in generating various alignment tallies.
   awk       Used for filtering BAM file text streams and generating various
             alignment tallies.
+  bc        Used for evaluating metric values.
 
 Example:
-  calculate-evaluate_ENCODE-complexity-metrics.sh \
-      --bam path/to/bam \
-      --threads 4 \
-      --mode SC \
+  calculate-evaluate_ENCODE-complexity-metrics.sh \\
+      --bam path/to/bam \\
+      --threads 4 \\
+      --mode SC \\
       --mapq 1
 EOM
+}
+
+
+#  Function to check if PROGRAM; if not, exit with code 1
+function check_program_in_path() {
+    local program_name="$1"
+    if ! command -v "${program_name}" &> /dev/null; then
+        error_and_exit "${program_name} is not in PATH. Please install ${program_name} or add it to PATH to continue."
+    fi
 }
 
 
@@ -48,7 +60,7 @@ function error_and_exit() {
 }
 
 
-#TODO Description of function
+#  Function to calculate metric based on user-supplied conditions
 function calculate_metric() {
     local threads="${1}"
     local mapq="${2}"
@@ -64,19 +76,99 @@ function calculate_metric() {
 }
 
 
+#  Function to evaluate NRF or PBC1/2 metrics
+function evaluate_metric() {
+    local metric="${1}"  # The metric to evaluate (NRF, PBC1, or PBC2)
+    local metric_value="${2}"  # The value of the metric
+    
+    #  Below, use 'case' with 'bc' for floating-point comparisons to categorize
+    #+ the metric value. 'bc -l' is a calculator that supports floating-point
+    #+ arithmetic. Each 'case' option uses 'bc' to evaluate if the metric_value
+    #+ meets a specific condition and echoes the corresponding evaluation
+    #+ (e.g., "severe", "moderate", "mild", or "none")
+    if [[ "${metric}" == "NRF" ]]; then
+        # shellcheck disable=SC2194
+        # shellcheck disable=SC2254
+        case 1 in
+            $(
+                echo "${metric_value} < 0.5" | bc -l
+            )) echo "concerning" ;;
+            $(
+                echo "${metric_value} >= 0.5 && ${metric_value} < 0.8" | bc -l
+            )) echo "acceptable" ;;
+            $(
+                echo "${metric_value} >= 0.8 && ${metric_value} < 0.9" | bc -l
+            )) echo "compliant" ;;
+            $(
+                echo "${metric_value} >= 0.9" | bc -l
+            )) echo "ideal" ;;
+        esac
+    elif [[ "${metric}" == "PBC1" ]]; then
+        #  For PBC1, different evaluation terms are returned
+
+        # shellcheck disable=SC2194
+        # shellcheck disable=SC2254
+        case 1 in
+            $(
+                echo "${metric_value} < 0.5" | bc -l
+            )) echo "severe" ;;
+            $(
+                echo "${metric_value} >= 0.5 && ${metric_value} < 0.8" | bc -l
+            )) echo "moderate" ;;
+            $(
+                echo "${metric_value} >= 0.8 && ${metric_value} < 0.9" | bc -l
+            )) echo "mild" ;;
+            $(
+                echo "${metric_value} >= 0.9" | bc -l
+            )) echo "none" ;;
+        esac
+    elif [[ "${metric}" == "PBC2" ]]; then
+        #  For PBC2, different thresholds are applied and different evaluation
+        #+ terms are returned
+        
+        # shellcheck disable=SC2194
+        # shellcheck disable=SC2254
+        case 1 in
+            $(
+                echo "${metric_value} < 1" | bc -l
+            )) echo "severe" ;;
+            $(
+                echo "${metric_value} >= 1 && ${metric_value} < 3" | bc -l
+            )) echo "moderate" ;;
+            $(
+                echo "${metric_value} >= 3 && ${metric_value} < 10" | bc -l
+            )) echo "mild" ;;
+            $(
+                echo "${metric_value} >= 10" | bc -l
+            )) echo "none" ;;
+        esac
+    else
+        error_and_exit "Invalid positional argument: ${metric}. Argument must be 'NRF', 'PBC1', or 'PBC2'."
+    fi
+}
+
+
 #  Something ==================================================================
+check_program_in_path "samtools"
+
 if [[ -z "${1}" || "${1}" == "-h" || "${1}" == "--help" ]]; then
     show_help
     exit 0
 fi
 
-debug=true
 if ${debug}; then
     #  Values for debugging
     threads=1
     bam="03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-coord.bam"
     mode="SC"
     mapq=1
+
+    echo "
+    threads=${threads}
+    bam=${bam}
+    mode=${mode}
+    mapq=${mapq}
+    "
 else
     #  Default values
     threads=1
@@ -106,16 +198,12 @@ fi
 
 #  Check mode and set awk command accordingly
 # shellcheck disable=SC2016
-if [[ "${mode}" == "SP" ]]; then
-    awk_cmd='{ if ($3 ~ /^SP_/) print $3, $4 }'  # Only SP chromosomes
-elif [[ "${mode}" == "SC" ]]; then
-    awk_cmd='{ if ($3 !~ /^SP_/) print $3, $4 }'  # Only SC chromosomes
-elif [[ "${mode}" == "both" ]]; then
-    awk_cmd='{ print $3, $4 }'  # All chromosomes
-else
-    echo "Invalid mode: ${mode}. Mode must be 'SC', 'SP', or 'both'."
-    exit 1
-fi
+case "${mode}" in
+    SP) awk_cmd='{ if ($3 ~ /^SP_/) print $3, $4 }' ;;
+    SC) awk_cmd='{ if ($3 !~ /^SP_/) print $3, $4 }' ;;
+    both) awk_cmd='{ print $3, $4 }' ;;
+    *) error_and_exit "Invalid mode: ${mode}. Mode must be 'SC', 'SP', or 'both'." ;;
+esac
 
 #  Determine M_1, the tally of genomic locations where exactly one read maps
 #+ uniquely
@@ -163,41 +251,18 @@ PBC1="$(echo "scale=9; ${M_1} / ${M_distinct}" | bc)"
 PBC2="$(echo "scale=9; ${M_1} / ${M_2}" | bc)"
 
 #  Compare and record ENCODE QC evaluation based on the value of NRF
-if (( $(echo "${NRF} < 0.5" | bc -l) )); then
-    eval_NRF="concerning"
-elif (( $(echo "${NRF} >= 0.5 && ${NRF} < 0.8" | bc -l) )); then
-    eval_NRF="acceptable"
-elif (( $(echo "${NRF} >= 0.8 && ${NRF} < 0.9" | bc -l) )); then
-    eval_NRF="compliant"
-elif (( $(echo "${NRF} >= 0.9" | bc -l) )); then
-    eval_NRF="ideal"
-fi
+eval_NRF="$(evaluate_metric "NRF" "${NRF}")"
 
 #  Compare and record ENCODE QC evaluation based on the value of PBC1
-if (( $(echo "${PBC1} < 0.5" | bc -l) )); then
-    eval_PBC1="severe"
-elif (( $(echo "${PBC1} >= 0.5 && ${PBC1} < 0.8" | bc -l) )); then
-    eval_PBC1="moderate"
-elif (( $(echo "${PBC1} >= 0.8 && ${PBC1} < 0.9" | bc -l) )); then
-    eval_PBC1="mild"
-elif (( $(echo "${PBC1} >= 0.9" | bc -l) )); then
-    eval_PBC1="none"
-fi
+eval_PBC1="$(evaluate_metric "PBC1" "${PBC1}")"
 
 #  Compare and record ENCODE QC evaluation based on the value of PBC2
-if (( $(echo "${PBC2} < 1" | bc -l) )); then
-    eval_PBC2="severe"
-elif (( $(echo "${PBC2} >= 1 && ${PBC2} < 3" | bc -l) )); then
-    eval_PBC2="moderate"
-elif (( $(echo "${PBC2} >= 3 && ${PBC2} < 10" | bc -l) )); then
-    eval_PBC2="mild"
-elif (( $(echo "${PBC2} >= 10" | bc -l) )); then
-    eval_PBC2="none"
-fi
-
+eval_PBC2="$(evaluate_metric "PBC2" "${PBC2}")"
 
 if ${debug}; then
     echo "
+           bam=${bam}
+
          total=${total}
            dup=${dup}
         nondup=${nondup}
@@ -214,10 +279,9 @@ if ${debug}; then
      eval_PBC2=${eval_PBC2}
     "
 else
-    echo "total"$'\t'"dup"$'\t'"nondup"$'\t'"M_1"$'\t'"M_2"$'\t'"M_distinct"$'\t'"NRF"$'\t'"PBC1"$'\t'"PBC2"$'\t'"eval_NRF"$'\t'"eval_PBC1"$'\t'"eval_PBC2"
-    echo "${total}"$'\t'"${dup}"$'\t'"${nondup}"$'\t'"${M_1}"$'\t'"${M_2}"$'\t'"${M_distinct}"$'\t'"${NRF}"$'\t'"${PBC1}"$'\t'"${PBC2}"$'\t'"${eval_NRF}"$'\t'"${eval_PBC1}"$'\t'"${eval_PBC2}"
+    echo "bam"$'\t'"total"$'\t'"dup"$'\t'"nondup"$'\t'"M_1"$'\t'"M_2"$'\t'"M_distinct"$'\t'"NRF"$'\t'"PBC1"$'\t'"PBC2"$'\t'"eval_NRF"$'\t'"eval_PBC1"$'\t'"eval_PBC2"
+    echo "$(basename "${bam}")"$'\t'"${total}"$'\t'"${dup}"$'\t'"${nondup}"$'\t'"${M_1}"$'\t'"${M_2}"$'\t'"${M_distinct}"$'\t'"${NRF}"$'\t'"${PBC1}"$'\t'"${PBC2}"$'\t'"${eval_NRF}"$'\t'"${eval_PBC1}"$'\t'"${eval_PBC2}"
 fi
-
 
 #  SC mode
 #

@@ -45,7 +45,6 @@
                 1. [Regular expressions and the caret \(`^`\) symbol:](#regular-expressions-and-the-caret-%5E-symbol)
                 1. [Escape characters and `\"`:](#escape-characters-and-)
                 1. [On the function's "control flow"](#on-the-functions-control-flow)
-        1. [To debug](#to-debug)
     1. [b. Adapter- and quality-trim the FASTQ files using Atria](#b-adapter--and-quality-trim-the-fastq-files-using-atria)
         1. [Code](#code-2)
         1. [Notes](#notes-2)
@@ -816,53 +815,6 @@ This function checks for the existence of a specified Conda environment. To achi
 </details>
 <br />
 
-<a id="to-debug"></a>
-### To debug
-Line 570
-<details>
-<summary><i>Error message: Line 570</i></summary>
-
-```txt
-❯ if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
->     #  Handle the case when the environment is already installed
->     echo "Activating environment ${env_name}"
-> 
->     if ! mamba activate "${env_name}" &> /dev/null; then
->         #  If `mamba activate` fails, try using `source activate`
->         if ! conda activate "${env_name}" &> /dev/null; then
->             if ! source activate "${env_name}" &> /dev/null; then
->                 #  If `source activate` also fails, return an error
->                 error_and_return "Failed to activate environment \"${env_name}\"."
->             fi
->         fi
->     else
->         echo "Environment \"${env_name}\" activated using mamba."
->     fi
-> else
->     #  Handle the case when the environment is not installed
->     echo "Creating environment ${env_name}"
-> 
->     if ${create_mamba_env}; then
->         #  Switch `--yes` is set, which means no user input is required
->         mamba create \
->             --yes \
->             --name "${env_name}" \
->             --channel conda-forge \
->                 parallel \
->                 pbzip2 \
->                 pigz \
->                 r-argparse \
->                 r-ggsci \
->                 r-plotly \
->                 r-tidyverse
->     fi
-> fi
--bash: [[: Environment "Atria_env" is not installed.: syntax error: invalid arithmetic operator (error token is ""Atria_env" is not installed.")
-Creating environment Atria_env
-```
-</details>
-<br />
-
 <a id="b-adapter--and-quality-trim-the-fastq-files-using-atria"></a>
 ## b. Adapter- and quality-trim the FASTQ files using Atria
 <a id="code-2"></a>
@@ -1175,7 +1127,7 @@ dir_base="${HOME}/tsukiyamalab"                          # Base directory for la
 dir_repo="Kris/2023_rDNA"                                # Repository directory
 dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
 threads=1
-time=1:00:00
+time="1:00:00"
 job_name="download-preprocess_SC-SP"
 
 
@@ -1544,17 +1496,17 @@ function error_and_return() {
 }
 
 
-#  Function to check if a SLURM module is loaded or not; if not, the module is
-#+ loaded
-function check_and_load_module() {
-    local module_name="${1}"
-    if ! module is-loaded "${module_name}" &> /dev/null; then
-        echo "Loading module: ${module_name}"
-        module load "${module_name}"
-    else
-        echo "Module already loaded: ${module_name}"
-    fi
-}
+# #  Function to check if a SLURM module is loaded or not; if not, the module is
+# #+ loaded
+# function check_and_load_module() {
+#     local module_name="${1}"
+#     if ! module is-loaded "${module_name}" &> /dev/null; then
+#         echo "Loading module: ${module_name}"
+#         module load "${module_name}"
+#     else
+#         echo "Module already loaded: ${module_name}"
+#     fi
+# }
 
 
 #  Initialize variables and arrays ============================================
@@ -1568,9 +1520,9 @@ dir_indx="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
 time="8:00:00"                                           # Job time for SLURM
 threads=8                                                # Number of threads for SLURM jobs
 
-mod_bowtie2="Bowtie2/2.4.4-GCC-11.2.0"
-mod_samtools="SAMtools/1.16.1-GCC-11.2.0"
-mod_bedtools="BEDTools/2.30.0-GCC-11.2.0"
+# mod_bowtie2="Bowtie2/2.4.4-GCC-11.2.0"
+# mod_samtools="SAMtools/1.16.1-GCC-11.2.0"
+# mod_bedtools="BEDTools/2.30.0-GCC-11.2.0"
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
@@ -1633,9 +1585,9 @@ if ${check_variables}; then
     time=${time}
     threads=${threads}
 
-    mod_bowtie2=${mod_bowtie2}
-    mod_samtools=${mod_samtools}
-    mod_bedtools=${mod_bedtools}
+    # mod_bowtie2=${mod_bowtie2}
+    # mod_samtools=${mod_samtools}
+    # mod_bedtools=${mod_bedtools}
     "
 fi
 
@@ -1660,14 +1612,35 @@ if ${check_array}; then
     done
 fi
 
-#  If the module for Bowtie2 is not loaded, then load it
-check_and_load_module "${mod_bowtie2}"
+# #  If the module for Bowtie2 is not loaded, then load it
+# check_and_load_module "${mod_bowtie2}"
+#
+# #  If the corresponding Samtools module is not loaded, then load it
+# check_and_load_module "${mod_samtools}"
+#
+# #  Load also BEDtools
+# check_and_load_module "${mod_bedtools}"
 
-#  If the corresponding Samtools module is not loaded, then load it
-check_and_load_module "${mod_samtools}"
+#  Initialize conda/mamba environment containing necessary programs for
+#+ alignment, quality checks, and post-processing
+env_name="alignment-processing_env"
 
-#  Load also BEDtools
-check_and_load_module "${mod_bedtools}"
+if [[ "${CONDA_DEFAULT_ENV}" != "${env_name}" ]]; then
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        mamba deactivate
+    fi
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        #  If `mamba activate` fails, try using `source activate`
+        if ! conda activate "${env_name}" &> /dev/null; then
+            #  If `conda activate` fails, try using `source activate`
+            if ! source activate "${env_name}" &> /dev/null; then
+                #  If `source activate` also fails, return an error
+                error_and_return "Failed to activate environment \"${env_name}\"."
+            fi
+        fi
+    fi
+fi
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
@@ -1675,7 +1648,7 @@ cd "${dir_base}/${dir_repo}/${dir_work}" \
 
 #  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
 if [[ ! -d "${dir_bwt2}" ]]; then
-    mkdir -p "${dir_bwt2}/"{err_out,bam,bed,txt}
+    mkdir -p "${dir_bwt2}/"{err_out,bam,siQ-ChIP,cvrg,qc}
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
@@ -1705,11 +1678,12 @@ for i in "${!file_fastqs[@]}"; do
     bam="${dir_bwt2}/bam/${stem}.bam"
     bam_coor="${bam/.bam/.sort-coord.bam}"
     bam_quer="${bam/.bam/.sort-qname.bam}"
-    bed="${dir_bwt2}/bed/${stem}.bed.gz"
-
-    txt_flg="${dir_bwt2}/txt/${stem}.samtools-flagstat.txt"
-    txt_idx="${dir_bwt2}/txt/${stem}.samtools-idxstats.txt"
-    txt_dep="${dir_bwt2}/txt/${stem}.samtools-depth.txt"
+    
+    bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
+    bed_etc="${dir_bwt2}/cvrg/${stem}"
+    
+    txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
+    txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
 
     #  Echo current iteration
     if ${print_iteration}; then
@@ -1734,11 +1708,11 @@ for i in "${!file_fastqs[@]}"; do
         bam=${bam}
         bam_coor=${bam_coor}
         bam_quer=${bam_quer}
-        bed=${bed}
+        bed_siQ=${bed_siQ}
+        bed_etc=${bed_etc}
 
         txt_flg=${txt_flg}
         txt_idx=${txt_idx}
-        txt_dep=${txt_dep}
         "
     fi
 
@@ -2201,14 +2175,13 @@ function check_env_installed() {
     if conda env list | grep -q "^${env_name} "; then
         return 0
     else
-        echo "Environment \"${env_name}\" is not installed."
         return 1
     fi
 }
 
 
 #  Initialize variables and arrays ============================================
-env_name="minimap_env"
+env_name="alignment-processing_env"
 
 
 #  Do the main work ===========================================================
@@ -2221,7 +2194,7 @@ check_mamba_installed
 
 #  Check that environment assigned to env_name is installed; if environment
 #+ assigned to env_name is not installed, run the following
-if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
+if check_env_installed "${env_name}"; then
     #  Handle the case when the environment is already installed
     echo "Activating environment ${env_name}"
     
@@ -2247,7 +2220,19 @@ else
             --yes \
             --name "${env_name}" \
             --channel bioconda \
-                minimap
+                bamtools \
+                bedtools \
+                bowtie2 \
+                bwa \
+                fastqc \
+                minimap \
+                mosdepth \
+                picard \
+                preseq \
+                samtools \
+                ucsc-bedgraphtobigwig
+        
+        # source activate "${env_name}"
     fi
 fi
 ```

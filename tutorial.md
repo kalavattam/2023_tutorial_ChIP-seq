@@ -1238,11 +1238,11 @@ cat \
 #+ 
 #+ 1. Initial pipe to awk: ARS_consensus_sequence records have strands labeled
 #+    "0"; these need to be adjusted or else downstream programs will throw
-#+    errors when encountering the "0" strands
+#+    errors when encountering the "0" strands; thus, we change "0" to "."
 #+ 
 #+ 2. Subsequent pipe to sed: We need to replace or remove special characters
 #+    that IGV can't handle; also, these characters can break the formation of
-#+    data frames from gff3 via rtacklayer::import or readr::read_tsv, etc.
+#+    data frames from gff3 via rtacklayer::import() or readr::read_tsv(), etc.
 #+ 
 #+ 3. Next pipe to awk: We want to create a concatenated S. cerevisiae/S. pombe
 #+    gff3 file with "intelligible feature names": "Name=" value is "ID="
@@ -1526,30 +1526,30 @@ threads=8                                                # Number of threads for
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    "${dir_trim}/in_G1_Hho1_6336"
-    "${dir_trim}/IP_G1_Hho1_6336"
-    "${dir_trim}/in_G2M_Hho1_6336"
-    "${dir_trim}/IP_G2M_Hho1_6336"
-    "${dir_trim}/in_Q_Hho1_6336"
-    "${dir_trim}/IP_Q_Hho1_6336"
-    "${dir_trim}/in_G1_Hho1_6337"
-    "${dir_trim}/IP_G1_Hho1_6337"
-    "${dir_trim}/in_G2M_Hho1_6337"
-    "${dir_trim}/IP_G2M_Hho1_6337"
-    "${dir_trim}/in_Q_Hho1_6337"
-    "${dir_trim}/IP_Q_Hho1_6337"
-    "${dir_trim}/in_G1_Hmo1_7750"
-    "${dir_trim}/IP_G1_Hmo1_7750"
-    "${dir_trim}/in_G2M_Hmo1_7750"
-    "${dir_trim}/IP_G2M_Hmo1_7750"
-    "${dir_trim}/in_Q_Hmo1_7750"
-    "${dir_trim}/IP_Q_Hmo1_7750"
-    "${dir_trim}/in_G1_Hmo1_7751"
-    "${dir_trim}/IP_G1_Hmo1_7751"
-    "${dir_trim}/in_G2M_Hmo1_7751"
-    "${dir_trim}/IP_G2M_Hmo1_7751"
-    "${dir_trim}/in_Q_Hmo1_7751"
-    "${dir_trim}/IP_Q_Hmo1_7751"
+    # "${dir_trim}/in_G1_Hho1_6336"
+    # "${dir_trim}/IP_G1_Hho1_6336"
+    # "${dir_trim}/in_G2M_Hho1_6336"
+    # "${dir_trim}/IP_G2M_Hho1_6336"
+    # "${dir_trim}/in_Q_Hho1_6336"
+    # "${dir_trim}/IP_Q_Hho1_6336"
+    # "${dir_trim}/in_G1_Hho1_6337"
+    # "${dir_trim}/IP_G1_Hho1_6337"
+    # "${dir_trim}/in_G2M_Hho1_6337"
+    # "${dir_trim}/IP_G2M_Hho1_6337"
+    # "${dir_trim}/in_Q_Hho1_6337"
+    # "${dir_trim}/IP_Q_Hho1_6337"
+    # "${dir_trim}/in_G1_Hmo1_7750"
+    # "${dir_trim}/IP_G1_Hmo1_7750"
+    # "${dir_trim}/in_G2M_Hmo1_7750"
+    # "${dir_trim}/IP_G2M_Hmo1_7750"
+    # "${dir_trim}/in_Q_Hmo1_7750"
+    # "${dir_trim}/IP_Q_Hmo1_7750"
+    # "${dir_trim}/in_G1_Hmo1_7751"
+    # "${dir_trim}/IP_G1_Hmo1_7751"
+    # "${dir_trim}/in_G2M_Hmo1_7751"
+    # "${dir_trim}/IP_G2M_Hmo1_7751"
+    # "${dir_trim}/in_Q_Hmo1_7751"
+    # "${dir_trim}/IP_Q_Hmo1_7751"
     "${dir_untr}/in_Q_untagged_5781"
     "${dir_untr}/IP_Q_untagged_5781"
     "${dir_untr}/in_Q_Esa5_7041"
@@ -1625,6 +1625,7 @@ fi
 #+ alignment, quality checks, and post-processing
 env_name="alignment-processing_env"
 
+#TODO Make the following into a function
 if [[ "${CONDA_DEFAULT_ENV}" != "${env_name}" ]]; then
     if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
         mamba deactivate
@@ -1665,6 +1666,8 @@ for i in "${!file_fastqs[@]}"; do
     stem="$(basename ${file})"
     job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
     
+    #  Parse the files' source directory to determine appropriate suffix for
+    #+ FASTQ files
     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
         fastq_1=${file}_R1.atria.fastq.gz
         fastq_2=${file}_R2.atria.fastq.gz
@@ -1741,7 +1744,8 @@ sbatch << EOF
 #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
 #+ or any-quality maxi-reads (-q 1)
 #+ 
-#+ On how to interpret Bowtie 2 MAPQ scores:
+#+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
+#+ scores:
 #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
 if [[ ! -f \"${bam}\" ]]; then
     bowtie2 \\
@@ -1919,7 +1923,8 @@ sbatch << EOF
 #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
 #+ or any-quality maxi-reads (-q 1)
 #+ 
-#+ On how to interpret Bowtie 2 MAPQ scores:
+#+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
+#+ scores:
 #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
 if [[ ! -f "${bam}" ]]; then
     bowtie2 \

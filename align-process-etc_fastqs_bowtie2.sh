@@ -3,7 +3,7 @@
 #  align-process-etc_fastqs_bowtie2.sh
 #  KA
 
-debug=true
+debug=false
 
 
 #  Define functions ===========================================================
@@ -307,7 +307,7 @@ if [[
         -o "${bam_quer}" \
         "${bam}"
     
-    #  After sorting by queryname, fix the paired read mate information, which
+    #  After sorting by queryname, fix the paired read-mate information, which
     #+ is required for subsequent operations 
     if [[ -f "${bam_quer}" ]]; then
         samtools fixmate \

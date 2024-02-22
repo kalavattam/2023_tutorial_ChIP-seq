@@ -177,6 +177,7 @@ else
             -tm|--txt_met)  txt_met="${2}";  shift 2 ;;
             -tf|--txt_flg)  txt_flg="${2}";  shift 2 ;;
             -ti|--txt_idx)  txt_idx="${2}";  shift 2 ;;
+            -tl|--txt_pre)  txt_pre="${2}";  shift 2 ;;
             *) echo "Unknown parameter passed: ${1}"; exit 1 ;;
         esac
     done

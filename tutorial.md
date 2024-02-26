@@ -9,55 +9,11 @@
 
 1. [1. Prepare FASTQ files of interest for processing and analyses](#1-prepare-fastq-files-of-interest-for-processing-and-analyses)
     1. [Code](#code)
-    1. [Notes](#notes)
-        1. [Comments \(`#`\)](#comments-)
-        1. [Defining a function such as `error_and_return`](#defining-a-function-such-as-error_and_return)
-        1. [The body of the function `error_and_return`](#the-body-of-the-function-error_and_return)
-        1. [Variables](#variables)
-        1. [The `${HOME}` variable](#the-%24home-variable)
-        1. [Wrapping variables in curly braces `{}` and double quotes `""`](#wrapping-variables-in-curly-braces--and-double-quotes-)
-        1. [Associative arrays \(hash maps\)](#associative-arrays-hash-maps)
-        1. [Logical commands \(`true`, `false`\) assigned to "flag variables" \(flags\)](#logical-commands-true-false-assigned-to-flag-variables-flags)
-        1. [`if` statements](#if-statements)
-        1. [Conditional checks for directories \(`-d`\), files \(`-f`\), and logical negation \(`!`\)](#conditional-checks-for-directories--d-files--f-and-logical-negation-)
-        1. [Calls to `ln`](#calls-to-ln)
-        1. [Calls to `ls`](#calls-to-ls)
 1. [2. Adapter- and quality-trim the FASTQ files](#2-adapter--and-quality-trim-the-fastq-files)
     1. [a. Install Atria and dependencies](#a-install-atria-and-dependencies)
         1. [Code](#code-1)
-        1. [Notes](#notes-1)
-            1. [Breaking down the function `update_shell_config`](#breaking-down-the-function-update_shell_config)
-                1. [Positional arguments](#positional-arguments)
-                1. [Local variable scoping](#local-variable-scoping)
-                1. [Redirection: `>>` versus `>`](#redirection--versus-)
-                1. [Calls to `grep`](#calls-to-grep)
-                1. [Return values](#return-values)
-            1. [Breaking down the function `check_mamba_installed`](#breaking-down-the-function-check_mamba_installed)
-                1. [`if` statement with negation](#if-statement-with-negation)
-                1. [Redirection: `&> /dev/null`](#redirection--devnull)
-                1. [Redirection: `&>`, `1>`, `2>`, and more](#redirection--1-2-and-more)
-                1. [On data streams: stdin, stdout, stderr](#on-data-streams-stdin-stdout-stderr)
-            1. [Breaking down the function `check_env_installed`](#breaking-down-the-function-check_env_installed)
-                1. [Declaration of the function](#declaration-of-the-function)
-                1. [Local variable declaration, e.g., `local env_name="${1}"`](#local-variable-declaration-eg-local-env_name%241)
-                1. [The Conda/Mamba command `conda env list`](#the-condamamba-command-conda-env-list)
-                1. [The pipe \(`|`\) and `grep` commands: `... | grep -q "^${env_name} "`](#the-pipe-%7C-and-grep-commands--%7C-grep--q-%5E%24env_name-)
-                1. [Regular expressions and the caret \(`^`\) symbol:](#regular-expressions-and-the-caret-%5E-symbol)
-                1. [Escape characters and `\"`:](#escape-characters-and-)
-                1. [On the function's "control flow"](#on-the-functions-control-flow)
     1. [b. Adapter- and quality-trim the FASTQ files using Atria](#b-adapter--and-quality-trim-the-fastq-files-using-atria)
         1. [Code](#code-2)
-        1. [Notes](#notes-2)
-            1. [Calls to `unset`](#calls-to-unset)
-            1. [Calls to `typeset`/`declare`](#calls-to-typesetdeclare)
-            1. [Common options for `typeset`/`declare`](#common-options-for-typesetdeclare)
-            1. [More on operators, particularly the logical operators `&&` and `||`](#more-on-operators-particularly-the-logical-operators--and-%7C%7C)
-                1. [`&&` Operator \(Logical AND\)](#-operator-logical-and)
-                1. [`||` Operator \(Logical OR\)](#%7C%7C-operator-logical-or)
-                1. [How `&&` and `||` work together](#how--and-%7C%7C-work-together)
-                1. [Other relevant operators: `;` and `!` \(logical NOT\)](#other-relevant-operators--and--logical-not)
-                1. [Best Practices](#best-practices)
-                1. [Summary](#summary)
 1. [3. Align trimmed FASTQ files](#3-align-trimmed-fastq-files)
     1. [a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes](#a-generate-a-concatenated-annotated-assembly-of-the-s-cerevisiae-and-s-pombe-genomes)
         1. [Code](#code-3)
@@ -65,26 +21,37 @@
         1. [Code](#code-4)
     1. [c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"](#c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz)
         1. [Code](#code-5)
-        1. [Notes](#notes-3)
+        1. [Notes](#notes)
             1. [Breaking down the call to `mkdir -p`, which makes use of brace expansion](#breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion)
     1. [d. Use `bowtie2` to align the trimmed FASTQ files](#d-use-bowtie2-to-align-the-trimmed-fastq-files)
         1. [Code](#code-6)
     1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
         1. [Code](#code-7)
-1. [4. Miscellaneous \(to be organized\)](#4-miscellaneous-to-be-organized)
-    1. [a. Determination of low-complexity regions \(semi-blacklisting\)](#a-determination-of-low-complexity-regions-semi-blacklisting)
+1. [4. Call peaks with MACS3](#4-call-peaks-with-macs3)
+    1. [a. Install MACS3](#a-install-macs3)
+        1. [Code](#code-8)
+    1. [b. Run MACS3](#b-run-macs3)
+        1. [Code](#code-9)
+1. [5. Miscellaneous \(to be organized\)](#5-miscellaneous-to-be-organized)
+    1. [a. Determine the locations of low-complexity regions in *S. cerevisiae*](#a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae)
         1. [i. Install sdust via minimap](#i-install-sdust-via-minimap)
-            1. [Code](#code-8)
+            1. [Code](#code-10)
             1. [Printed](#printed)
         1. [ii. Run sdust via minimap](#ii-run-sdust-via-minimap)
-            1. [Code](#code-9)
-    1. [b. Determination of *S. cerevisiae* effective genome sizes](#b-determination-of-s-cerevisiae-effective-genome-sizes)
+            1. [Code](#code-11)
+    1. [b. Determine the effective genome size of *S. cerevisiae* \(50-mers\)](#b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers)
         1. [i. Install khmer](#i-install-khmer)
-            1. [Code](#code-10)
+            1. [Code](#code-12)
             1. [Printed](#printed-1)
         1. [ii. Run khmer](#ii-run-khmer)
-            1. [Code](#code-11)
+            1. [Code](#code-13)
             1. [Printed](#printed-2)
+    1. [b. Determine base statistics in *S. cerevisiae* FA files](#b-determine-base-statistics-in-s-cerevisiae-fa-files)
+        1. [i. Install faCount](#i-install-facount)
+            1. [Code](#code-14)
+        1. [ii. Run faCount](#ii-run-facount)
+            1. [Code](#code-15)
+            1. [Printed](#printed-3)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -266,92 +233,6 @@ if ${check_operations}; then
     ls -lhaFG "${dir_sym}"
 fi
 ```
-</details>
-<br />
-
-<a id="notes"></a>
-## Notes
-<details>
-<summary><i>Notes: 1. Prepare FASTQ files of interest for processing and analyses</i></summary>
-<br />
-
-<a id="comments-"></a>
-### Comments (`#`)
-The lines starting with `#` are comments. Comments are used to explain what the code does, but they are not executed. They're there to help anyone reading the code understand it better.
-
-For example, `# Define functions ===========================================================` is a header comment, letting readers know that functions are defined below it. The next comment explains what the function `error_and_return` does.
-
-<a id="defining-a-function-such-as-error_and_return"></a>
-### Defining a function such as `error_and_return`
-`function error_and_return()` starts the definition of a function named `error_and_return`. A function is a block of code that performs a specific task. Functions facilitate the reuse of the same code multiple times without having to write it out each time.
-
-<a id="the-body-of-the-function-error_and_return"></a>
-### The body of the function `error_and_return`
-Inside the function, we have the following code:
-- `echo "Error: ${1}" >&2`
-    + `echo` is a command used to display text.
-    + `"Error: ${1}"` is the text to be displayed. Here, `${1}` is a placeholder for the first argument passed to the function. This means that whatever text is provided when calling `error_and_return` will be displayed after `"Error: "`.
-    + `>&2` means that the error message is redirected to the standard error stream (stderr). This is typically used to output error messages.
-- `return 1`
-    + `return 1` exits the function and returns a value of 1. In Unix, Linux, and MacOS, returning a non-zero value generally indicates an error or abnormal condition. So, when `error_and_return` is called, it indicates that something went wrong.
-
-<a id="variables"></a>
-### Variables
-Variables (e.g., `dir_base`) are used to store and retrieve data (e.g., `dir_base="${HOME}/tsukiyamalab"`). They are like placeholders for values that can change over time. Variables make scripts flexible and reusable. For example, changing `dir_base` (to, say, `dir_base="${HOME}/Desktop"`) will update the base directory used throughout the script.
-
-<a id="the-%24home-variable"></a>
-### The `${HOME}` variable
-The `${HOME}` variable is an environmental variable that refers to the home directory of the current user. In Unix and Unix-like operating systems (e.g., MacOS), every user is assigned a unique directory where they can store personal files, configurations, and scripts. This directory is commonly referred to as the "home directory."
-- In scripts and command lines, `${HOME}` is often used as a shorthand to access the user's home directory. For example, `cd ${HOME}` would change the current directory to the user's home directory.
-- If the username is `john`, the home directory might be `/home/john` on Linux or `/Users/john` on macOS. In this case, `${HOME}` would be equivalent to `/home/john` or `/Users/john`, respectively.
-- Using `${HOME}` makes scripts more portable and user-independent, as it automatically resolves to the home directory of the user running the script, without needing to hard-code the full path.
-
-<a id="wrapping-variables-in-curly-braces--and-double-quotes-"></a>
-### Wrapping variables in curly braces `{}` and double quotes `""`
-In shell scripting, it's considered good practice to wrap variables in curly braces (`{}`) and double quotes (`""`) for clarity and to prevent potential errors. This practice has several benefits:
-- Curly braces help in clearly defining the boundary of a variable name. This is particularly useful when a variable is followed by text that could be misinterpreted as part of the variable name. For example, `${var}_suffix` clearly separates `var` from `_suffix`.
-- Curly braces facilitate the concatenation of variables with strings. For instance, `${var}value` appends `value` to the contents of `var`.
-- Enclosing variables in double quotes prevents word splitting and globbing. Word splitting can lead to unexpected behavior when variables contain spaces or newlines. For example, in `echo ${var}`, if `var` contains `file1 file2`, it will be split into two arguments. `echo "${var}"` would treat it as a single argument, preserving the intended behavior.
-- When a variable is empty or undefined, using double quotes ensures that the script doesn't break or behave unpredictably. For example, `echo "${nonexistent}"` will safely print nothing, whereas `echo ${nonexistent}` might lead to unintended script behavior.
-- Example:
-    + With braces: `echo "${user}file"` makes it clear that `user` is the variable being referenced, and the string `"file"` is being appended to its contents.
-    + Without braces: `echo "$userfile"` is misread as if there were a variable named `userfile`.
-
-The use of curly braces and double quotes enhances the readability and reliability of shell scripts, making them less prone to errors.
-
-
-<a id="associative-arrays-hash-maps"></a>
-### Associative arrays (hash maps)
-Associative arrays (or hash maps) are collections of key-value pairs where each key is unique. They allow for more complex data structures, enabling you to map a unique key to a specific value. In the above chunk, keys are original file name stems and values are the new name stems for the symbolic links. For example, `file_fastqs["6336_G1_in_S15"]="in_G1_Hho1_6336"` maps an original file name stem, `"6336_G1_in_S15"`, to a new one, `"in_G1_Hho1_6336"`.
-
-<a id="logical-commands-true-false-assigned-to-flag-variables-flags"></a>
-### Logical commands (`true`, `false`) assigned to "flag variables" (flags)
-Flags are variables used to control the flow of the script. `check_variables`, `check_array`, `check_operations` and `run_operations` are flags. When set to `true`, they trigger specific operations like echoing commands or creating symbolic links. Conversely, setting them to `false` skips these operations.
-
-<a id="if-statements"></a>
-### `if` statements
-`if` statements are used for the conditional execution of code. They allow the script to make decisions and execute different blocks of code based on whether a condition is true or false. They follow the following logic: "`if` a given condition is `true`, execute a specific code block; `else` (optionally) execute a different code block or do nothing." For example, `if [[ -d "${directory}" ]]; then echo "Directory exists"; fi`.
-
-<a id="conditional-checks-for-directories--d-files--f-and-logical-negation-"></a>
-### Conditional checks for directories (`-d`), files (`-f`), and logical negation (`!`)
-- `[[ -d ... ]]`: Checks if a directory exists.
-- `[[ -f ... ]]`: Checks if a file exists.
-- `!`: Negates a condition, e.g., `[[ ! -d ... ]]` checks if a directory *does not* exist.
-
-<a id="calls-to-ln"></a>
-### Calls to `ln`
-The `ln` command creates symbolic links (symlinks), which are pointers to original files. The `-s` option creates a symlink. The command format is `ln -s original_file symlink_file`. Using `ln` like this maintains the integrity of raw data while simplifying access under new names.
-
-<a id="calls-to-ls"></a>
-### Calls to `ls`
-The `ls` command lists directory contents. Flags used include:
-- `-l`: Long format with detailed information.
-- `-h`: Human-readable file sizes.
-- `-a`: Includes hidden files.
-- `-F`: Appends a character indicating file type.
-- `-G`: Colorizes output.
-
-For more details on `ls` flags and shell commands in general, visit [ShellCheck](https://www.shellcheck.net/).
 </details>
 <br />
 <br />
@@ -693,128 +574,6 @@ fi
 </details>
 <br />
 
-<a id="notes-1"></a>
-### Notes
-<details>
-<summary><i>Notes: 2.a. Install Atria and dependencies</i></summary>
-<br />
-
-`#TODO` Carefully explain all concepts in the above chunk.  
-`#TODO` Carefully test the code in the above chunk.
-
-<a id="breaking-down-the-function-update_shell_config"></a>
-#### Breaking down the function `update_shell_config`
-<a id="positional-arguments"></a>
-##### Positional arguments
-When a function is called, you can pass data to it via "arguments". In this function, `${1}` is a placeholder for the first argument, i.e., the argument in "the first position"; `${2}` is a placeholder for the second argument passed, i.e., the argument in "the second position". The values passed to positional arguments `${1}` and `${2}` are assigned to the "local" variables `config_file` and `stem`, respectively.
-
-<a id="local-variable-scoping"></a>
-##### Local variable scoping
-The `local` command is used to declare variables that are "local" to the function. This means these variables (`config_file`, `stem`, `line_to_add`) only exist within `update_shell_config` and can't be accessed outside of it. This means the "scope" of these variables are "local" to the function. Local variable scoping helps prevent conflicts with variables of the same name elsewhere in the script.
-
-<a id="redirection--versus-"></a>
-##### Redirection: `>>` versus `>`
-- `>>` appends the output (stdout) of a command or operation to a file. If the file doesn't exist, then it's created. If it does exist, then the new output is added at the end of the file.
-- Contrast that with `>`, which redirects output to a file, overwriting its current contents. Again, if the file doesn't exist, then it's created.
-
-<a id="calls-to-grep"></a>
-##### Calls to `grep`
-`grep` is a command-line utility for searching plain-text data for lines that match a regular expression. Here, `grep -q "${line_to_add}" "${config_file}"` checks if the `line_to_add` is already in `config_file`. The `-q` flag makes `grep` operate in quiet mode, so it doesn't output anything and instead just returns a success (`0`) or failure (`1`) status.
-
-<a id="return-values"></a>
-##### Return values
-In shell scripting, the command `return` exits the function. `return 0` typically signifies success, and `return 1` (or any non-zero value) signifies failure or an error. These values can be used by other parts of the script to determine if the function succeeded or failed.
-
-<a id="breaking-down-the-function-check_mamba_installed"></a>
-#### Breaking down the function `check_mamba_installed`
-This function does the following: `#TODO`.
-
-<a id="if-statement-with-negation"></a>
-##### `if` statement with negation
-- `if` statements (e.g., see the code starting with `if ! type mamba &> /dev/null; then`) check a condition and execute code based on whether the condition is true or false.
-- The `!` before a command negates its success status.
-- So, if `type mamba &> /dev/null` is successful and returns an exit code of 0, then the `!` in `! type mamba &> /dev/null` would convert that exit code of `0` to an exit code of `1`.
-- With that in mind, checking for the mamba command works in the following way:
-    + `! type mamba &> /dev/null` returns `0` if mamba is not actually in the PATH (as `!` converts `1` to `0`).
-    + Otherwise, `! type mamba &> /dev/null` returns `1` (as `!` converts `0` to `1`), thereby skipping the block of code within the `if` statement and leading to the `return 0` command.
-
-<a id="redirection--devnull"></a>
-##### Redirection: `&> /dev/null`
-`&> /dev/null` redirects both the standard output (stdout) and standard error (stderr) to `/dev/null`, effectively silencing all the command's output. `/dev/null` is a special file unique to Unix and Unix-like operating systems that discards all data written to it. This makes `/dev/null` useful for suppressing unwanted output from commands or scripts.
-
-<a id="redirection--1-2-and-more"></a>
-##### Redirection: `&>`, `1>`, `2>`, and more
-In shell scripting, redirection operators are used to control where the output of commands goes. 
-- Standard output redirection: `>` or `1>`
-    + This operator redirects the standard output (stdout) of a command to a file or another command.
-    + In shell scripting, `1` represents the file descriptor for standard output. Since it's the default, `>` is equivalent to `1>`.
-    + For example, `echo "Hello, World" > file.txt` writes "Hello, World" to `file.txt`.
-- Standard error redirection: `2>`
-    + This operator redirects the standard error (stderr) of a command to a file or another command.
-    + In shell scripting, `2` represents the file descriptor for standard error.
-    + For example, `ls non_existent_file 2> error.txt` redirects any error messages from the `ls` command to `error.txt`.
-- Combined stdout and stderr redirection: `&>`
-    + This operator redirects both standard output and standard error to the same place.
-    + It is useful to capture all output from a command, regardless of whether it is normal output or error messages.
-    + For example, `command &> output.txt` will redirect both the output and any error messages of `command` to `output.txt`.
-- Appending stdout redirection: `>>`
-    + This operator appends the standard output of a command to the end of an existing file, rather than overwriting it like `>` does.
-    + For example, `echo "World" >> file.txt` will add "World" to the end of `file.txt` without removing any existing content.
-- Redirecting stderr to stdout: `2>&1`
-    + This operator redirects the standard error to the same destination as the standard output.
-    + `2>&1` is often used in combination with other redirections; for example, `command > output.txt 2>&1` will redirect both stdout and stderr to `output.txt`.
-
-<a id="on-data-streams-stdin-stdout-stderr"></a>
-##### On data streams: stdin, stdout, stderr
-In computing, particularly in the context of Unix and Unix-like operating systems, data streams are channels through which data flows. The three standard streams are:
-1. Standard input (stdin): This is the data stream used for input. Typically, stdin is what you type into the terminal. By default, stdin is "attached to" or associated with the keyboard. To visualize this, imagine a natural stream (body of water) whose source is underground water; similarly, the keyboard acts as the source of "signals" or "data" (like the water), initiating a "data stream" (stdin). This stream "flows" into programs or commands, carrying the input (data) they require.
-2. Standard output (stdout): This stream is used to output the data produced by a program. For example, when you run a command in the terminal that prints something, that output is being sent to stdout. By default, stdout is displayed on the screen. In the context of a terminal, the river's banks are the screen where output of commands are viewed. In engineering, people might direct a river through channels or pipes to specific locations. Similarly, stdout can be redirected to files, other programs, or even other devices. This redirection is akin to building a canal or pipeline to guide the river's flow to a desired destination.
-3. Standard error (stderr): This is a separate stream used specifically for outputting error messages or diagnostics from a program. It is distinct from stdout, which allows error messages to be handled or redirected separately from standard output. By default, stderr is also displayed on the screen. Engineers often design separate drainage systems to handle waste or overflow. Similarly, stderr can be redirected independently of stdout. This is like having a separate set of pipes or channels (e.g., a sewage system) to manage waste water, ensuring it doesn’t pollute the main water supply.
-4. Taking it all in:
-    + For example, in nature, water can be directed using various natural formations like canyons and gorges, or man-made structures like dams, sluice gates, and reservoirs. In "\*nix" operating systems (e.g., Unix, Linux, MacOS), operators like `>`, `>>`, `2>`, `|`, and others are used as tools to redirect and control these data streams. They act like, for example, sluice gates or pipes (`|`) (to redirect flow), dams (to stop and store data), or even filters (to process and change data).
-    + So, the stdin, stdout, and stderr streams are fundamental in \*nix environments for data input and output. Just as water can be filtered, stored, or channeled into different paths (like irrigation systems, hydroelectric plants, or through filtration systems), data streams can be manipulated and redirected in numerous ways. The use of commands and scripts to manipulate these streams is akin to using sophisticated control systems in engineering to manage water flow, ensuring each drop goes exactly where it's needed, when it's needed.
-
-<a id="breaking-down-the-function-check_env_installed"></a>
-#### Breaking down the function `check_env_installed`
-This function checks for the existence of a specified Conda environment. To achieve its goal, it uses "local variable scoping" (`local env_name="${1}"`) with a single positional argument (`${1}`), a conditional statement (`if`, `then`, `else`), pattern matching (`grep -q`), a regular expression (the `^` in `"^${env_name} "`), and command piping (`|`).
-
-<a id="declaration-of-the-function"></a>
-##### Declaration of the function
-`function check_env_installed() { ... }` defines a new function named `check_env_installed`
-<a id="local-variable-declaration-eg-local-env_name%241"></a>
-##### Local variable declaration, e.g., `local env_name="${1}"`
-- The `local` command restricts the variable's scope to the function.
-- `env_name` is a variable that holds the name of the environment to check.
-- `"${1}"` is the first positional argument passed to the function when it's called.
-
-<a id="the-condamamba-command-conda-env-list"></a>
-##### The Conda/Mamba command `conda env list`
-`conda env list` command lists all Conda environments installed on the system.
-
-<a id="the-pipe-%7C-and-grep-commands--%7C-grep--q-%5E%24env_name-"></a>
-##### The pipe (`|`) and `grep` commands: `... | grep -q "^${env_name} "`
-- The pipe (`|`) takes the output of `conda env list` and passes it to the `grep` command, which searches for a specific pattern in the input it receives.
-- `-q` is an option for `grep` that makes it silent; with `-q` specified, `grep` doesn't output the matching lines; it returns an exit status (`0` or a non-zero value).
-- `"^${env_name} "` is the pattern `grep` searches for.
-
-<a id="regular-expressions-and-the-caret-%5E-symbol"></a>
-##### Regular expressions and the caret (`^`) symbol:
-- The pattern `"^${env_name} "` includes a regular expression. Regular expressions are a way to match patterns in text.
-- `^` is a regular expression "anchor" that matches the start of a line.
-- `^${env_name}` means `grep` looks for lines that start with the name of the environment&mdash;the value assigned to variable `env_name`.
-
-<a id="escape-characters-and-"></a>
-##### Escape characters and `\"`:
-- The backslash (`\`) is used as an "escape character". It changes the meaning of the character following it.
-- Here, it is used to include the double quotes literally in the output string, i.e., `echo "Environment \"${env_name}\" is not installed."` prints the environment name within quotes.
-
-<a id="on-the-functions-control-flow"></a>
-##### On the function's "control flow"
-- If the specified environment is found (that is, if the pattern is matched), `grep -q` returns a zero exit status (`0`), which indicates success. Consequently, the function also returns `0`.
-- If the environment is not found (that is, if the pattern is not matched), `grep -q` returns a non-zero status. This means that the `else` block (i.e., the block of code following (below) the `else` operator) executes, printing a message and returning `1`, which indicates failure.
-</details>
-<br />
-
 <a id="b-adapter--and-quality-trim-the-fastq-files-using-atria"></a>
 ## b. Adapter- and quality-trim the FASTQ files using Atria
 <a id="code-2"></a>
@@ -1039,75 +798,6 @@ done
 ```
 </details>
 <br />
-
-<a id="notes-2"></a>
-### Notes
-<details>
-<summary><i>Notes: 2.b. Adapter- and quality-trim the FASTQ files using Atria</i></summary>
-
-<a id="calls-to-unset"></a>
-#### Calls to `unset`
-- The `unset` command is used to remove or "unset" variables or functions. It's like erasing something from a whiteboard&mdash;once you use `unset`, the variable or function is no longer available in the current session.
-- Let's say you have a variable named `my_var` and you want to remove it; to do so, simply type `unset my_var`. After this, `my_var` will no longer hold any value or be recognized by the shell.
-
-<a id="calls-to-typesetdeclare"></a>
-#### Calls to `typeset`/`declare`
-- `typeset` (also known as `declare`) is used to declare shell variables and give them attributes or set certain properties. It's akin to setting up a box with specific characteristics (like size, color, or label) before putting something into it.
-- To declare a new variable with a specific attribute, you use `typeset` followed by options and the variable name. For example, `typeset -i my_num` declares `my_num` as an integer.
-
-<a id="common-options-for-typesetdeclare"></a>
-#### Common options for `typeset`/`declare`
-1. `-a` (array declaration):
-    + Use this to declare a variable as an indexed array.
-    + Example: `typeset -a my_array` makes `my_array` an indexed array, where you can store a list of values.
-2. `-A` (associative array declaration):
-    + This is for declaring an associative array (similar to a dictionary in other languages), where each value is accessed with a unique key.
-    + Example: `typeset -A my_dictionary` creates an associative array named `my_dictionary`.
-3. `-i` (integer declaration):
-    + Declares a variable as an integer. This is useful when you want to ensure that a variable only stores whole numbers.
-    + Example: `typeset -i my_num` makes count an integer variable called `my_num`.
-4. `-r` (read-only declaration):
-    + This makes a variable read-only, meaning once you set its value, it cannot be changed or unset.
-    + Example: `typeset -r constant_var=5` creates a read-only variable `constant_var` with the value `5`.
-
-Using `typeset` or `declare` helps you control your variables better. It's like specifying what type of content a folder should have in a filing cabinet, making your scripts more robust and less prone to errors.
-
-There are other options available with `typeset`, such as `-x` for exporting a variable to child processes, or `-f` to list functions. The options available can vary slightly between different shell types (like Bash or Ksh), so it's always a good idea to check the manual (`man bash` or `man ksh`) for the specifics of your environment.
-
-In summary, `unset` is a tool for removing variables or functions, while `typeset`/`declare` is like a Swiss Army knife for creating and managing variables with specific attributes or properties. They are fundamental tools in scripting, enhancing the control and predictability of how scripts behave.
-
-<a id="more-on-operators-particularly-the-logical-operators--and-%7C%7C"></a>
-#### More on operators, particularly the logical operators `&&` and `||`
-<a id="-operator-logical-and"></a>
-##### `&&` Operator (Logical AND)
-- The double ampersand `&&` operator allows you to execute a command or set of commands only if the previous command was successful (i.e., it returned an exit status of `0`, which denotes success in \*nix environments).
-- `command_1` && `command_2` means "run `command_1`, and if it is successful, then run `command_2`."
-- Don't confuse `&&` with `&`: The single ampersand `&` is used to run a command in the background. For example, `command_1 &` runs `command_1` and immediately returns control to the shell, allowing you to continue other work while `command_1` runs in the background.
-
-<a id="%7C%7C-operator-logical-or"></a>
-##### `||` Operator (Logical OR)
-- The double vertical bar `||` operator lets you execute a command or set of commands only if the previous command failed (i.e., it returned a non-zero exit status).
-`command_1 || command_2` means "run `command_1`, and if it fails, then run `command_2`."
-- Don't confuse `||` with `|`: The single vertical bar `|` is a pipe, which is used to pass the output of one command as input to another. For example, `command_1 | command_2` takes the output of `command_1` and uses it as input for `command_2`.
-
-<a id="how--and-%7C%7C-work-together"></a>
-##### How `&&` and `||` work together
-- You can chain these operators for more complex logic. For example, `command_1 && command_2 || command_3` means "run `command_1`, and if it succeeds, then run `command_2`, but if `command_1` fails, then run `command_3`."
-
-<a id="other-relevant-operators--and--logical-not"></a>
-##### Other relevant operators: `;` and `!` (logical NOT)
-- `;` (semicolon): Used to run commands sequentially, regardless of the success or failure of the previous command. `command_1; command_2` will, no matter what, run `command_1` and then `command_2`.
-- `!` (logical NOT): Inverts the exit status of a command. With `!`, if a command fails, then it's associated with `0` (success) exit code, and vice versa: if a command succeeds, then it's associated with a non-zero (failure) exit code.
-
-<a id="best-practices"></a>
-##### Best Practices
-- Readability: Sometimes, especially for complex logic, it can be clearer to use `if-then-else` statements rather than chaining `&&` and `||`.
-- Error handling: Be mindful of how you use these operators in scripts, as they can affect the flow and error handling of your script. Always test how your script behaves in different scenarios.
-
-<a id="summary"></a>
-##### Summary
-`&&` and `||` are used to control the flow of commands based on their success (`&&`) or failure (`||`). They provide a way to build simple conditional logic directly into the command line. Just remember that they are different from the background operator `&` and the pipe `|`, both of which serve different purposes in scripting.
-</details>
 <br />
 
 <a id="3-align-trimmed-fastq-files"></a>
@@ -1457,7 +1147,7 @@ EOF
 <br />
 <br />
 
-<a id="notes-3"></a>
+<a id="notes"></a>
 ### Notes
 <details>
 <summary><i>Notes: 3.a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes</i></summary>
@@ -1516,7 +1206,13 @@ dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
 dir_untr="01_sym"                                        # Directory for initial, non-trimmed FASTQs
 dir_trim="02_trim"                                       # Directory for trimmed FASTQs
 dir_bwt2="03_bam/bowtie2"
-dir_indx="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
+dir_genome=${HOME}/genomes/combined_SC_SP
+dir_indx="${dir_genome}/bowtie2/combined_SC_SP"
+file_fasta="${dir_genome}/fasta/combined_SC_SP.fa"
+file_sizes="${dir_genome}/fasta/combined_SC_SP.chrom-info.tsv"
+
+mapq=1
+
 time="8:00:00"                                           # Job time for SLURM
 threads=8                                                # Number of threads for SLURM jobs
 
@@ -1581,7 +1277,13 @@ if ${check_variables}; then
     dir_untr=${dir_untr}
     dir_trim=${dir_trim}
     dir_bwt2=${dir_bwt2}
+    dir_genome=${dir_genome}
     dir_indx=${dir_indx}
+    file_fasta=${file_fasta}
+    file_sizes=${file_sizes}
+    
+    mapq=${mapq}
+
     time=${time}
     threads=${threads}
 
@@ -1655,8 +1357,10 @@ fi
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
 print_iteration=true
 check_variables=true
-check_operations=true
-run_operations=false
+check_operation=true
+run_operation=true
+# check_operations=false
+# run_operations=false
 
 for i in "${!file_fastqs[@]}"; do
     # i=0
@@ -1667,7 +1371,7 @@ for i in "${!file_fastqs[@]}"; do
     job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
     
     #  Parse the files' source directory to determine appropriate suffix for
-    #+ FASTQ files
+    #+ FASTQ file names
     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
         fastq_1=${file}_R1.atria.fastq.gz
         fastq_2=${file}_R2.atria.fastq.gz
@@ -1685,8 +1389,10 @@ for i in "${!file_fastqs[@]}"; do
     bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
     bed_etc="${dir_bwt2}/cvrg/${stem}"
     
+    txt_met="${dir_bwt2}/qc/${stem}.picard-metrics.txt"
     txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
     txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
+    txt_pre="${dir_bwt2}/qc/${stem}.preseq"
 
     #  Echo current iteration
     if ${print_iteration}; then
@@ -1714,21 +1420,30 @@ for i in "${!file_fastqs[@]}"; do
         bed_siQ=${bed_siQ}
         bed_etc=${bed_etc}
 
+        txt_met=${txt_met}
         txt_flg=${txt_flg}
         txt_idx=${txt_idx}
+        txt_pre=${txt_pre}
+
+        dir_base=${dir_base}
+        dir_repo=${dir_repo}
+        dir_work=${dir_work}
+        dir_untr=${dir_untr}
+        dir_trim=${dir_trim}
+        dir_bwt2=${dir_bwt2}
+        dir_indx=${dir_indx}
+        file_fasta=${file_fasta}
+        file_sizes=${file_sizes}
+
+        mapq=${mapq}
+
+        time=${time}
+        threads=${threads}
         "
     fi
 
-    #  Echo the Atria trimming command if check_operations is true
-    if ${check_operations}; then
+    if [[ ${check_operation} ]]; then
         echo "
-        if [[
-                 -f \"${fastq_1}\" \\
-            &&   -f \"${fastq_2}\" \\
-            && ! -f \"${bam_coor}\" \\
-            && ! -f \"${bam_quer}\" \\
-            && ! -f \"${bed}\"
-        ]]; then
 sbatch << EOF
 #!/bin/bash
 
@@ -1739,175 +1454,28 @@ sbatch << EOF
 #SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
 #SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
 
-#  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
-#+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
-#+ retain only properly paired reads (-f 2) that are high-quality multi-reads
-#+ or any-quality maxi-reads (-q 1)
-#+ 
-#+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
-#+ scores:
-#+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
-if [[ ! -f \"${bam}\" ]]; then
-    bowtie2 \\
-        -p ${threads} \\
-        -x \"${dir_indx}\" \\
-        --very-sensitive-local \\
-        --no-unal \\
-        --no-mixed \\
-        --no-discordant \\
-        --no-overlap \\
-        --no-dovetail \\
-        --phred33 \\
-        -I 10 \\
-        -X 700 \\
-        -1 \"${fastq_1}\" \\
-        -2 \"${fastq_2}\" \\
-            | samtools view \\
-                -@ ${threads} \\
-                -b \\
-                -f 2 \\
-                -q 1 \\
-                -o \"${bam}\"
-fi
-
-#  Check if the BAM file exists to perform further operations
-if [[ -f \"${bam}\" ]]; then
-    #  Sort the BAM file by queryname if not already done
-    if [[ ! -f \"${bam_quer}\" ]]; then
-        samtools sort \\
-            -@ ${threads} \\
-            -n \\
-            -o \"${bam_quer}\" \\
-            \"${bam}\"
-    fi
-
-    #  Fix the paired read mate information, which is required after sorting by
-    #+ queryname for subsequent operations
-    if [[ -f \"${bam_quer}\" ]]; then
-        samtools fixmate \\
-            -@ ${threads} \\
-            -m \\
-            \"${bam_quer}\" \\
-            \"${bam_quer%.bam}.tmp.bam\"
-
-        #  Replace the original queryname-sorted BAM with queryname-sorted
-        #+ mate-fixed BAM
-        if [[ -f \"${bam_quer%.bam}.tmp.bam\" ]]; then
-            mv -f \\
-                \"${bam_quer%.bam}.tmp.bam\" \\
-                \"${bam_quer}\"
-        fi
-    fi
-
-    #  For downstream analyses, sort the queryname-sorted BAM by coordinates
-    if [[ ! -f \"${bam_coor}\" ]]; then
-        samtools sort \\
-            -@ ${threads} \\
-            -o \"${bam_coor}\" \\
-            \"${bam_quer}\"
-    fi
-
-    #  Index the coordinate-sorted BAM file
-    if [[ ! -f \"${bam_coor}.bai\" ]]; then
-        samtools index \\
-            -@ ${threads} \\
-            \"${bam_coor}\"
-    fi
-
-    #  Mark duplicate alignments in the coordinate-sorted BAM file
-    if [[
-           -f \"${bam_coor}\" \\
-        && -f \"${bam_coor}.bai\"
-    ]]; then
-        samtools markdup \\
-            -@ ${threads} \\
-            \"${bam_coor}\" \\
-            \"${bam_coor%.bam}.tmp.bam\"
-
-        #  Replace the original coordinate-sorted BAM with one in which
-        #+ duplicates alignments are marked
-        if [[ -f \"${bam_coor%.bam}.tmp.bam\" ]]; then
-            mv -f \\
-                \"${bam_coor%.bam}.tmp.bam\" \\
-                \"${bam_coor}\"
-        fi
-
-        #  If duplicate marking was successful, then generate flagstat and
-        #+ idxstats reports
-        if [[ $? -eq 0 ]]; then
-            samtools flagstat \\
-                -@ ${threads} \\
-                \"${bam_coor}\" \\
-                    > \"${txt_flg}\"
-
-            samtools idxstats \\
-                \"${bam_coor}\" \\
-                    > \"${txt_idx}\"
-        fi
-    fi
-
-    #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
-    if [[
-         ! -f \"${bed}\" \\
-        && -f \"${bam_quer}\"
-    ]]; then
-        #  Extract fragment information to create the BED file, excluding
-        #+ chromosomes starting with \"SP_\"
-        samtools view \"${bam_quer}\" \\
-            | awk '{
-                if (NR % 2 == 1) {
-                    chr_1 = \$3; 
-                    start_1 = \$4; 
-                    len_1 = length(\$10);
-                } else {
-                    chr_2 = \$3;
-                    start_2 = \$4; 
-                    len_2 = length(\$10);
-                    if (chr_1 == chr_2 && substr(chr_1, 1, 3) != \"SP_\") {
-                        start = (start_1 < start_2) ? start_1 : start_2;
-                        end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-                        frag_length = end - start + 1; 
-                        print chr_1, start, end, frag_length;
-                    }
-                }
-            }' OFS='\t' \\
-            | sort -k1,1 -k2,2n \\
-            | gzip \\
-                > \"${bed}\"
-    fi
-
-    #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
-    #+ all other files have been successfully created
-    if [[ 
-           -f \"${bam_coor}\" \\
-        && -f \"${bam_quer}\" \\
-        && -f \"${bed}\"
-    ]]; then
-        rm \"${bam}\"
-    fi
-fi
+bash align-process-etc_fastqs_bowtie2.sh \\
+    --threads \"${threads}\" \\
+    --index \"${dir_indx}\" \\
+    --fasta \"${file_fasta}\" \\
+    --sizes \"${file_sizes}\" \\
+    --mapq \"${mapq}\" \\
+    --fastq_1 \"${fastq_1}\" \\
+    --fastq_2 \"${fastq_2}\" \\
+    --bam \"${bam}\" \\
+    --bam_coor \"${bam_coor}\" \\
+    --bam_quer \"${bam_quer}\" \\
+    --bed_siQ \"${bed_siQ}\" \\
+    --bed_etc \"${bed_etc}\" \\
+    --txt_met \"${txt_met}\" \\
+    --txt_flg \"${txt_flg}\" \\
+    --txt_idx \"${txt_idx}\" \\
+    --txt_pre \"${txt_pre}\"
 EOF
-        else
-            echo \"
-            Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
-            \"
-        fi
         "
     fi
 
-    #TODO Pick up here #TOMORROW: Write up/incluce code teaching how to
-    #+    generate Bowtie2 indices, and add variable above for the indices
-    #+    and the scratch directory, where sorting will take place
-
-    #  Submit the Atria trimming job if run_operations is true
-    if ${run_operations}; then
-        if [[
-                 -f "${fastq_1}" \
-            &&   -f "${fastq_2}" \
-            && ! -f "${bam_coor}" \
-            && ! -f "${bam_quer}" \
-            && ! -f "${bed}"
-        ]]; then
+    if [[ ${run_operation} ]]; then
 sbatch << EOF
 #!/bin/bash
 
@@ -1918,163 +1486,448 @@ sbatch << EOF
 #SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
 #SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
 
-#  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
-#+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
-#+ retain only properly paired reads (-f 2) that are high-quality multi-reads
-#+ or any-quality maxi-reads (-q 1)
-#+ 
-#+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
-#+ scores:
-#+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
-if [[ ! -f "${bam}" ]]; then
-    bowtie2 \
-        -p ${threads} \
-        -x "${dir_indx}" \
-        --very-sensitive-local \
-        --no-unal \
-        --no-mixed \
-        --no-discordant \
-        --no-overlap \
-        --no-dovetail \
-        --phred33 \
-        -I 10 \
-        -X 700 \
-        -1 "${fastq_1}" \
-        -2 "${fastq_2}" \
-            | samtools view \
-                -@ ${threads} \
-                -b \
-                -f 2 \
-                -q 1 \
-                -o "${bam}"
-fi
-
-#  Check if the BAM file exists to perform further operations
-if [[ -f "${bam}" ]]; then
-    #  Sort the BAM file by queryname if not already done
-    if [[ ! -f "${bam_quer}" ]]; then
-        samtools sort \
-            -@ ${threads} \
-            -n \
-            -o "${bam_quer}" \
-            "${bam}"
-    fi
-
-    #  Fix the paired read mate information, which is required after sorting by
-    #+ queryname for subsequent operations
-    if [[ -f "${bam_quer}" ]]; then
-        samtools fixmate \
-            -@ ${threads} \
-            -m \
-            "${bam_quer}" \
-            "${bam_quer%.bam}.tmp.bam"
-
-        #  Replace the original queryname-sorted BAM with queryname-sorted
-        #+ mate-fixed BAM
-        if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
-            mv -f \
-                "${bam_quer%.bam}.tmp.bam" \
-                "${bam_quer}"
-        fi
-    fi
-
-    #  For downstream analyses, sort the queryname-sorted BAM by coordinates
-    if [[ ! -f "${bam_coor}" ]]; then
-        samtools sort \
-            -@ ${threads} \
-            -o "${bam_coor}" \
-            "${bam_quer}"
-    fi
-
-    #  Index the coordinate-sorted BAM file
-    if [[ ! -f "${bam_coor}.bai" ]]; then
-        samtools index \
-            -@ ${threads} \
-            "${bam_coor}"
-    fi
-
-    #  Mark duplicate alignments in the coordinate-sorted BAM file
-    if [[
-           -f "${bam_coor}" \
-        && -f "${bam_coor}.bai"
-    ]]; then
-        samtools markdup \
-            -@ ${threads} \
-            "${bam_coor}" \
-            "${bam_coor%.bam}.tmp.bam"
-
-        #  Replace the original coordinate-sorted BAM with one in which
-        #+ duplicates alignments are marked
-        if [[ -f "${bam_coor%.bam}.tmp.bam" ]]; then
-            mv -f \
-                "${bam_coor%.bam}.tmp.bam" \
-                "${bam_coor}"
-        fi
-
-        #  If duplicate marking was successful, then generate flagstat and
-        #+ idxstats reports
-        if [[ $? -eq 0 ]]; then
-            samtools flagstat \
-                -@ ${threads} \
-                "${bam_coor}" \
-                    > "${txt_flg}"
-
-            samtools idxstats \
-                "${bam_coor}" \
-                    > "${txt_idx}"
-        fi
-    fi
-
-    #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
-    if [[
-         ! -f "${bed}" \
-        && -f "${bam_quer}"
-    ]]; then
-        #  Extract fragment information to create the BED file, excluding
-        #+ chromosomes starting with "SP_"
-        samtools view "${bam_quer}" \
-            | awk '{
-                if (NR % 2 == 1) {
-                    chr_1 = \$3; 
-                    start_1 = \$4; 
-                    len_1 = length(\$10);
-                } else {
-                    chr_2 = \$3;
-                    start_2 = \$4; 
-                    len_2 = length(\$10);
-                    if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
-                        start = (start_1 < start_2) ? start_1 : start_2;
-                        end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-                        frag_length = end - start + 1; 
-                        print chr_1, start, end, frag_length;
-                    }
-                }
-            }' OFS='\t' \
-            | sort -k1,1 -k2,2n \
-            | gzip \
-                > "${bed}"
-    fi
-
-    #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
-    #+ all other files have been successfully created
-    if [[ 
-           -f "${bam_coor}" \
-        && -f "${bam_quer}" \
-        && -f "${bed}"
-    ]]; then
-        rm "${bam}"
-    fi
-fi
+bash align-process-etc_fastqs_bowtie2.sh \
+    --threads "${threads}" \
+    --index "${dir_indx}" \
+    --fasta "${file_fasta}" \
+    --sizes "${file_sizes}" \
+    --mapq "${mapq}" \
+    --fastq_1 "${fastq_1}" \
+    --fastq_2 "${fastq_2}" \
+    --bam "${bam}" \
+    --bam_coor "${bam_coor}" \
+    --bam_quer "${bam_quer}" \
+    --bed_siQ "${bed_siQ}" \
+    --bed_etc "${bed_etc}" \
+    --txt_met "${txt_met}" \
+    --txt_flg "${txt_flg}" \
+    --txt_idx "${txt_idx}" \
+    --txt_pre "${txt_pre}"
 EOF
-        else
-            echo "
-            Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
-            "
-        fi
     fi
 
-    sleep 0.2  # Short pause to prevent rapid job-submission overload
+    sleep 0.2
 done
+
+#TODO Initial BAM outfiles (from just after alignment) wern't deleted upon completion; debug this
+
+# for i in "${!file_fastqs[@]}"; do
+#     # i=0
+#     index="${i}"
+#     iter=$(( index + 1 ))
+#     file="${file_fastqs[${index}]}"
+#     stem="$(basename ${file})"
+#     job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
+#    
+#     #  Parse the files' source directory to determine appropriate suffix for
+#     #+ FASTQ files
+#     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
+#         fastq_1=${file}_R1.atria.fastq.gz
+#         fastq_2=${file}_R2.atria.fastq.gz
+#     elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
+#         fastq_1=${file}_R1.fastq.gz
+#         fastq_2=${file}_R2.fastq.gz
+#     else
+#         error_and_return "Processing logic problem for ${file}."
+#     fi
+#    
+#     bam="${dir_bwt2}/bam/${stem}.bam"
+#     bam_coor="${bam/.bam/.sort-coord.bam}"
+#     bam_quer="${bam/.bam/.sort-qname.bam}"
+#    
+#     bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
+#     bed_etc="${dir_bwt2}/cvrg/${stem}"
+#    
+#     txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
+#     txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
+#
+#     #  Echo current iteration
+#     if ${print_iteration}; then
+#         echo "
+#         #  -------------------------------------
+#         ### ${iter} ###
+#         "
+#     fi
+#    
+#     #  Echo loop-dependent variables if check_variables is true
+#     if ${check_variables}; then
+#         echo "
+#         index=${index}
+#         iter=${iter}
+#         file=${file}
+#         stem=${stem}
+#         job_name=${job_name}
+#        
+#         fastq_1=${fastq_1}
+#         fastq_2=${fastq_2}
+#
+#         bam=${bam}
+#         bam_coor=${bam_coor}
+#         bam_quer=${bam_quer}
+#         bed_siQ=${bed_siQ}
+#         bed_etc=${bed_etc}
+#
+#         txt_flg=${txt_flg}
+#         txt_idx=${txt_idx}
+#         "
+#     fi
+#
+#     #  Echo the Atria trimming command if check_operations is true
+#     if ${check_operations}; then
+#         echo "
+#         if [[
+#                  -f \"${fastq_1}\" \\
+#             &&   -f \"${fastq_2}\" \\
+#             && ! -f \"${bam_coor}\" \\
+#             && ! -f \"${bam_quer}\" \\
+#             && ! -f \"${bed}\"
+#         ]]; then
+# sbatch << EOF
+# #!/bin/bash
+#
+# #SBATCH --job-name=\"${job_name}\"
+# #SBATCH --nodes=1
+# #SBATCH --cpus-per-task=${threads}
+# #SBATCH --time=${time}
+# #SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
+# #SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
+#
+# #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
+# #+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
+# #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
+# #+ or any-quality maxi-reads (-q 1)
+# #+ 
+# #+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
+# #+ scores:
+# #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+# if [[ ! -f \"${bam}\" ]]; then
+#     bowtie2 \\
+#         -p ${threads} \\
+#         -x \"${dir_indx}\" \\
+#         --very-sensitive-local \\
+#         --no-unal \\
+#         --no-mixed \\
+#         --no-discordant \\
+#         --no-overlap \\
+#         --no-dovetail \\
+#         --phred33 \\
+#         -I 10 \\
+#         -X 700 \\
+#         -1 \"${fastq_1}\" \\
+#         -2 \"${fastq_2}\" \\
+#             | samtools view \\
+#                 -@ ${threads} \\
+#                 -b \\
+#                 -f 2 \\
+#                 -q 1 \\
+#                 -o \"${bam}\"
+# fi
+#
+# #  Check if the BAM file exists to perform further operations
+# if [[ -f \"${bam}\" ]]; then
+#     #  Sort the BAM file by queryname if not already done
+#     if [[ ! -f \"${bam_quer}\" ]]; then
+#         samtools sort \\
+#             -@ ${threads} \\
+#             -n \\
+#             -o \"${bam_quer}\" \\
+#             \"${bam}\"
+#     fi
+#
+#     #  Fix the paired read mate information, which is required after sorting by
+#     #+ queryname for subsequent operations
+#     if [[ -f \"${bam_quer}\" ]]; then
+#         samtools fixmate \\
+#             -@ ${threads} \\
+#             -m \\
+#             \"${bam_quer}\" \\
+#             \"${bam_quer%.bam}.tmp.bam\"
+#
+#         #  Replace the original queryname-sorted BAM with queryname-sorted
+#         #+ mate-fixed BAM
+#         if [[ -f \"${bam_quer%.bam}.tmp.bam\" ]]; then
+#             mv -f \\
+#                 \"${bam_quer%.bam}.tmp.bam\" \\
+#                 \"${bam_quer}\"
+#         fi
+#     fi
+#
+#     #  For downstream analyses, sort the queryname-sorted BAM by coordinates
+#     if [[ ! -f \"${bam_coor}\" ]]; then
+#         samtools sort \\
+#             -@ ${threads} \\
+#             -o \"${bam_coor}\" \\
+#             \"${bam_quer}\"
+#     fi
+#
+#     #  Index the coordinate-sorted BAM file
+#     if [[ ! -f \"${bam_coor}.bai\" ]]; then
+#         samtools index \\
+#             -@ ${threads} \\
+#             \"${bam_coor}\"
+#     fi
+#
+#     #  Mark duplicate alignments in the coordinate-sorted BAM file
+#     if [[
+#            -f \"${bam_coor}\" \\
+#         && -f \"${bam_coor}.bai\"
+#     ]]; then
+#         samtools markdup \\
+#             -@ ${threads} \\
+#             \"${bam_coor}\" \\
+#             \"${bam_coor%.bam}.tmp.bam\"
+#
+#         #  Replace the original coordinate-sorted BAM with one in which
+#         #+ duplicates alignments are marked
+#         if [[ -f \"${bam_coor%.bam}.tmp.bam\" ]]; then
+#             mv -f \\
+#                 \"${bam_coor%.bam}.tmp.bam\" \\
+#                 \"${bam_coor}\"
+#         fi
+#
+#         #  If duplicate marking was successful, then generate flagstat and
+#         #+ idxstats reports
+#         if [[ $? -eq 0 ]]; then
+#             samtools flagstat \\
+#                 -@ ${threads} \\
+#                 \"${bam_coor}\" \\
+#                     > \"${txt_flg}\"
+#
+#             samtools idxstats \\
+#                 \"${bam_coor}\" \\
+#                     > \"${txt_idx}\"
+#         fi
+#     fi
+#
+#     #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
+#     if [[
+#          ! -f \"${bed}\" \\
+#         && -f \"${bam_quer}\"
+#     ]]; then
+#         #  Extract fragment information to create the BED file, excluding
+#         #+ chromosomes starting with \"SP_\"
+#         samtools view \"${bam_quer}\" \\
+#             | awk '{
+#                 if (NR % 2 == 1) {
+#                     chr_1 = \$3; 
+#                     start_1 = \$4; 
+#                     len_1 = length(\$10);
+#                 } else {
+#                     chr_2 = \$3;
+#                     start_2 = \$4; 
+#                     len_2 = length(\$10);
+#                     if (chr_1 == chr_2 && substr(chr_1, 1, 3) != \"SP_\") {
+#                         start = (start_1 < start_2) ? start_1 : start_2;
+#                         end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+#                         frag_length = end - start + 1; 
+#                         print chr_1, start, end, frag_length;
+#                     }
+#                 }
+#             }' OFS='\t' \\
+#             | sort -k1,1 -k2,2n \\
+#             | gzip \\
+#                 > \"${bed}\"
+#     fi
+#
+#     #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
+#     #+ all other files have been successfully created
+#     if [[ 
+#            -f \"${bam_coor}\" \\
+#         && -f \"${bam_quer}\" \\
+#         && -f \"${bed}\"
+#     ]]; then
+#         rm \"${bam}\"
+#     fi
+# fi
+# EOF
+#         else
+#             echo \"
+#             Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
+#             \"
+#         fi
+#         "
+#     fi
+#
+#     #TODO Pick up here #TOMORROW: Write up/incluce code teaching how to
+#     #+    generate Bowtie2 indices, and add variable above for the indices
+#     #+    and the scratch directory, where sorting will take place
+#
+#     #  Submit the Atria trimming job if run_operations is true
+#     if ${run_operations}; then
+#         if [[
+#                  -f "${fastq_1}" \
+#             &&   -f "${fastq_2}" \
+#             && ! -f "${bam_coor}" \
+#             && ! -f "${bam_quer}" \
+#             && ! -f "${bed}"
+#         ]]; then
+# sbatch << EOF
+# #!/bin/bash
+#
+# #SBATCH --job-name="${job_name}"
+# #SBATCH --nodes=1
+# #SBATCH --cpus-per-task=${threads}
+# #SBATCH --time=${time}
+# #SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
+# #SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
+#
+# #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
+# #+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
+# #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
+# #+ or any-quality maxi-reads (-q 1)
+# #+ 
+# #+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
+# #+ scores:
+# #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+# if [[ ! -f "${bam}" ]]; then
+#     bowtie2 \
+#         -p ${threads} \
+#         -x "${dir_indx}" \
+#         --very-sensitive-local \
+#         --no-unal \
+#         --no-mixed \
+#         --no-discordant \
+#         --no-overlap \
+#         --no-dovetail \
+#         --phred33 \
+#         -I 10 \
+#         -X 700 \
+#         -1 "${fastq_1}" \
+#         -2 "${fastq_2}" \
+#             | samtools view \
+#                 -@ ${threads} \
+#                 -b \
+#                 -f 2 \
+#                 -q 1 \
+#                 -o "${bam}"
+# fi
+#
+# #  Check if the BAM file exists to perform further operations
+# if [[ -f "${bam}" ]]; then
+#     #  Sort the BAM file by queryname if not already done
+#     if [[ ! -f "${bam_quer}" ]]; then
+#         samtools sort \
+#             -@ ${threads} \
+#             -n \
+#             -o "${bam_quer}" \
+#             "${bam}"
+#     fi
+#
+#     #  Fix the paired read mate information, which is required after sorting by
+#     #+ queryname for subsequent operations
+#     if [[ -f "${bam_quer}" ]]; then
+#         samtools fixmate \
+#             -@ ${threads} \
+#             -m \
+#             "${bam_quer}" \
+#             "${bam_quer%.bam}.tmp.bam"
+#
+#         #  Replace the original queryname-sorted BAM with queryname-sorted
+#         #+ mate-fixed BAM
+#         if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
+#             mv -f \
+#                 "${bam_quer%.bam}.tmp.bam" \
+#                 "${bam_quer}"
+#         fi
+#     fi
+#
+#     #  For downstream analyses, sort the queryname-sorted BAM by coordinates
+#     if [[ ! -f "${bam_coor}" ]]; then
+#         samtools sort \
+#             -@ ${threads} \
+#             -o "${bam_coor}" \
+#             "${bam_quer}"
+#     fi
+#
+#     #  Index the coordinate-sorted BAM file
+#     if [[ ! -f "${bam_coor}.bai" ]]; then
+#         samtools index \
+#             -@ ${threads} \
+#             "${bam_coor}"
+#     fi
+#
+#     #  Mark duplicate alignments in the coordinate-sorted BAM file
+#     if [[
+#            -f "${bam_coor}" \
+#         && -f "${bam_coor}.bai"
+#     ]]; then
+#         samtools markdup \
+#             -@ ${threads} \
+#             "${bam_coor}" \
+#             "${bam_coor%.bam}.tmp.bam"
+#
+#         #  Replace the original coordinate-sorted BAM with one in which
+#         #+ duplicates alignments are marked
+#         if [[ -f "${bam_coor%.bam}.tmp.bam" ]]; then
+#             mv -f \
+#                 "${bam_coor%.bam}.tmp.bam" \
+#                 "${bam_coor}"
+#         fi
+#
+#         #  If duplicate marking was successful, then generate flagstat and
+#         #+ idxstats reports
+#         if [[ $? -eq 0 ]]; then
+#             samtools flagstat \
+#                 -@ ${threads} \
+#                 "${bam_coor}" \
+#                     > "${txt_flg}"
+#
+#             samtools idxstats \
+#                 "${bam_coor}" \
+#                     > "${txt_idx}"
+#         fi
+#     fi
+#
+#     #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
+#     if [[
+#          ! -f "${bed}" \
+#         && -f "${bam_quer}"
+#     ]]; then
+#         #  Extract fragment information to create the BED file, excluding
+#         #+ chromosomes starting with "SP_"
+#         samtools view "${bam_quer}" \
+#             | awk '{
+#                 if (NR % 2 == 1) {
+#                     chr_1 = \$3; 
+#                     start_1 = \$4; 
+#                     len_1 = length(\$10);
+#                 } else {
+#                     chr_2 = \$3;
+#                     start_2 = \$4; 
+#                     len_2 = length(\$10);
+#                     if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
+#                         start = (start_1 < start_2) ? start_1 : start_2;
+#                         end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+#                         frag_length = end - start + 1; 
+#                         print chr_1, start, end, frag_length;
+#                     }
+#                 }
+#             }' OFS='\t' \
+#             | sort -k1,1 -k2,2n \
+#             | gzip \
+#                 > "${bed}"
+#     fi
+#
+#     #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
+#     #+ all other files have been successfully created
+#     if [[ 
+#            -f "${bam_coor}" \
+#         && -f "${bam_quer}" \
+#         && -f "${bed}"
+#     ]]; then
+#         rm "${bam}"
+#     fi
+# fi
+# EOF
+#         else
+#             echo "
+#             Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
+#             "
+#         fi
+#     fi
+#
+#     sleep 0.2  # Short pause to prevent rapid job-submission overload
+# done
 ```
 </details>
 <br />
@@ -2135,14 +1988,405 @@ fi
 ```
 </details>
 <br />
+<br />
 
-<a id="4-miscellaneous-to-be-organized"></a>
-# 4. Miscellaneous (to be organized)
-<a id="a-determination-of-low-complexity-regions-semi-blacklisting"></a>
-## a. Determination of low-complexity regions (semi-blacklisting)
+<a id="4-call-peaks-with-macs3"></a>
+# 4. Call peaks with MACS3
+<a id="a-install-macs3"></a>
+## a. Install MACS3
+<a id="code-8"></a>
+### Code
+<details>
+<summary><i>Code: 4.a. Install MACS3</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+env_name="macs3_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+create_mamba_env=true  # Install mamba environment if not detected
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  If not in base environment, then deactivate current environment
+deactivate_env
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if check_env_installed "${env_name}"; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    activate_env "${env_name}"
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --yes \
+            -n "macs3_env" \
+            -c conda-forge \
+                python=3.10 \
+                pip
+        
+        source activate "${env_name}"
+
+        pip install macs3
+
+        deactivate_env
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="b-run-macs3"></a>
+## b. Run MACS3
+<a id="code-9"></a>
+### Code
+<details>
+<summary><i>Code: Run MACS3</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define function ============================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    deactivate_env
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
+dir_repo="Kris/2023_rDNA"                                # Repository directory
+dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+dir_bams="03_bam/bowtie2/bam"                            # Directory for BAMs
+dir_macs="03_bam/bowtie2/macs3"                          # Directory for MACS3 outfiles
+
+gsize=12157105
+keep_dup="auto"
+
+time="4:00:00"                                           # Job time for SLURM (H:MM:SS)
+threads=1                                                # Number of threads for SLURM jobs
+
+#  Initialize an indexed array of BAM file stems
+unset file_bam_stems && typeset -a file_bam_stems=(
+    "Q_untagged_5781"
+    "Q_Esa5_7041"
+    "Q_Esa5_7691"
+    "Q_Rpd3_7568"
+    "Q_Rpd3_7569"
+    "Q_Gcn5_7692"
+    "Q_Gcn5_7709"
+)
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable and array assignments
+check_variables=true
+check_array=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_base=${dir_base}
+    dir_repo=${dir_repo}
+    dir_work=${dir_work}
+    dir_bwt2=${dir_bams}
+    dir_macs=${dir_macs}
+    
+    time=${time}
+    threads=${threads}
+    "
+fi
+
+#  Echo array contents if check_array is true
+if ${check_array}; then
+    for i in "${!file_bam_stems[@]}"; do
+        file="${file_bam_stems[${i}]}"
+
+        # echo "${file}"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/IP_${file}.sort-coord.bam"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/in_${file}.sort-coord.bam"
+    done
+fi
+
+#  Initialize conda/mamba environment containing necessary programs for
+#+ alignment, quality checks, and post-processing
+env_name="macs3_env"
+
+check_env_installed "${env_name}"
+activate_env "${env_name}"
+
+#  Navigate to the work directory
+cd "${dir_base}/${dir_repo}/${dir_work}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+
+#  If it doesn't exist, create a directory to store MACS3 outfiles
+if [[ ! -d "${dir_macs}" ]]; then
+    mkdir -p "${dir_macs}"
+fi
+
+#  Set flags: checking variables, checking and submitting Bowtie2 jobs
+print_iteration=true
+check_variables=true
+check_operation=true
+run_operation=true
+
+for i in "${!file_bam_stems[@]}"; do
+    # i=0
+    index="${i}"
+    iter=$(( index + 1 ))
+    stem="${file_bam_stems[${index}]}"
+    job_name="$(echo ${dir_macs} | sed 's:\/:_:g').${stem}"
+    
+    in="${dir_bams}/in_${stem}.sort-coord.bam"
+    IP="${dir_bams}/IP_${stem}.sort-coord.bam"
+
+    #  Echo current iteration
+    if ${print_iteration}; then
+        echo "
+        #  -------------------------------------
+        ### ${iter} ###
+        "
+    fi
+    
+    #  Echo loop-dependent variables if check_variables is true
+    if ${check_variables}; then
+        echo "
+        index=${index}
+        iter=${iter}
+        stem=${stem}
+        job_name=${job_name}
+
+        in=${in}
+        IP=${IP}
+        "
+    fi
+
+    if [[ ${check_operation} ]]; then
+        echo "
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name=\"${job_name}\"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt\"
+#SBATCH --output=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt\"
+
+macs3 callpeak \\
+    --name \"${stem}\" \\
+    --treatment \"${IP}\" \\
+    --control \"${in}\" \\
+    --format \"BAMPE\" \\
+    --gsize \"${gsize}\" \\
+    --keep-dup \"${keep_dup}\" \\
+    --outdir \"${dir_macs}\" \\
+    --bdg \\
+    --SPMR \\
+    --verbose 3
+
+if [[ -f \"${dir_macs}/${stem}_summits.bed\" ]]; then
+    find \"${dir_macs}\" \\
+        -type f \\
+        \( \\
+               -name \"${stem}\"*\".bdg\" \\
+            -o -name \"${stem}\"*\".narrowPeak\" \\
+            -o -name \"${stem}\"*\".xls\" \\
+            -o -name \"${stem}\"*\".bed\" \\
+        \) \\
+        -exec gzip {} \;
+fi
+EOF
+        "
+    fi
+
+    if [[ ${run_operation} ]]; then
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name="${job_name}"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error="$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt"
+
+macs3 callpeak \
+    --name "${stem}" \
+    --treatment "${IP}" \
+    --control "${in}" \
+    --format "BAMPE" \
+    --gsize "${gsize}" \
+    --keep-dup "${keep_dup}" \
+    --outdir "${dir_macs}" \
+    --bdg \
+    --SPMR \
+    --verbose 3
+
+if [[ -f "${dir_macs}/${stem}_summits.bed" ]]; then
+    find "${dir_macs}" \
+        -type f \
+        \( \
+               -name "${stem}"*".bdg" \
+            -o -name "${stem}"*".narrowPeak" \
+            -o -name "${stem}"*".xls" \
+            -o -name "${stem}"*".bed" \
+        \) \
+        -exec gzip {} \;
+fi
+EOF
+    fi
+
+    sleep 0.2
+done
+```
+</details>
+<br />
+<br />
+
+<a id="5-miscellaneous-to-be-organized"></a>
+# 5. Miscellaneous (to be organized)
+<a id="a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae"></a>
+## a. Determine the locations of low-complexity regions in *S. cerevisiae*
 <a id="i-install-sdust-via-minimap"></a>
 ### i. Install [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
-<a id="code-8"></a>
+<a id="code-10"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install sdust via minimap</i></summary>
@@ -2190,7 +2434,6 @@ env_name="alignment-processing_env"
 
 
 #  Do the main work ===========================================================
-#  Install minimap ------------------------------------------------------------
 #  Set flag(s)
 create_mamba_env=true  # Install mamba environment if not detected
 
@@ -2203,6 +2446,7 @@ if check_env_installed "${env_name}"; then
     #  Handle the case when the environment is already installed
     echo "Activating environment ${env_name}"
     
+    #TODO Make the following a function
     if ! mamba activate "${env_name}" &> /dev/null; then
         #  If `mamba activate` fails, try using `source activate`
         if ! conda activate "${env_name}" &> /dev/null; then
@@ -2235,11 +2479,24 @@ else
                 picard \
                 preseq \
                 samtools \
-                ucsc-bedgraphtobigwig
+                ucsc-bedgraphtobigwig \
+                ucsc-facount
         
         # source activate "${env_name}"
     fi
 fi
+
+# mamba create \
+#     --yes \
+#     --name minimap_env \
+#     --channel bioconda \
+#         minimap
+
+# source activate "alignment-processing_env"
+# mamba install \
+#     --yes \
+#     --channel bioconda \
+#         ucsc-facount
 ```
 </details>
 <br />
@@ -2252,7 +2509,7 @@ fi
 ```txt
 ❯ mamba create \
 >     --yes \
->     --name "${env_name}" \
+>     --name minimap_env \
 >     --channel bioconda \
 >         minimap
 
@@ -2338,13 +2595,164 @@ To activate this environment, use
 To deactivate an active environment, use
 
      $ mamba deactivate
+
+
+❯ mamba install \
+>     --yes \
+>     --channel bioconda \
+>         ucsc-facount
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (1.3.1) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['ucsc-facount']
+
+bioconda/noarch                                      5.1MB @   4.1MB/s  1.5s
+bioconda/linux-64                                    5.3MB @   3.6MB/s  1.7s
+pkgs/main/linux-64                                   6.7MB @   3.8MB/s  2.1s
+pkgs/r/linux-64                                               No change
+pkgs/r/noarch                                                 No change
+pkgs/main/noarch                                   860.2kB @ 370.0kB/s  0.8s
+conda-forge/noarch                                  15.9MB @   5.3MB/s  3.4s
+conda-forge/linux-64                                38.4MB @   5.4MB/s  7.8s
+
+Pinned packages:
+  - python 3.10.*
+
+
+Transaction
+
+  Prefix: /home/kalavatt/miniconda3/envs/alignment-processing_env
+
+  Updating specs:
+
+   - ucsc-facount
+   - ca-certificates
+   - openssl
+
+
+  Package                  Version  Build                Channel                    Size
+──────────────────────────────────────────────────────────────────────────────────────────
+  Install:
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  + gsl                        2.7  he838d99_0           conda-forge/linux-64     Cached
+  + libcblas                 3.9.0  21_linux64_openblas  conda-forge/linux-64       15kB
+  + ucsc-facount               377  ha8a8165_3           bioconda/linux-64         137kB
+
+  Change:
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  - lcms2                     2.15  h7f713cb_2           conda-forge
+  + lcms2                     2.15  haa2dc70_1           conda-forge/linux-64     Cached
+  - libcups                  2.3.3  h4637d8d_4           conda-forge
+  + libcups                  2.3.3  h36d4200_3           conda-forge/linux-64        5MB
+  - mysql-connector-c       6.1.11  h659d440_1008        conda-forge
+  + mysql-connector-c       6.1.11  h6eb9d5d_1007        conda-forge/linux-64     Cached
+  - pango                  1.50.14  ha41ecd1_2           conda-forge
+  + pango                  1.50.14  heaa33ce_1           conda-forge/linux-64     Cached
+
+  Downgrade:
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  - cairo                   1.18.0  h3faef2a_0           conda-forge
+  + cairo                   1.16.0  hbbf8b49_1016        conda-forge/linux-64     Cached
+  - curl                     8.5.0  hca28451_0           conda-forge
+  + curl                    7.88.1  h37d81fd_2           pkgs/main/linux-64         82kB
+  - harfbuzz                 8.3.0  h3d44ed6_0           conda-forge
+  + harfbuzz                 7.3.0  hdb3a94d_0           conda-forge/linux-64     Cached
+  - htslib                  1.19.1  h81da01d_1           bioconda
+  + htslib                    1.17  h6bc39ce_1           bioconda/linux-64           2MB
+  - icu                       73.2  h59595ed_0           conda-forge
+  + icu                       72.1  hcb278e6_0           conda-forge/linux-64     Cached
+  - krb5                    1.21.2  h659d440_0           conda-forge
+  + krb5                    1.20.1  hf9c8cef_0           conda-forge/linux-64     Cached
+  - libcurl                  8.5.0  hca28451_0           conda-forge
+  + libcurl                 7.88.1  h91b91d3_2           pkgs/main/linux-64        393kB
+  - libnghttp2              1.58.0  h47da74e_1           conda-forge
+  + libnghttp2              1.52.0  ha637b67_1           pkgs/main/linux-64        687kB
+  - libssh2                 1.11.0  h0841786_0           conda-forge
+  + libssh2                 1.10.0  haa6b8db_3           conda-forge/linux-64     Cached
+  - libtiff                  4.6.0  h8b53f26_0           conda-forge
+  + libtiff                  4.5.1  h8b53f26_1           conda-forge/linux-64      417kB
+  - libxml2                 2.12.5  h232c23b_0           conda-forge
+  + libxml2                 2.11.5  h0d562d8_0           conda-forge/linux-64      705kB
+  - mosdepth                 0.3.6  hd299d5a_0           bioconda
+  + mosdepth                 0.3.3  hd299d5a_3           bioconda/linux-64        Cached
+  - openjdk                 20.0.2  hfea2f88_1           conda-forge
+  + openjdk                 11.0.1  h516909a_1016        conda-forge/linux-64      184MB
+  - openssl                  3.2.1  hd590300_0           conda-forge
+  + openssl                 1.1.1w  hd590300_0           conda-forge/linux-64        2MB
+  - picard                   3.1.1  hdfd78af_0           bioconda
+  + picard                   3.0.0  hdfd78af_0           bioconda/noarch            18MB
+  - python                 3.10.13  hd12c33a_1_cpython   conda-forge
+  + python                  3.10.8  h257c98d_0_cpython   conda-forge/linux-64     Cached
+  - r-base                   4.3.1  h639d9d3_5           conda-forge
+  + r-base                   4.2.3  h4a03800_2           conda-forge/linux-64       25MB
+  - samtools                1.19.2  h50ea8bc_0           bioconda
+  + samtools                  1.18  hd87286a_0           bioconda/linux-64         466kB
+  - ucsc-bedgraphtobigwig      455  h2a80c09_0           bioconda
+  + ucsc-bedgraphtobigwig      445  h954228d_0           bioconda/linux-64           2MB
+
+  Summary:
+
+  Install: 3 packages
+  Change: 4 packages
+  Downgrade: 19 packages
+
+  Total download: 242MB
+
+──────────────────────────────────────────────────────────────────────────────────────────
+
+
+libcblas                                            14.6kB @ 115.9kB/s  0.1s
+libtiff                                            416.5kB @   2.6MB/s  0.2s
+openssl                                              2.0MB @  12.0MB/s  0.2s
+libxml2                                            705.0kB @   4.3MB/s  0.2s
+libcups                                              4.5MB @  20.5MB/s  0.2s
+libnghttp2                                         687.2kB @   2.5MB/s  0.1s
+samtools                                           466.2kB @   1.2MB/s  0.1s
+libcurl                                            392.6kB @   1.0MB/s  0.2s
+ucsc-facount                                       136.7kB @ 322.1kB/s  0.3s
+curl                                                82.5kB @ 176.2kB/s  0.1s
+htslib                                               2.5MB @   3.9MB/s  0.2s
+r-base                                              25.1MB @  34.6MB/s  0.6s
+ucsc-bedgraphtobigwig                                2.3MB @   2.4MB/s  0.6s
+picard                                              18.3MB @  12.3MB/s  1.1s
+openjdk                                            184.0MB @  90.6MB/s  2.0s
+
+Downloading and Extracting Packages
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
 ```
 </details>
 <br />
 
 <a id="ii-run-sdust-via-minimap"></a>
 ### ii. Run [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
-<a id="code-9"></a>
+<a id="code-11"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Run sdust via minimap</i></summary>
@@ -2436,11 +2844,11 @@ fi
 </details>
 <br />
 
-<a id="b-determination-of-s-cerevisiae-effective-genome-sizes"></a>
-## b. Determination of *S. cerevisiae* effective genome sizes
+<a id="b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers"></a>
+## b. Determine the effective genome size of *S. cerevisiae* (50-mers)
 <a id="i-install-khmer"></a>
 ### i. Install [khmer](https://khmer.readthedocs.io/en/latest/)
-<a id="code-10"></a>
+<a id="code-12"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install khmer</i></summary>
@@ -2660,7 +3068,7 @@ To deactivate an active environment, use
 
 <a id="ii-run-khmer"></a>
 ### ii. Run [khmer](https://khmer.readthedocs.io/en/latest/)
-<a id="code-11"></a>
+<a id="code-13"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Install khmer</i></summary>
@@ -2829,3 +3237,102 @@ Total estimated number of unique 50-mers: 11624332
 ```
 </details>
 <br />
+
+<a id="b-determine-base-statistics-in-s-cerevisiae-fa-files"></a>
+## b. Determine base statistics in *S. cerevisiae* FA files
+<a id="i-install-facount"></a>
+### i. Install [faCount](https://khmer.readthedocs.io/en/latest/)
+<a id="code-14"></a>
+#### Code
+<details>
+<summary><i>Code: i. Install faCount</i></summary>
+<br />
+
+*See mamba installation of "alignment-processing_env" [above](#i-install-sdust-via-minimap) (which includes the package ucsc-facount).*
+</details>
+<br />
+
+<a id="ii-run-facount"></a>
+### ii. Run faCount
+<a id="code-15"></a>
+#### Code
+<details>
+<summary><i>Code: Run faCount</i></summary>
+
+```bash
+#!/bin/bash
+
+grabnode  # 1, 20, 1, N
+
+
+#  Define functions ===========================================================
+
+
+#  Initialize variables and arrays ============================================
+d_fa="${HOME}/genomes/Saccharomyces_cerevisiae/fasta-processed"
+f_fa="S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+a_fa="${d_fa}/${f_fa}"
+
+env_faCount="alignment-processing_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+check_variables=true
+check_file_exists=true
+check_command=true
+run_command=false
+
+#  Check variables
+if ${check_variables}; then
+    echo "
+           d_fa=${d_fa}
+           f_fa=${f_fa}
+           a_fa=${a_fa}
+
+    env_faCount=${env_faCount}
+    "
+fi
+
+#  Check that input FASTQ file exists
+if ${check_file_exists}; then ls -lhaFG "${a_fa}"; fi
+
+#  If not already activated, the activate conda environment
+if [[ "${CONDA_DEFAULT_ENV}" != "${env_faCount}" ]]; then
+    if [[ ${CONDA_DEFAULT_ENV} != "base" ]]; then
+        conda deactivate
+    fi
+
+    source activate "${env_faCount}"
+fi
+
+#  Estimate the number of unique 50-mers in S. cerevisiae
+if ${check_command}; then
+    echo "faCount -summary \"${a_fa}\""
+fi
+
+faCount -summary "${a_fa}"
+```
+</details>
+<br />
+
+<a id="printed-3"></a>
+#### Printed
+<details>
+<summary><i>Printed: Run faCount</i></summary>
+
+```txt
+❯ if ${check_command}; then
+>     echo "faCount -summary \"${a_fa}\""
+> fi
+faCount -summary "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+ 
+
+❯ faCount -summary "${a_fa}"
+#seq    len A   C   G   T   N   cpg
+total   12157105    3766349 2320576 2317100 3753080 0   355299
+prcnt   1.0     0.3098  0.1909  0.1906  0.3087  0.0000  0.0292
+```
+</details>
+<br />
+

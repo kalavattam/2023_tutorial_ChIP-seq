@@ -247,6 +247,10 @@ if [[ -z "${bed_etc}" ]]; then
     bed_etc="${bam%.bam}"
 fi
 
+if [[ -z "${txt_met}" ]]; then
+    txt_idx="${bam/.bam/.picard-metrics.txt}"
+fi
+
 if [[ -z "${txt_flg}" ]]; then
     txt_flg="${bam/.bam/.samtools-flagstat.txt}"
 fi
@@ -255,8 +259,8 @@ if [[ -z "${txt_idx}" ]]; then
     txt_idx="${bam/.bam/.samtools-idxstats.txt}"
 fi
 
-if [[ -z "${txt_met}" ]]; then
-    txt_idx="${bam/.bam/.picard-metrics.txt}"
+if [[ -z "${txt_pre}" ]]; then
+    txt_pre="${bam/.bam/.preseq}"
 fi
 
 #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,

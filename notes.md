@@ -8,6 +8,7 @@
 <!-- MarkdownTOC -->
 
 1. [Open tabs: what they are, what they contain, why they're important or useful, etc.](#open-tabs-what-they-are-what-they-contain-why-theyre-important-or-useful-etc)
+    1. [On replicate consistency](#on-replicate-consistency)
 1. [Notes on teaching materials at the Harvard Chan Bioinformatics Core: Intro-to-ChIPseq-flipped](#notes-on-teaching-materials-at-the-harvard-chan-bioinformatics-core-intro-to-chipseq-flipped)
     1. [lessons/05_filtering_BAM_files](#lessons05_filtering_bam_files)
         1. [Filtering reads](#filtering-reads)
@@ -312,6 +313,14 @@ macs3 callpeak \
 - [Biostars post: "Purpose of bamCoverage RPKM normalization method"](https://www.biostars.org/p/9474318/): I never understood why RPKM normalization is used by some in ChIP-seq analyses (let alone in RNA-seq analyses). This post includes a comment from ATPoint echoing my concerns and advancing that, in this context, use of the CPM normalization seems more appropriate than use of the RPKM normalization.
 - [Biostars post: "How to plot coverage and depth statistics of a bam file"](https://www.biostars.org/p/104063/): Here, lots of advice on how to go about calculating coverage and depth statistics for BAM files. Because of information presented here and elsewhere, I have moved forward with [mosdepth](https://github.com/brentp/mosdepth) for calculating coverage and depth statistics.
 - [MACS2/3 issue: "How to incorporate ChIP-seq spike in normalisation into peak calling?"](https://github.com/macs3-project/MACS/issues/356): Not very scrutable advice on including ChIP-seq spike-in scaling factors in MACS2/3 peak calling. I want to better understand, implement, and test this approach, perhaps including it in the final tutorial (or at least the linked notebook).
+- [Galaxy Training Tutorial: Identification of the binding sites of the T-cell acute lymphocytic leukemia protein 1 (TAL1)](https://training.galaxyproject.org/training-material/topics/epigenetics/tutorials/tal1-binding-site-identification/tutorial.html#assessing-ip-strength)
+
+<a id="on-replicate-consistency"></a>
+## On replicate consistency
+- [Biostars: "Pearson correlation between ChIP-seq replicates is very poor: Am I doing something wrong in the normalization?"](https://www.biostars.org/p/311663/)
+- [Biostars: Different number of peaks between biological replicates?](https://www.biostars.org/p/405583/)
+- [Reddit: For ChIP-seq, is it advisable to pool replicates?](https://www.reddit.com/r/bioinformatics/comments/v0vwin/for_chip_seq_is_it_advisable_to_pool_replicates/#:~:text=If%20you%20have%20bad%20quality%20data%2C%20such,could%20consider%20combining%20replicates%20in%20order%20to)
+
 <br />
 <br />
 

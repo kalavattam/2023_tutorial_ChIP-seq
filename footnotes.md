@@ -55,6 +55,10 @@
 				1. [Other relevant operators: `;` and `!` \(logical NOT\)](#other-relevant-operators--and--logical-not)
 				1. [Best Practices](#best-practices)
 				1. [Summary](#summary)
+1. [3. Align trimmed FASTQ files](#3-align-trimmed-fastq-files)
+	1. [a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes](#a-generate-a-concatenated-annotated-assembly-of-the-s-cerevisiae-and-s-pombe-genomes)
+		1. [Footnotes](#footnotes-3)
+			1. [Breaking down the call to `mkdir -p`, which makes use of brace expansion](#breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -345,4 +349,31 @@ In summary, `unset` is a tool for removing variables or functions, while `typese
 ##### Summary
 `&&` and `||` are used to control the flow of commands based on their success (`&&`) or failure (`||`). They provide a way to build simple conditional logic directly into the command line. Just remember that they are different from the background operator `&` and the pipe `|`, both of which serve different purposes in scripting.
 </details>
+<br />
+<br />
+
+<a id="3-align-trimmed-fastq-files"></a>
+# 3. Align trimmed FASTQ files
+<a id="footnotes-3"></a>
+<a id="a-generate-a-concatenated-annotated-assembly-of-the-s-cerevisiae-and-s-pombe-genomes"></a>
+## a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes
+<a id="footnotes-3"></a>
+### Footnotes
+<details>
+<summary><i>Notes: 3.a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes</i></summary>
+
+<a id="breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion"></a>
+#### Breaking down the call to `mkdir -p`, which makes use of brace expansion
+1. `[[ ! -d "${dir_genomes}" ]]`: This checks if the directory `"${dir_genomes}"` does not exist. `!` is used for negation, `-d` checks for the existence of a directory, and `${dir_genomes}` is a variable that should hold the path of the directory you're checking.
+2. `mkdir -p "${HOME}/genomes/"{"${dir_SP}","${dir_SC}"}/{fasta,gff3}`: This command creates multiple directories in one go.
+    + `mkdir -p`: The `mkdir` command is used to create directories, and the `-p` flag ensures that any necessary parent directories are also created (and also prevents an error if the directory already exists).
+    + `"${dir_genomes}/"{"${dir_SP}","${dir_SC}"}/{fasta,gff3}`: This is an example of brace expansion. The `mkdir -p` command creates directories in the directory assigned to `dir_genomes`. For each of `${dir_SP}` and `${dir_SC}`, `mkdir -p` will create `fasta` and `gff3` subdirectories. For example, if `${dir_SP}` is "Schizosaccharomyces_pombe" and `${dir_SC}` is "Saccharomyces_cerevisiae", the command will create the following directories:
+        - `${HOME}/genomes/Schizosaccharomyces_pombe/fasta`
+        - `${HOME}/genomes/Schizosaccharomyces_pombe/gff3`
+        - `${HOME}/genomes/Saccharomyces_cerevisiae/fasta`
+        - `${HOME}/genomes/Saccharomyces_cerevisiae/gff3`
+
+\#TODO To be continued after modularizing the above
+</details>
+<br />
 <br />

@@ -17,12 +17,10 @@
 1. [3. Align trimmed FASTQ files](#3-align-trimmed-fastq-files)
     1. [a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes](#a-generate-a-concatenated-annotated-assembly-of-the-s-cerevisiae-and-s-pombe-genomes)
         1. [Code](#code-3)
-    1. [b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`](#b-concatenate-processed-fastas-and-gff3s-in-new-directory-combined_sc_sp)
+    1. [b. Concatenate processed FASTA and GFF3 files in new directory `combined_SC_SP/`](#b-concatenate-processed-fasta-and-gff3-files-in-new-directory-combined_sc_sp)
         1. [Code](#code-4)
     1. [c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"](#c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz)
         1. [Code](#code-5)
-        1. [Notes](#notes)
-            1. [Breaking down the call to `mkdir -p`, which makes use of brace expansion](#breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion)
     1. [d. Use `bowtie2` to align the trimmed FASTQ files](#d-use-bowtie2-to-align-the-trimmed-fastq-files)
         1. [Code](#code-6)
     1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
@@ -32,25 +30,43 @@
         1. [Code](#code-8)
     1. [b. Run MACS3](#b-run-macs3)
         1. [Code](#code-9)
-1. [5. Miscellaneous \(to be organized\)](#5-miscellaneous-to-be-organized)
+    1. [c. Run MACS3 with pooled replicates](#c-run-macs3-with-pooled-replicates)
+        1. [Code](#code-10)
+1. [5. Subset peaks](#5-subset-peaks)
+    1. [a. Install environment for interactive R scripting](#a-install-environment-for-interactive-r-scripting)
+        1. [Shell code](#shell-code)
+        1. [R code](#r-code)
+    1. [b. Perform set operations with peak intervals](#b-perform-set-operations-with-peak-intervals)
+        1. [i. Get situated](#i-get-situated)
+            1. [Shell code](#shell-code-1)
+        1. [ii. Perform set operations with peak intervals, returning complete intervals from a given set](#ii-perform-set-operations-with-peak-intervals-returning-complete-intervals-from-a-given-set)
+            1. [R code](#r-code-1)
+        1. [iii. Perform set operations with peak intervals, returning partial intervals from a given set](#iii-perform-set-operations-with-peak-intervals-returning-partial-intervals-from-a-given-set)
+            1. [R code](#r-code-2)
+        1. [iv. Perform additional set operations with respect to three-way intersections](#iv-perform-additional-set-operations-with-respect-to-three-way-intersections)
+            1. [R code](#r-code-3)
+1. [6. Miscellaneous \(to be organized\)](#6-miscellaneous-to-be-organized)
+    1. [x. Scratch](#x-scratch)
+        1. [Code](#code-11)
+        1. [Notes](#notes)
     1. [a. Determine the locations of low-complexity regions in *S. cerevisiae*](#a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae)
-        1. [i. Install sdust via minimap](#i-install-sdust-via-minimap)
-            1. [Code](#code-10)
-            1. [Printed](#printed)
-        1. [ii. Run sdust via minimap](#ii-run-sdust-via-minimap)
-            1. [Code](#code-11)
-    1. [b. Determine the effective genome size of *S. cerevisiae* \(50-mers\)](#b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers)
-        1. [i. Install khmer](#i-install-khmer)
+        1. [i. Install `sdust` via `minimap`](#i-install-sdust-via-minimap)
             1. [Code](#code-12)
-            1. [Printed](#printed-1)
-        1. [ii. Run khmer](#ii-run-khmer)
+            1. [Printed](#printed)
+        1. [ii. Run `sdust` via `minimap`](#ii-run-sdust-via-minimap)
             1. [Code](#code-13)
-            1. [Printed](#printed-2)
-    1. [b. Determine base statistics in *S. cerevisiae* FA files](#b-determine-base-statistics-in-s-cerevisiae-fa-files)
-        1. [i. Install faCount](#i-install-facount)
+    1. [b. Determine the effective genome size of *S. cerevisiae* \(50-mers\)](#b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers)
+        1. [i. Install `khmer`](#i-install-khmer)
             1. [Code](#code-14)
-        1. [ii. Run faCount](#ii-run-facount)
+            1. [Printed](#printed-1)
+        1. [ii. Run `khmer`](#ii-run-khmer)
             1. [Code](#code-15)
+            1. [Printed](#printed-2)
+    1. [b. Determine base statistics in *S. cerevisiae* FASTA files](#b-determine-base-statistics-in-s-cerevisiae-fasta-files)
+        1. [i. Install `faCount`](#i-install-facount)
+            1. [Code](#code-16)
+        1. [ii. Run `faCount`](#ii-run-facount)
+            1. [Code](#code-17)
             1. [Printed](#printed-3)
 
 <!-- /MarkdownTOC -->
@@ -839,12 +855,12 @@ sbatch \
 </details>
 <br />
 
-<a id="b-concatenate-processed-fastas-and-gff3s-in-new-directory-combined_sc_sp"></a>
-## b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`
+<a id="b-concatenate-processed-fasta-and-gff3-files-in-new-directory-combined_sc_sp"></a>
+## b. Concatenate processed FASTA and GFF3 files in new directory `combined_SC_SP/`
 <a id="code-4"></a>
 ### Code
 <details>
-<summary><i>Code: 3.b. Concatenate processed fastas and gff3s in new directory `combined_SC_SP/`</i></summary>
+<summary><i>Code: 3.b. Concatenate processed FASTA and GFF3 files in new directory `combined_SC_SP/`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -1145,27 +1161,6 @@ EOF
 ```
 </details>
 <br />
-<br />
-
-<a id="notes"></a>
-### Notes
-<details>
-<summary><i>Notes: 3.a. Generate a concatenated annotated assembly of the *S. cerevisiae* and *S. pombe* genomes</i></summary>
-
-<a id="breaking-down-the-call-to-mkdir--p-which-makes-use-of-brace-expansion"></a>
-#### Breaking down the call to `mkdir -p`, which makes use of brace expansion
-1. `[[ ! -d "${dir_genomes}" ]]`: This checks if the directory `"${dir_genomes}"` does not exist. `!` is used for negation, `-d` checks for the existence of a directory, and `${dir_genomes}` is a variable that should hold the path of the directory you're checking.
-2. `mkdir -p "${HOME}/genomes/"{"${dir_SP}","${dir_SC}"}/{fasta,gff3}`: This command creates multiple directories in one go.
-    + `mkdir -p`: The `mkdir` command is used to create directories, and the `-p` flag ensures that any necessary parent directories are also created (and also prevents an error if the directory already exists).
-    + `"${dir_genomes}/"{"${dir_SP}","${dir_SC}"}/{fasta,gff3}`: This is an example of brace expansion. The `mkdir -p` command creates directories in the directory assigned to `dir_genomes`. For each of `${dir_SP}` and `${dir_SC}`, `mkdir -p` will create `fasta` and `gff3` subdirectories. For example, if `${dir_SP}` is "Schizosaccharomyces_pombe" and `${dir_SC}` is "Saccharomyces_cerevisiae", the command will create the following directories:
-        - `${HOME}/genomes/Schizosaccharomyces_pombe/fasta`
-        - `${HOME}/genomes/Schizosaccharomyces_pombe/gff3`
-        - `${HOME}/genomes/Saccharomyces_cerevisiae/fasta`
-        - `${HOME}/genomes/Saccharomyces_cerevisiae/gff3`
-
-\#TODO To be continued after modularizing the above
-</details>
-<br />
 
 <a id="d-use-bowtie2-to-align-the-trimmed-fastq-files"></a>
 ## d. Use `bowtie2` to align the trimmed FASTQ files
@@ -1250,12 +1245,12 @@ unset file_fastqs && typeset -a file_fastqs=(
     "${dir_untr}/IP_Q_untagged_5781"
     "${dir_untr}/in_Q_Esa5_7041"
     "${dir_untr}/IP_Q_Esa5_7041"
+    "${dir_untr}/in_Q_Esa5_7691"
+    "${dir_untr}/IP_Q_Esa5_7691"
     "${dir_untr}/in_Q_Rpd3_7568"
     "${dir_untr}/IP_Q_Rpd3_7568"
     "${dir_untr}/in_Q_Rpd3_7569"
     "${dir_untr}/IP_Q_Rpd3_7569"
-    "${dir_untr}/in_Q_Esa5_7691"
-    "${dir_untr}/IP_Q_Esa5_7691"
     "${dir_untr}/in_Q_Gcn5_7692"
     "${dir_untr}/IP_Q_Gcn5_7692"
     "${dir_untr}/in_Q_Gcn5_7709"
@@ -1442,7 +1437,7 @@ for i in "${!file_fastqs[@]}"; do
         "
     fi
 
-    if [[ ${check_operation} ]]; then
+    if ${check_operation}; then
         echo "
 sbatch << EOF
 #!/bin/bash
@@ -1475,7 +1470,7 @@ EOF
         "
     fi
 
-    if [[ ${run_operation} ]]; then
+    if ${run_operation}; then
 sbatch << EOF
 #!/bin/bash
 
@@ -2120,6 +2115,8 @@ fi
 </details>
 <br />
 
+
+
 <a id="b-run-macs3"></a>
 ## b. Run MACS3
 <a id="code-9"></a>
@@ -2228,6 +2225,9 @@ if ${check_variables}; then
     dir_bwt2=${dir_bams}
     dir_macs=${dir_macs}
     
+    gsize=${gsize}
+    keep_dup=${keep_dup}
+    
     time=${time}
     threads=${threads}
     "
@@ -2297,7 +2297,7 @@ for i in "${!file_bam_stems[@]}"; do
         "
     fi
 
-    if [[ ${check_operation} ]]; then
+    if ${check_operation}; then
         echo "
 sbatch << EOF
 #!/bin/bash
@@ -2336,7 +2336,7 @@ EOF
         "
     fi
 
-    if [[ ${run_operation} ]]; then
+    if ${run_operation}; then
 sbatch << EOF
 #!/bin/bash
 
@@ -2378,18 +2378,1401 @@ done
 ```
 </details>
 <br />
+
+<a id="c-run-macs3-with-pooled-replicates"></a>
+## c. Run MACS3 with pooled replicates
+<a id="code-10"></a>
+### Code
+<details>
+<summary><i>Code: Run MACS3 with pooled replicates</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    deactivate_env
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
+dir_repo="Kris/2023_rDNA"                                # Repository directory
+dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+dir_bams="03_bam/bowtie2/bam"                            # Directory for BAMs
+dir_macs="03_bam/bowtie2/macs3"                          # Directory for MACS3 outfiles
+
+gsize=12157105
+keep_dup="auto"
+
+time="4:00:00"                                           # Job time for SLURM (H:MM:SS)
+threads=1                                                # Number of threads for SLURM jobs
+
+#  Initialize an indexed array of BAM file stems
+unset file_bam_stems && typeset -A file_bam_stems=(
+    ["Q_Esa5_7041"]="Q_Esa5_7691"
+    ["Q_Rpd3_7568"]="Q_Rpd3_7569"
+    ["Q_Gcn5_7692"]="Q_Gcn5_7709"
+)
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable and array assignments
+check_variables=true
+check_array=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_base=${dir_base}
+    dir_repo=${dir_repo}
+    dir_work=${dir_work}
+    dir_bwt2=${dir_bams}
+    dir_macs=${dir_macs}
+
+    gsize=${gsize}
+    keep_dup=${keep_dup}
+    
+    time=${time}
+    threads=${threads}
+    "
+fi
+
+#  Echo array contents if check_array is true
+if ${check_array}; then
+    for i in "${!file_bam_stems[@]}"; do
+          key="${i}"
+        value="${file_bam_stems[${key}]}"
+
+        echo "[\"IP_${key}.sort-coord.bam\"]=\"IP_${value}.sort-coord.bam\""
+        echo "[\"in_${key}.sort-coord.bam\"]=\"in_${value}.sort-coord.bam\""
+        echo ""
+        
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/IP_${key}.sort-coord.bam"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/in_${key}.sort-coord.bam"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/IP_${value}.sort-coord.bam"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_work}/${dir_bams}/in_${value}.sort-coord.bam"
+        echo ""
+        echo ""
+    done
+fi
+
+#  Initialize conda/mamba environment containing necessary programs for
+#+ alignment, quality checks, and post-processing
+env_name="macs3_env"
+
+check_env_installed "${env_name}"
+activate_env "${env_name}"
+
+#  Navigate to the work directory
+cd "${dir_base}/${dir_repo}/${dir_work}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+
+#  If it doesn't exist, create a directory to store MACS3 outfiles
+if [[ ! -d "${dir_macs}" ]]; then
+    mkdir -p "${dir_macs}"
+fi
+
+#  Set flags: checking variables, checking and submitting Bowtie2 jobs
+print_iteration=true
+check_variables=true
+check_operation=true
+run_operation=false
+
+for i in "${!file_bam_stems[@]}"; do
+    # i="Q_Esa5_7041"
+    iter=$(( index + 1 ))
+    key="${i}"
+    value="${file_bam_stems[${key}]}"
+    stem="${key}.${value}"
+    job_name="$(echo ${dir_macs} | sed 's:\/:_:g').${stem}"
+    
+    in_1="${dir_bams}/in_${key}.sort-coord.bam"
+    in_2="${dir_bams}/in_${value}.sort-coord.bam"
+
+    IP_1="${dir_bams}/IP_${key}.sort-coord.bam"
+    IP_2="${dir_bams}/IP_${value}.sort-coord.bam"
+
+    #  Echo current iteration
+    if ${print_iteration}; then
+        echo "
+        #  -------------------------------------
+        ### ${iter} ###
+        "
+    fi
+    
+    #  Echo loop-dependent variables if check_variables is true
+    if ${check_variables}; then
+        echo "
+        iter=${iter}
+        key=${key}
+        value=${value}
+        stem=${stem}
+        job_name=${job_name}
+
+        in_1=${in_1}
+        in_2=${in_2}
+        IP_1=${IP_1}
+        IP_2=${IP_2}
+        "
+    fi
+
+    if ${check_operation}; then
+        echo "
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name=\"${job_name}\"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt\"
+#SBATCH --output=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt\"
+
+macs3 callpeak \\
+    --name \"${stem}\" \\
+    --treatment \"${IP_1}\" \"${IP_2}\" \\
+    --control \"${in_1}\" \"${in_2}\" \\
+    --format \"BAMPE\" \\
+    --gsize \"${gsize}\" \\
+    --keep-dup \"${keep_dup}\" \\
+    --outdir \"${dir_macs}\" \\
+    --bdg \\
+    --SPMR \\
+    --verbose 3
+
+if [[ -f \"${dir_macs}/${stem}_summits.bed\" ]]; then
+    find \"${dir_macs}\" \\
+        -type f \\
+        \( \\
+               -name \"${stem}\"*\".bdg\" \\
+            -o -name \"${stem}\"*\".narrowPeak\" \\
+            -o -name \"${stem}\"*\".xls\" \\
+            -o -name \"${stem}\"*\".bed\" \\
+        \) \\
+        -exec gzip {} \;
+fi
+EOF
+        "
+    fi
+
+    if ${run_operation}; then
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name="${job_name}"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error="$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt"
+
+macs3 callpeak \
+    --name "${stem}" \
+    --treatment "${IP_1}" "${IP_2}" \
+    --control "${in_1}" "${in_2}" \
+    --format "BAMPE" \
+    --gsize "${gsize}" \
+    --keep-dup "${keep_dup}" \
+    --outdir "${dir_macs}" \
+    --bdg \
+    --SPMR \
+    --verbose 3
+
+if [[ -f "${dir_macs}/${stem}_summits.bed" ]]; then
+    find "${dir_macs}" \
+        -type f \
+        \( \
+               -name "${stem}"*".bdg" \
+            -o -name "${stem}"*".narrowPeak" \
+            -o -name "${stem}"*".xls" \
+            -o -name "${stem}"*".bed" \
+        \) \
+        -exec gzip {} \;
+fi
+EOF
+    fi
+
+    sleep 0.2
+done
+```
+</details>
+<br />
 <br />
 
-<a id="5-miscellaneous-to-be-organized"></a>
-# 5. Miscellaneous (to be organized)
+<a id="5-subset-peaks"></a>
+# 5. Subset peaks
+<a id="a-install-environment-for-interactive-r-scripting"></a>
+## a. Install environment for interactive R scripting
+<a id="shell-code"></a>
+### Shell code
+<details>
+<summary><i>Shell code: 5.a. Install environment for interactive R scripting</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+env_name="R_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+create_mamba_env=true  # Install mamba environment if not detected
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  If not in base environment, then deactivate current environment
+deactivate_env
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if check_env_installed "${env_name}"; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    activate_env "${env_name}"
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    #  In my experience, it takes 10-20 minutes to complete installation
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --yes \
+            -n "${env_name}" \
+            -c bioconda \
+            -c conda-forge \
+                bioconductor-annotationdbi \
+                bioconductor-chipqc \
+                bioconductor-chipseeker \
+                bioconductor-clusterprofiler \
+                bioconductor-deseq2 \
+                bioconductor-diffbind \
+                bioconductor-edger \
+                bioconductor-enhancedvolcano \
+                bioconductor-genomicfeatures \
+                bioconductor-genomicranges \
+                bioconductor-ihw \
+                bioconductor-iranges \
+                bioconductor-pcatools \
+                bioconductor-sva \
+                deeptools \
+                phantompeakqualtools \
+                r-argparse \
+                r-dendextend \
+                r-devtools \
+                r-ggalt \
+                r-ggpubr \
+                r-ggrepel \
+                r-pheatmap \
+                r-readxl \
+                r-rjson \
+                r-tidyverse \
+                r-upsetr \
+                r-venneuler \
+                r-writexl \
+                r-xml2 \
+                rename
+
+        #  Activate the new environment and proceed to install a package
+        #+ unavailable via CRAN and thus unavailable via bioconda, conda-forge,
+        #+ etc.: colorout, which colorizes R output when running in a *nix
+        #+ (e.g., Linux and OS X) terminal emulator
+        source activate "${env_name}"
+
+        #  To install colorout, first invoke the R interpreter 
+        R
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="r-code"></a>
+### R code
+<details>
+<summary><i>R code: 5.a. Install environment for interactive R scripting</i></summary>
+
+```r
+#!/usr/bin/env Rscript
+
+#  Check if the R package "colorout" is installed; if not, then install it from
+#+ GitHub using the devtools package
+if (!requireNamespace("colorout", quietly = TRUE)) {
+    devtools::install_github("jalvesaq/colorout")
+}
+```
+</details>
+<br />
+
+
+<a id="b-perform-set-operations-with-peak-intervals"></a>
+## b. Perform set operations with peak intervals
+<a id="i-get-situated"></a>
+### i. Get situated
+<a id="shell-code-1"></a>
+#### Shell code
+<details>
+<summary><i>Shell code: 5.b.i. Get situated</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    deactivate_env
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
+dir_repo="Kris/2023_rDNA"                                # Repository directory
+dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+dir_macs="03_bam/bowtie2/macs3"                          # Directory for MACS3 outfiles
+
+env_name="R_env"
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable and array assignments
+check_variables=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_base=${dir_base}
+    dir_repo=${dir_repo}
+    dir_work=${dir_work}
+    dir_macs=${dir_macs}
+
+    env_name=${env_name}
+    "
+fi
+
+#  Initialize conda/mamba environment containing necessary programs for
+#+ subsetting peaks
+check_env_installed "${env_name}"
+activate_env "${env_name}"
+
+#  Navigate to the work directory
+cd "${dir_base}/${dir_repo}/${dir_work}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+
+#  Invoke the R interpreter to begin the work to subset peaks
+R
+```
+</details>
+<br />
+
+<a id="ii-perform-set-operations-with-peak-intervals-returning-complete-intervals-from-a-given-set"></a>
+### ii. Perform set operations with peak intervals, returning complete intervals from a given set
+<a id="r-code-1"></a>
+#### R code
+<details>
+<summary><i>R code: 5.b.ii. Perform set operations with peak intervals, returning complete intervals from a given set</i></summary>
+
+```r
+#!/usr/bin/env Rscript
+
+#  Define functions ===========================================================
+#  Function to read a MACS3 narrowPeak file and convert it to a GRanges object
+read_narrowPeak_to_GRanges <- function(file_path) {
+    df <- readr::read_tsv(
+        file_path,
+        col_names = c(  # See biostars.org/p/102710/ for more information
+            "chr", "start", "stop", "name", "score", "strand", "signal_value",
+            "p_value", "q_value", "peak"
+        ),
+        show_col_types = FALSE
+    ) %>%
+        as.data.frame() %>%
+        GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+    
+    return(df)
+}
+
+
+#  Function to intersect the genomic ranges of two peak sets, then return a
+#+ single peak set of complete reduced ranges based on those intersections
+intersect_and_reduce_two_sets_to_one_complete_set <- function(
+    peaks_1,
+    peaks_2,
+    prefix
+) {
+    #  Intersect the genomic ranges represented by peaks_1 and peaks_2 to
+    #+ capture any two-way intersections; store the intersected ranges in
+    #+ intxns
+    intxns <- GenomicRanges::intersect(peaks_1, peaks_2)
+    
+    if (length(intxns) > 0) {
+        #  Find overlaps between peaks_1 and intxns, storing the resulting
+        #+ complete ranges in intxn_peaks_1
+        overlaps_peaks_1 <- GenomicRanges::findOverlaps(peaks_1, intxns)
+        intxns_peaks_1 <- peaks_1[queryHits(overlaps_peaks_1)]
+        
+        #  Find overlaps between peaks_2 and intxns, storing the resulting
+        #+ complete ranges in intxns_peaks_2
+        overlaps_peaks_2 <- GenomicRanges::findOverlaps(peaks_2, intxns)
+        intxns_peaks_2 <- peaks_2[queryHits(overlaps_peaks_2)]
+    } else {
+        stop(paste0(
+            "No intersections found between ", peaks_1, " and ", peaks_2, "."
+        ))
+    }
+    
+    #  Reduce the combined intersecting ranges (intxns_peaks_1 and
+    #+ intxns_peaks_2) to remove any redundant intervals
+    reduced <- GenomicRanges::reduce(c(intxns_peaks_1, intxns_peaks_2))
+    mcols(reduced)$name <- paste(
+        prefix, seq_len(length(reduced)), sep = "_"
+    )
+    
+    return(list(
+        intxns = intxns,
+        intxns_peaks_1 = intxns_peaks_1,
+        intxns_peaks_2 = intxns_peaks_2,
+        reduced = reduced
+    ))
+}
+
+
+#  Function to obtain peaks_1 (which was, for example, output by function
+#+ intersect_and_reduce_two_sets_to_one_complete_set) that either intersect
+#+ peaks_2 (get_intersect = TRUE) or are asymmetrically different than peaks_2
+#+ (get_intersect = FALSE)
+get_complete_reduced_ranges <- function(
+    peaks_1,
+    peaks_2,
+    get_intersect = TRUE,
+    prefix
+) {
+    #  Obtain complete ranges from processed_list that either intersect peaks
+    #+ (queryHits) or are asymmetrically different than peaks (-queryHits)
+    if (get_intersect) {
+        ranges_selected <- peaks_1[queryHits(
+            GenomicRanges::findOverlaps(peaks_1, peaks_2)
+        )]
+    } else {
+        ranges_selected <- peaks_1[-queryHits(
+            GenomicRanges::findOverlaps(peaks_1, peaks_2)
+        )]
+    }
+    
+    #  Reduce the overlapping or asymmetric ranges
+    ranges_reduced <- GenomicRanges::reduce(ranges_selected)
+    mcols(ranges_reduced)$name <- paste(
+        prefix, seq_len(length(ranges_reduced)), sep = "_"
+    )
+    
+    return(list(
+        ranges_selected = ranges_selected,
+        ranges_reduced = ranges_reduced
+    ))
+}
+
+
+#  Function to write BED file from GRanges object
+write_BED_from_GRanges <- function(GRanges, file_path) {
+    GRanges %>%
+        as.data.frame() %>%
+        dplyr::select(seqnames, start, end, name) %>%
+        readr::write_tsv(file_path, col_names = FALSE)
+}
+
+
+#  Function to process a combination of two peak sets
+process_combination_of_two_peak_sets <- function(
+    peaks_1,
+    peaks_2,
+    peaks_1_name,
+    peaks_2_name
+) {
+    prefix_and <- paste0(
+        "peak-subset_complete-reduced_", peaks_1_name, "-and-", peaks_2_name
+    )
+    prefix_not <- paste0(
+        "peak-subset_complete-reduced_", peaks_1_name, "-not-", peaks_2_name
+    )
+    
+    list_and <- get_complete_reduced_ranges(
+        peaks_1,
+        peaks_2,
+        get_intersect = TRUE,
+        prefix = prefix_and
+    )
+    list_not <- get_complete_reduced_ranges(
+        peaks_1,
+        peaks_2,
+        get_intersect = FALSE,
+        prefix = prefix_not
+    )
+    
+    #  Return the lists for further processing
+    return(list(
+        list_and = list_and,
+        list_not = list_not
+    ))
+}
+
+
+#  Load required libraries ====================================================
+library(GenomicRanges)
+library(tidyverse)
+
+
+#  Read in data ===============================================================
+dir_narrowPeak <- "03_bam/bowtie2/macs3"
+
+peaks_Esa1 <- file.path(
+    dir_narrowPeak,
+    "Q_Esa5_7041.Q_Esa5_7691_peaks.narrowPeak.gz"
+)
+peaks_Gcn5 <- file.path(
+    dir_narrowPeak,
+    "Q_Gcn5_7692.Q_Gcn5_7709_peaks.narrowPeak.gz"
+)
+peaks_Rpd3 <- file.path(
+    dir_narrowPeak,
+    "Q_Rpd3_7568.Q_Rpd3_7569_peaks.narrowPeak.gz"
+)
+
+#  Load the narrowPeak files as GRanges and data.frame objects
+peaks_Esa1 <- read_narrowPeak_to_GRanges(peaks_Esa1)
+peaks_Gcn5 <- read_narrowPeak_to_GRanges(peaks_Gcn5)
+peaks_Rpd3 <- read_narrowPeak_to_GRanges(peaks_Rpd3)
+
+
+#  Do the main work ===========================================================
+#  Calculate and write out complete ranges... ---------------------------------
+#+ (i.e., peak intervals) via set intersections and set asymmetric differences
+#+ between one peak set and a second peak set
+
+#  Perform pairwise evaluations ---------------------------
+#  Initialize a list of peak data sets, where each entry contains genomic
+#+ ranges for a specific protein stored as GRanges objects
+peaks_list <- list(
+    Esa1 = peaks_Esa1,
+    Gcn5 = peaks_Gcn5,
+    Rpd3 = peaks_Rpd3
+)
+
+#  Initialize a master list to hold all results from the below loops
+results_list <- list()
+
+#  Loop through each combination of peak sets
+for (i in 1:(length(peaks_list) - 1)) {      # i goes to second-to-last element
+    for (j in (i + 1):length(peaks_list)) {  # j starts from element next to i
+        peaks_1_name <- names(peaks_list)[i]
+        peaks_2_name <- names(peaks_list)[j]
+        peaks_1 <- peaks_list[[peaks_1_name]]
+        peaks_2 <- peaks_list[[peaks_2_name]]
+        
+        #  Run `process_combination_of_two_peak_sets` for the initial peak-set
+        #+ pair
+        results_key_initial <- paste(peaks_1_name, peaks_2_name, sep = "-")
+        results_list[[results_key_initial]] <-
+            process_combination_of_two_peak_sets(
+                peaks_1,
+                peaks_2,
+                peaks_1_name,
+                peaks_2_name
+            )
+        
+        #  Run `process_combination_of_two_peak_sets` for the reversed peak-set
+        #+ pair
+        results_key_reversed <- paste(peaks_2_name, peaks_1_name, sep = "-")
+        results_list[[results_key_reversed]] <-
+            process_combination_of_two_peak_sets(
+                peaks_2,
+                peaks_1,
+                peaks_2_name,
+                peaks_1_name
+            )
+    }
+}
+
+#  After processing all combinations and fully populating results_list, loop 
+#+ through results_list to write files
+for (key in names(results_list)) {
+    #  Extract the complete, reduced set intersection ("and") and complete,
+    #+ reduced set asymmetric difference ("not") ranges for the current
+    #+ combination
+    ranges_and <- results_list[[key]]$intersect_list$reduced_ranges
+    ranges_not <- results_list[[key]]$not_list$reduced_ranges
+    
+    #  Define file name prefix and suffix
+    prefix <- paste0(
+        "peak-subset_complete-reduced_", stringr::str_split_i(key, "-", 1)
+    )
+    suffix <- paste0(unlist(strsplit(key, "-"))[2])
+
+    #  Define file paths
+    file_path_and <- file.path(
+        dir_narrowPeak,
+        paste0(prefix, "-and-", suffix, ".bed.gz")
+    )
+    file_path_not <- file.path(
+        dir_narrowPeak,
+        paste0(prefix, "-not-", suffix, ".bed.gz")
+    )
+    
+    #  Write the BED files
+    write_BED_from_GRanges(ranges_and, file_path_and)
+    write_BED_from_GRanges(ranges_not, file_path_not)
+}
+
+#  Evaluate combined HAT intervals with Rpd3 intervals ----
+#  Combine Esa1-Gcn5 (HAT) genomic ranges (complete, reduced) and analyze their
+#+ intersections and asymmetric differences with Rpd3 peaks, returning partial
+#+ peak ranges
+Esa1_Gcn5_list <- intersect_and_reduce_two_sets_to_one_complete_set(
+    peaks_1 = peaks_Esa1,
+    peaks_2 = peaks_Gcn5,
+    prefix = "peak-subset_complete-reduced_Esa1-Gcn5"
+)
+
+Esa1_Gcn5_then_Rpd3_combo <- process_combination_of_two_peak_sets(
+    Esa1_Gcn5_list$reduced,
+    peaks_Rpd3,
+    "Esa1-Gcn5",
+    "Rpd3"
+)
+Rpd3_then_Esa1_Gcn5_combo <- process_combination_of_two_peak_sets(
+    peaks_Rpd3,
+    Esa1_Gcn5_list$reduced,
+    "Rpd3",
+    "Esa1-Gcn5"
+)
+
+write_BED_from_GRanges(
+    Esa1_Gcn5_list$reduced,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_Esa1-Gcn5.bed.gz"
+    )
+)
+
+write_BED_from_GRanges(
+    Esa1_Gcn5_then_Rpd3_combo$intersect_list$reduced_ranges,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_Esa1-Gcn5-and-Rpd3.bed.gz"
+    )
+)
+write_BED_from_GRanges(
+    Esa1_Gcn5_then_Rpd3_combo$not_list$reduced_ranges,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_Esa1-Gcn5-not-Rpd3.bed.gz"
+    )
+)
+
+write_BED_from_GRanges(
+    Rpd3_then_Esa1_Gcn5_combo$intersect_list$reduced_ranges,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_Rpd3-and-Esa1-Gcn5.bed.gz"
+    )
+)
+write_BED_from_GRanges(
+    Rpd3_then_Esa1_Gcn5_combo$not_list$reduced_ranges,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_Rpd3-not-Esa1-Gcn5.bed.gz"
+    )
+)
+```
+</details>
+<br />
+
+<a id="iii-perform-set-operations-with-peak-intervals-returning-partial-intervals-from-a-given-set"></a>
+### iii. Perform set operations with peak intervals, returning partial intervals from a given set
+<a id="r-code-2"></a>
+#### R code
+<details>
+<summary><i>R code: 5.b.iii. Perform set operations with peak intervals, returning partial intervals from a given set</i></summary>
+
+```r
+#!/usr/bin/env Rscript
+
+#  Define functions ===========================================================
+#  Function to read a MACS3 narrowPeak file and convert it to a GRanges object
+read_narrowPeak_to_GRanges <- function(file_path) {
+    df <- readr::read_tsv(
+        file_path,
+        col_names = c(  # See biostars.org/p/102710/ for more information
+            "chr", "start", "stop", "name", "score", "strand", "signal_value",
+            "p_value", "q_value", "peak"
+        ),
+        show_col_types = FALSE
+    ) %>%
+        as.data.frame() %>%
+        GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+    
+    return(df)
+}
+
+
+#  Function to return the intersection between two peak sets; returns a GRanges
+#+ of intersecting intervals and thus partial intervals relative to the initial
+#+ sets
+get_set_intersection <- function(
+    peaks_1,
+    peaks_2,
+    peaks_1_name,
+    peaks_2_name
+) {
+    peaks_1_2_intxn <- GenomicRanges::intersect(peaks_1, peaks_2)
+    mcols(peaks_1_2_intxn)$name <- paste0(
+        "peak-subset_partial_", peaks_1_name, "-and-", peaks_2_name, "_",
+        seq_len(length(peaks_1_2_intxn))
+    )
+
+    return(peaks_1_2_intxn)
+}
+
+
+#  Function to return the A ← B and A → B set assymetric differences between
+#+ two peak sets; returns a list of two GRanges objects: one for A ← B 
+#+ asymmetric differences and one for A → B asymmetric differences; the
+#+ asymmetric differences are partial intervals relative to the initial
+#+ sets
+get_set_asymmetric_difference <- function(
+    peaks_1,
+    peaks_2,
+    peaks_1_name,
+    peaks_2_name
+) {
+    peaks_1_2_asym_diff <- GenomicRanges::setdiff(peaks_1, peaks_2)
+    mcols(peaks_1_2_asym_diff)$name <- paste0(
+        "peak-subset_partial_", peaks_1_name, "-not-", peaks_2_name, "_",
+        seq_len(length(peaks_1_2_asym_diff))
+    )
+
+    return(peaks_1_2_asym_diff)
+}
+
+
+#  Function to write BED file from GRanges object
+write_BED_from_GRanges <- function(GRanges, file_path) {
+    GRanges %>%
+        as.data.frame() %>%
+        dplyr::select(seqnames, start, end, name) %>%
+        readr::write_tsv(file_path, col_names = FALSE)
+}
+
+
+#  Load required libraries ====================================================
+library(GenomicRanges)
+library(tidyverse)
+
+
+#  Read in data ===============================================================
+dir_narrowPeak <- "03_bam/bowtie2/macs3"
+
+peaks_Esa1 <- file.path(
+    dir_narrowPeak,
+    "Q_Esa5_7041.Q_Esa5_7691_peaks.narrowPeak.gz"
+)
+peaks_Gcn5 <- file.path(
+    dir_narrowPeak,
+    "Q_Gcn5_7692.Q_Gcn5_7709_peaks.narrowPeak.gz"
+)
+peaks_Rpd3 <- file.path(
+    dir_narrowPeak,
+    "Q_Rpd3_7568.Q_Rpd3_7569_peaks.narrowPeak.gz"
+)
+
+#  Load the narrowPeak files as GRanges and data.frame objects
+peaks_Esa1 <- read_narrowPeak_to_GRanges(peaks_Esa1)
+peaks_Gcn5 <- read_narrowPeak_to_GRanges(peaks_Gcn5)
+peaks_Rpd3 <- read_narrowPeak_to_GRanges(peaks_Rpd3)
+
+
+#  Do the main work ===========================================================
+#  Calculate and write out partial ranges... ----------------------------------
+#+ (i.e., peak intervals) via set intersections and set asymmetric differences
+#+ between one peak set and a second peak set
+
+#  Perform pairwise evaluations ---------------------------
+#  Initialize a list of peak data sets, where each entry contains genomic
+#+ ranges for a specific protein stored as GRanges objects
+peaks_list <- list(
+    Esa1 = peaks_Esa1,
+    Gcn5 = peaks_Gcn5,
+    Rpd3 = peaks_Rpd3
+)
+
+#  Initialize a master list to hold all results from the below loops
+results_list <- list()
+
+#  Loop through each combination of peak sets
+for (i in 1:(length(peaks_list) - 1)) {      # i goes to the second-to-last element
+    for (j in (i + 1):length(peaks_list)) {  # j starts from element next to i
+        peaks_1_name <- names(peaks_list)[i]
+        peaks_2_name <- names(peaks_list)[j]
+        peaks_1 <- peaks_list[[peaks_1_name]]
+        peaks_2 <- peaks_list[[peaks_2_name]]
+        
+        #  Run `get_set_intersection` on the peak-set pair
+        results_key_intxn <- paste0(
+            "intersection_", peaks_1_name, "-", peaks_2_name
+        )
+        results_list[[results_key_intxn]] <-
+            get_set_intersection(
+                peaks_1,
+                peaks_2,
+                peaks_1_name,
+                peaks_2_name
+            )
+        
+        #  Run `get_set_asymmetric_difference` on the peak set pair
+        results_key_asym_diff_1_2 <- paste0(
+            "asym-diff_", peaks_1_name, "-", peaks_2_name
+        )
+        results_list[[results_key_asym_diff_1_2]] <-
+            get_set_asymmetric_difference(
+                peaks_1,
+                peaks_2,
+                peaks_1_name,
+                peaks_2_name
+            )
+
+        #  Run `get_set_asymmetric_difference` on the reverse-ordered peak set
+        #+ pair
+        results_key_asym_diff_2_1 <- paste0(
+            "asym-diff_", peaks_2_name, "-", peaks_1_name
+        )
+        results_list[[results_key_asym_diff_2_1]] <-
+            get_set_asymmetric_difference(
+                peaks_2,
+                peaks_1,
+                peaks_2_name,
+                peaks_1_name
+            )
+    }
+}  # str(results_list, max.level = 2)
+
+#  After processing all combinations and fully populating results_list, loop 
+#+ through results_list to write files
+for (key in names(results_list)) {
+    #  Extract the given GRanges object
+    ranges <- results_list[[key]]
+
+    #  Determine appropriate strings for file name
+    if (isTRUE(stringr::str_detect(key, "intersection_"))) {
+        name <- stringr::str_replace(key, "intersection_", "")
+        bool <- "and"
+    } else {
+        name <- stringr::str_replace(key, "asym-diff_", "")
+        bool <- "not"
+    }
+    peaks_1_name <- stringr::str_split_i(name, "-", 1)
+    peaks_2_name <- stringr::str_split_i(name, "-", 2)
+    
+    #  Define file name prefix and suffix
+    prefix <- paste0("peak-subset_partial")
+    suffix <- paste(peaks_1_name, bool, peaks_2_name, sep = "-")
+
+    #  Define file paths
+    file_path <- file.path(
+        dir_narrowPeak,
+        paste0(prefix, "_", suffix, ".bed.gz")
+    )
+    
+    #  Write the BED files
+    write_BED_from_GRanges(ranges, file_path)
+}
+
+#  Evaluate combined HAT intervals with Rpd3 intervals ----
+#  Combine Esa1-Gcn5 (HAT) genomic ranges (partial) and analyze their
+#+ intersections and asymmetric differences with Rpd3 peaks, returning partial
+#+ peak ranges
+#+ 
+#+ First, intersect the ranges from Esa1_peaks and Gcn5_peaks
+Esa1_Gcn5 <- get_set_intersection(
+    peaks_Esa1,
+    peaks_Gcn5,
+    "Esa1",
+    "Gcn5"
+)
+
+#  Next, Return portions of the Esa1-Gcn5 intersecting ranges (partial) that
+#+ (a) intersect with Rpd3 peak ranges and (b) do not intersect with Rpd3 peak
+#+ ranges and vice versa
+#+ 
+#+ (a) Intersect the Esa1-Gcn5 intersections with peaks_Rpd3, capturing
+#+ intersections
+Esa1_Gcn5_and_Rpd3 <- get_set_intersection(
+    Esa1_Gcn5,
+    peaks_Rpd3,
+    "Esa1-Gcn5",
+    "Rpd3"
+)
+
+#  (b) Obtain the set asymmetric difference of Esa1_Gcn5 with respect to
+#+     peaks_Rpd3 and vice versa
+Esa1_Gcn5_not_Rpd3 <- get_set_asymmetric_difference(
+    Esa1_Gcn5,
+    peaks_Rpd3,
+    "Esa1-Gcn5",
+    "Rpd3"
+)
+Rpd3_not_Esa1_Gcn5 <- get_set_asymmetric_difference(
+    peaks_Rpd3,
+    Esa1_Gcn5,
+    "Rpd3",
+    "Esa1-Gcn5"
+)
+
+#  Write out BED files for the above set operations
+write_BED_from_GRanges(
+    Esa1_Gcn5_and_Rpd3,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_partial_Esa1-Gcn5-and-Rpd3.bed.gz"
+    )
+)
+
+write_BED_from_GRanges(
+    Esa1_Gcn5_not_Rpd3,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_partial_Esa1-Gcn5-not-Rpd3.bed.gz"
+    )
+)
+write_BED_from_GRanges(
+    Rpd3_not_Esa1_Gcn5,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_partial_Rpd3-not-Esa1-Gcn5.bed.gz"
+    )
+)
+
+#PICKUPHEREFROMYESTERDAY with writing out Esa1_Gcn5_list, Esa1_Gcn5_and_Rpd3_list, and Esa1_Gcn5_not_Rpd3_list,
+#                   then move on to bringing Section #9 and then Section #7 into this notebook
+```
+</details>
+<br />
+
+<a id="iv-perform-additional-set-operations-with-respect-to-three-way-intersections"></a>
+### iv. Perform additional set operations with respect to three-way intersections
+<a id="r-code-3"></a>
+#### R code
+<details>
+<summary><i>R code: 5.b.iv. Perform additional set operations with respect to three-way intersections</i></summary>
+
+```R
+#!/usr/bin/env Rscript
+
+#  Define functions ===========================================================
+#  Function to read a MACS3 narrowPeak file and convert it to a GRanges object
+read_narrowPeak_to_GRanges <- function(file_path) {
+    df <- readr::read_tsv(
+        file_path,
+        col_names = c(  # See biostars.org/p/102710/ for more information
+            "chr", "start", "stop", "name", "score", "strand", "signal_value",
+            "p_value", "q_value", "peak"
+        ),
+        show_col_types = FALSE
+    ) %>%
+        as.data.frame() %>%
+        GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+    
+    return(df)
+}
+
+
+#  Function to write BED file from GRanges object
+write_BED_from_GRanges <- function(GRanges, file_path) {
+    GRanges %>%
+        as.data.frame() %>%
+        dplyr::select(seqnames, start, end, name) %>%
+        readr::write_tsv(file_path, col_names = FALSE)
+}
+
+
+#  Load required libraries ====================================================
+library(GenomicRanges)
+library(tidyverse)
+
+
+#  Read in data ===============================================================
+dir_narrowPeak <- "03_bam/bowtie2/macs3"
+
+peaks_Esa1 <- file.path(
+    dir_narrowPeak,
+    "Q_Esa5_7041.Q_Esa5_7691_peaks.narrowPeak.gz"
+)
+peaks_Gcn5 <- file.path(
+    dir_narrowPeak,
+    "Q_Gcn5_7692.Q_Gcn5_7709_peaks.narrowPeak.gz"
+)
+peaks_Rpd3 <- file.path(
+    dir_narrowPeak,
+    "Q_Rpd3_7568.Q_Rpd3_7569_peaks.narrowPeak.gz"
+)
+
+#  Load the narrowPeak files as GRanges and data.frame objects
+peaks_Esa1 <- read_narrowPeak_to_GRanges(peaks_Esa1)
+peaks_Gcn5 <- read_narrowPeak_to_GRanges(peaks_Gcn5)
+peaks_Rpd3 <- read_narrowPeak_to_GRanges(peaks_Rpd3)
+
+
+#  Do the main work ===========================================================
+#  (a) Obtain ONLY THE PORTIONS of peaks involved in a three-way intersection.
+#+ (b) Identify the complete, specific intervals from each individual peak
+#+ set that overlap with the three-way peak portion set, and then combine and
+#+ reduce these overlapping intervals. And (c) obtain a combined, reduced peak
+#+ set from all three peak sets without concern for what overlaps what and also
+#+ without concern for retaining or discarding anything; i.e., reduction occurs
+#+ only when overlaps are present, and non-overlapping intervals are retained
+#+ in this peak set too.
+
+#  (a) ------------------------------------------------------------------------
+#  Capture any three-way intersections, i.e., only the portions of peak sets
+#+ involved in a three-way intersection
+intxn_three_way <- GenomicRanges::intersect(
+    GenomicRanges::intersect(peaks_Esa1, peaks_Gcn5), peaks_Rpd3
+)
+mcols(intxn_three_way)$name <- paste0(
+    "peak-subset_partial_three-way-intersection_",
+    seq_len(length(intxn_three_way))
+)
+
+#  Write out BED file for the above set operation
+write_BED_from_GRanges(
+    intxn_three_way,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_partial_three-way-intersection.bed.gz"
+    )
+)
+
+
+#  (b) ------------------------------------------------------------------------
+#  Return complete intervals for each of the three peak sets (Esa1, Gcn5, and
+#+ Rpd3) based on the overlap of each of the three peaks sets with the GRanges
+#+ object representing the three-way intersections
+if (length(intxn_three_way) > 0) {
+    intxn_three_way_Esa1 <- peaks_Esa1[
+        queryHits(GenomicRanges::findOverlaps(
+            peaks_Esa1, intxn_three_way
+        ))
+    ]
+    
+    intxn_three_way_Gcn5 <- peaks_Gcn5[
+        queryHits(GenomicRanges::findOverlaps(
+            peaks_Gcn5, intxn_three_way
+        ))
+    ]
+    
+    intxn_three_way_Rpd3 <- peaks_Rpd3[
+        queryHits(GenomicRanges::findOverlaps(
+            peaks_Rpd3, intxn_three_way
+        ))
+    ]
+} else {
+    stop("There are no three-way intersections.")
+}
+
+#  Generate a final GRanges object of reduced complete intervals derived
+#+ from the three-way intersections of Esa1, Gcn5, and Rpd3
+intxn_three_way_reduced <- GenomicRanges::reduce(c(
+    intxn_three_way_Esa1,
+    intxn_three_way_Gcn5,
+    intxn_three_way_Rpd3
+))
+mcols(intxn_three_way_reduced)$name <- paste0(
+    "peak-subset_complete-reduced_three-way-intersection_",
+    seq_len(length(intxn_three_way_reduced))
+)
+
+#  Write out BED files for the above set operations
+write_BED_from_GRanges(
+    intxn_three_way_reduced,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete-reduced_three-way-intersection.bed.gz"
+    )
+)
+
+write_BED_from_GRanges(
+    intxn_three_way_Esa1,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete_Esa1-and-three-way-intersection.bed.gz"
+    )
+)
+write_BED_from_GRanges(
+    intxn_three_way_Gcn5,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete_Gcn5-and-three-way-intersection.bed.gz"
+    )
+)
+write_BED_from_GRanges(
+    intxn_three_way_Rpd3,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_complete_Rpd3-and-three-way-intersection.bed.gz"
+    )
+)
+
+
+#  (c) ------------------------------------------------------------------------
+#  Generate a GRanges object that is a combined, reduced peak set from all
+#+ three peak sets; this means that reduction occurs only when overlaps are
+#+ present, and non-overlapping intervals are retained in this peak set too.
+peaks_all_reduced <- GenomicRanges::reduce(c(
+    peaks_Esa1, peaks_Gcn5, peaks_Rpd3
+))
+mcols(peaks_all_reduced)$name <- paste0(
+    "peak-subset_all-reduced_Esa1-Gcn5-Rpd3_",
+    seq_len(length(peaks_all_reduced))
+)
+
+#  Write out BED file for the above set operation
+write_BED_from_GRanges(
+    peaks_all_reduced,
+    file.path(
+        dir_narrowPeak,
+        "peak-subset_all-reduced_Esa1-Gcn5-Rpd3.bed.gz"
+    )
+)
+```
+</details>
+<br />
+
+<a id="6-miscellaneous-to-be-organized"></a>
+# 6. Miscellaneous (to be organized)
+<a id="x-scratch"></a>
+## x. Scratch
+<a id="code-11"></a>
+### Code
+<details>
+<summary><i>Code: Scratch</i></summary>
+
+```bash
+#!/bin/bash
+
+find . \
+    -type f \
+    -name 'subset-peaks_complete-reduced_*.bed.gz' \
+    -print
+
+find . \
+    -type f \
+    -name 'subset-peaks_complete-reduced_*.bed.gz' \
+    -exec sh \
+        -c 'mv "$0" "${0%/*}/bak.${0##*/}"' {} \;
+```
+</details>
+<br />
+
+<a id="notes"></a>
+### Notes
+<details>
+<summary><i>Notes: Scratch</i></summary>
+<br />
+
+Here's the breakdown of the command:
+- `find . -type f -name 'subset-peaks_complete-reduced_*.bed.gz'`: This finds all files in the current directory (and subdirectories) that match the pattern 'subset-peaks_complete-reduced_*.bed.gz'.
+- `-exec sh -c 'mv "$0" "${0%/*}/bak.${0##*/}"' {} \;`: For each file found, this executes a shell command to move (`mv`) the file. `$0` represents the found file (the `{}` placeholder is passed to the shell command as `$0`).
+- `"${0%/*}/bak.${0##*/}"`: This constructs the new filename by appending "bak." to the basename of the file. `${0%/*}` extracts the directory part of the found file's path, and `${0##*/}` extracts the basename (the part after the last `/`). By combining these with `/bak.`, you prepend "bak." to the basename.
+</details>
+<br />
+
 <a id="a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae"></a>
 ## a. Determine the locations of low-complexity regions in *S. cerevisiae*
 <a id="i-install-sdust-via-minimap"></a>
-### i. Install [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
-<a id="code-10"></a>
+### i. Install [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
+<a id="code-12"></a>
 #### Code
 <details>
-<summary><i>Code: i. Install sdust via minimap</i></summary>
+<summary><i>Code: i. Install `sdust` via `minimap`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -2504,7 +3887,7 @@ fi
 <a id="printed"></a>
 #### Printed
 <details>
-<summary><i>Printed: i. Install sdust via minimap</i></summary>
+<summary><i>Printed: i. Install `sdust` via `minimap`</i></summary>
 
 ```txt
 ❯ mamba create \
@@ -2751,11 +4134,11 @@ Executing transaction: done
 <br />
 
 <a id="ii-run-sdust-via-minimap"></a>
-### ii. Run [sdust](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [minimap](https://github.com/lh3/minimap/tree/master)
-<a id="code-11"></a>
+### ii. Run [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
+<a id="code-13"></a>
 #### Code
 <details>
-<summary><i>Code: ii. Run sdust via minimap</i></summary>
+<summary><i>Code: ii. Run `sdust` via `minimap`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -2764,7 +4147,7 @@ grabnode  # 1, 20, 1, N
 
 
 #  Define functions ===========================================================
-
+#  ...
 
 #  Initialize variables and arrays ============================================
 d_fa="${HOME}/genomes/Saccharomyces_cerevisiae/fasta-processed"
@@ -2774,7 +4157,7 @@ a_fa="${d_fa}/${f_fa}"
 f_bed="S288C_reference_sequence_R64-3-1_20210421.low_complexity.bed"
 a_bed="${d_fa}/${f_bed}"
 
-env_minimap="minimap_env"
+env_name="minimap_env"
 
 
 #  Do the main work ===========================================================
@@ -2794,7 +4177,7 @@ if ${check_variables}; then
           f_bed=${f_bed}
           a_bed=${a_bed}
 
-    env_minimap=${env_minimap}
+       env_name=${env_name}
     "
 fi
 
@@ -2802,30 +4185,30 @@ fi
 if ${check_file_exists}; then ls -lhaFG "${a_fa}"; fi
 
 #  If not already activated, the activate conda environment
-if [[ "${CONDA_DEFAULT_ENV}" != "${env_minimap}" ]]; then
+if [[ "${CONDA_DEFAULT_ENV}" != "${env_name}" ]]; then
     if [[ ${CONDA_DEFAULT_ENV} != "base" ]]; then
         conda deactivate
     fi
 
-    source activate "${env_minimap}"
+    source activate "${env_name}"
 fi
 
 #  Create a BED file for S. cerevisiae regions of low complexity
 if ${check_command}; then
     echo "
-        if [[ ! -f \"${a_bed}\" ]]; then
-            if [[ ! -f "${a_fa%.gz}" ]]; then
-                gzip -cd \\
-                    \"${a_fa}\" \\
-                        > \"${a_fa%.gz}\"
-            fi
-            
-            if [[ -f \"${a_fa%.gz}\" ]]; then
-                sdust \\
-                    \"${a_fa}\" \\
-                        > \"${a_bed}\"
-            fi
+    if [[ ! -f \"${a_bed}\" ]]; then
+        if [[ ! -f "${a_fa%.gz}" ]]; then
+            gzip -cd \\
+                \"${a_fa}\" \\
+                    > \"${a_fa%.gz}\"
         fi
+        
+        if [[ -f \"${a_fa%.gz}\" ]]; then
+            sdust \\
+                \"${a_fa}\" \\
+                    > \"${a_bed}\"
+        fi
+    fi
     "
 fi
 
@@ -2847,15 +4230,13 @@ fi
 <a id="b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers"></a>
 ## b. Determine the effective genome size of *S. cerevisiae* (50-mers)
 <a id="i-install-khmer"></a>
-### i. Install [khmer](https://khmer.readthedocs.io/en/latest/)
-<a id="code-12"></a>
+### i. Install [`khmer`](https://khmer.readthedocs.io/en/latest/)
+<a id="code-14"></a>
 #### Code
 <details>
-<summary><i>Code: i. Install khmer</i></summary>
+<summary><i>Code: i. Install `khmer`</i></summary>
 
 ```bash
-#!/bin/bash
-
 #!/bin/bash
 
 #  Define functions ===========================================================
@@ -2946,7 +4327,7 @@ fi
 <a id="printed-1"></a>
 #### Printed
 <details>
-<summary><i>Printed: ii. Run khmer</i></summary>
+<summary><i>Printed: ii. Install `khmer`</i></summary>
 
 ```txt
 ❯ mamba create \
@@ -3067,11 +4448,11 @@ To deactivate an active environment, use
 <br />
 
 <a id="ii-run-khmer"></a>
-### ii. Run [khmer](https://khmer.readthedocs.io/en/latest/)
-<a id="code-13"></a>
+### ii. Run [`khmer`](https://khmer.readthedocs.io/en/latest/)
+<a id="code-15"></a>
 #### Code
 <details>
-<summary><i>Code: ii. Install khmer</i></summary>
+<summary><i>Code: ii. Run `khmer`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -3080,6 +4461,7 @@ grabnode  # 1, 20, 1, N
 
 
 #  Define functions ===========================================================
+#  ...
 
 
 #  Initialize variables and arrays ============================================
@@ -3167,7 +4549,7 @@ fi
 <a id="printed-2"></a>
 #### Printed
 <details>
-<summary><i>Printed: ii. Install khmer</i></summary>
+<summary><i>Printed: ii. Run `khmer`</i></summary>
 
 ```txt
 ❯ if ${check_command}; then
@@ -3189,20 +4571,20 @@ fi
 >     "
 > fi
 
-        if [[ ! -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" ]]; then
-            if [[ ! -f /home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa ]]; then
-                gzip -cd \
-                    "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
-                        > "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa"
-            fi
-
-            if [[ -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa" ]]; then
-                unique-kmers.py \
-                    -R "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" \
-                    -k 50 \
-                    "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz"
-            fi
+    if [[ ! -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" ]]; then
+        if [[ ! -f /home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa ]]; then
+            gzip -cd \
+                "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz" \
+                    > "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa"
         fi
+
+        if [[ -f "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa" ]]; then
+            unique-kmers.py \
+                -R "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.unique-kmers_50.txt" \
+                -k 50 \
+                "/home/kalavatt/genomes/Saccharomyces_cerevisiae/fasta-processed/S288C_reference_sequence_R64-3-1_20210421.fa.gz"
+        fi
+    fi
 
 
 ❯ if ${run_command}; then
@@ -3238,14 +4620,14 @@ Total estimated number of unique 50-mers: 11624332
 </details>
 <br />
 
-<a id="b-determine-base-statistics-in-s-cerevisiae-fa-files"></a>
-## b. Determine base statistics in *S. cerevisiae* FA files
+<a id="b-determine-base-statistics-in-s-cerevisiae-fasta-files"></a>
+## b. Determine base statistics in *S. cerevisiae* FASTA files
 <a id="i-install-facount"></a>
-### i. Install [faCount](https://khmer.readthedocs.io/en/latest/)
-<a id="code-14"></a>
+### i. Install [`faCount`](https://khmer.readthedocs.io/en/latest/)
+<a id="code-16"></a>
 #### Code
 <details>
-<summary><i>Code: i. Install faCount</i></summary>
+<summary><i>Code: i. Install `faCount`</i></summary>
 <br />
 
 *See mamba installation of "alignment-processing_env" [above](#i-install-sdust-via-minimap) (which includes the package ucsc-facount).*
@@ -3253,11 +4635,11 @@ Total estimated number of unique 50-mers: 11624332
 <br />
 
 <a id="ii-run-facount"></a>
-### ii. Run faCount
-<a id="code-15"></a>
+### ii. Run `faCount`
+<a id="code-17"></a>
 #### Code
 <details>
-<summary><i>Code: Run faCount</i></summary>
+<summary><i>Code: Run `faCount`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -3266,6 +4648,7 @@ grabnode  # 1, 20, 1, N
 
 
 #  Define functions ===========================================================
+#  ...
 
 
 #  Initialize variables and arrays ============================================
@@ -3319,7 +4702,7 @@ faCount -summary "${a_fa}"
 <a id="printed-3"></a>
 #### Printed
 <details>
-<summary><i>Printed: Run faCount</i></summary>
+<summary><i>Printed: Run `faCount`</i></summary>
 
 ```txt
 ❯ if ${check_command}; then

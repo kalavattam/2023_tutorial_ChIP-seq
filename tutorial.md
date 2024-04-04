@@ -1181,17 +1181,67 @@ function error_and_return() {
 }
 
 
-# #  Function to check if a SLURM module is loaded or not; if not, the module is
-# #+ loaded
-# function check_and_load_module() {
-#     local module_name="${1}"
-#     if ! module is-loaded "${module_name}" &> /dev/null; then
-#         echo "Loading module: ${module_name}"
-#         module load "${module_name}"
-#     else
-#         echo "Module already loaded: ${module_name}"
-#     fi
-# }
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
 
 
 #  Initialize variables and arrays ============================================
@@ -1211,57 +1261,55 @@ mapq=1
 time="8:00:00"                                           # Job time for SLURM
 threads=8                                                # Number of threads for SLURM jobs
 
-# mod_bowtie2="Bowtie2/2.4.4-GCC-11.2.0"
-# mod_samtools="SAMtools/1.16.1-GCC-11.2.0"
-# mod_bedtools="BEDTools/2.30.0-GCC-11.2.0"
-
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    # "${dir_trim}/in_G1_Hho1_6336"
-    # "${dir_trim}/IP_G1_Hho1_6336"
-    # "${dir_trim}/in_G2M_Hho1_6336"
-    # "${dir_trim}/IP_G2M_Hho1_6336"
-    # "${dir_trim}/in_Q_Hho1_6336"
-    # "${dir_trim}/IP_Q_Hho1_6336"
-    # "${dir_trim}/in_G1_Hho1_6337"
-    # "${dir_trim}/IP_G1_Hho1_6337"
-    # "${dir_trim}/in_G2M_Hho1_6337"
-    # "${dir_trim}/IP_G2M_Hho1_6337"
-    # "${dir_trim}/in_Q_Hho1_6337"
-    # "${dir_trim}/IP_Q_Hho1_6337"
-    # "${dir_trim}/in_G1_Hmo1_7750"
-    # "${dir_trim}/IP_G1_Hmo1_7750"
-    # "${dir_trim}/in_G2M_Hmo1_7750"
-    # "${dir_trim}/IP_G2M_Hmo1_7750"
-    # "${dir_trim}/in_Q_Hmo1_7750"
-    # "${dir_trim}/IP_Q_Hmo1_7750"
-    # "${dir_trim}/in_G1_Hmo1_7751"
-    # "${dir_trim}/IP_G1_Hmo1_7751"
-    # "${dir_trim}/in_G2M_Hmo1_7751"
-    # "${dir_trim}/IP_G2M_Hmo1_7751"
-    # "${dir_trim}/in_Q_Hmo1_7751"
-    # "${dir_trim}/IP_Q_Hmo1_7751"
-    "${dir_untr}/in_Q_untagged_5781"
-    "${dir_untr}/IP_Q_untagged_5781"
-    "${dir_untr}/in_Q_Esa5_7041"
-    "${dir_untr}/IP_Q_Esa5_7041"
-    "${dir_untr}/in_Q_Esa5_7691"
-    "${dir_untr}/IP_Q_Esa5_7691"
-    "${dir_untr}/in_Q_Rpd3_7568"
-    "${dir_untr}/IP_Q_Rpd3_7568"
-    "${dir_untr}/in_Q_Rpd3_7569"
-    "${dir_untr}/IP_Q_Rpd3_7569"
-    "${dir_untr}/in_Q_Gcn5_7692"
-    "${dir_untr}/IP_Q_Gcn5_7692"
-    "${dir_untr}/in_Q_Gcn5_7709"
-    "${dir_untr}/IP_Q_Gcn5_7709"
+    "${dir_trim}/in_G1_Hho1_6336"
+    "${dir_trim}/IP_G1_Hho1_6336"
+    "${dir_trim}/in_G2M_Hho1_6336"
+    "${dir_trim}/IP_G2M_Hho1_6336"
+    "${dir_trim}/in_Q_Hho1_6336"
+    "${dir_trim}/IP_Q_Hho1_6336"
+    "${dir_trim}/in_G1_Hho1_6337"
+    "${dir_trim}/IP_G1_Hho1_6337"
+    "${dir_trim}/in_G2M_Hho1_6337"
+    "${dir_trim}/IP_G2M_Hho1_6337"
+    "${dir_trim}/in_Q_Hho1_6337"
+    "${dir_trim}/IP_Q_Hho1_6337"
+    "${dir_trim}/in_G1_Hmo1_7750"
+    "${dir_trim}/IP_G1_Hmo1_7750"
+    "${dir_trim}/in_G2M_Hmo1_7750"
+    "${dir_trim}/IP_G2M_Hmo1_7750"
+    "${dir_trim}/in_Q_Hmo1_7750"
+    "${dir_trim}/IP_Q_Hmo1_7750"
+    "${dir_trim}/in_G1_Hmo1_7751"
+    "${dir_trim}/IP_G1_Hmo1_7751"
+    "${dir_trim}/in_G2M_Hmo1_7751"
+    "${dir_trim}/IP_G2M_Hmo1_7751"
+    "${dir_trim}/in_Q_Hmo1_7751"
+    "${dir_trim}/IP_Q_Hmo1_7751"
+    # "${dir_untr}/in_Q_untagged_5781"
+    # "${dir_untr}/IP_Q_untagged_5781"
+    # "${dir_untr}/in_Q_Esa5_7041"
+    # "${dir_untr}/IP_Q_Esa5_7041"
+    # "${dir_untr}/in_Q_Esa5_7691"
+    # "${dir_untr}/IP_Q_Esa5_7691"
+    # "${dir_untr}/in_Q_Rpd3_7568"
+    # "${dir_untr}/IP_Q_Rpd3_7568"
+    # "${dir_untr}/in_Q_Rpd3_7569"
+    # "${dir_untr}/IP_Q_Rpd3_7569"
+    # "${dir_untr}/in_Q_Gcn5_7692"
+    # "${dir_untr}/IP_Q_Gcn5_7692"
+    # "${dir_untr}/in_Q_Gcn5_7709"
+    # "${dir_untr}/IP_Q_Gcn5_7709"
 )
 
 
 #  Do the main work ===========================================================
-#  Set flags for checking variable and array assignments
+#  Set flags for checking variable and array assignments, and to create the
+#+ necessary mamba environment if not found
 check_variables=true
 check_array=true
+create_mamba_env=true
 
 #  If check_variables is true, then echo the variable assignments
 if ${check_variables}; then
@@ -1281,10 +1329,6 @@ if ${check_variables}; then
 
     time=${time}
     threads=${threads}
-
-    # mod_bowtie2=${mod_bowtie2}
-    # mod_samtools=${mod_samtools}
-    # mod_bedtools=${mod_bedtools}
     "
 fi
 
@@ -1309,34 +1353,49 @@ if ${check_array}; then
     done
 fi
 
-# #  If the module for Bowtie2 is not loaded, then load it
-# check_and_load_module "${mod_bowtie2}"
-#
-# #  If the corresponding Samtools module is not loaded, then load it
-# check_and_load_module "${mod_samtools}"
-#
-# #  Load also BEDtools
-# check_and_load_module "${mod_bedtools}"
-
 #  Initialize conda/mamba environment containing necessary programs for
 #+ alignment, quality checks, and post-processing
 env_name="alignment-processing_env"
 
-#TODO Make the following into a function
-if [[ "${CONDA_DEFAULT_ENV}" != "${env_name}" ]]; then
-    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
-        mamba deactivate
-    fi
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
 
-    if ! mamba activate "${env_name}" &> /dev/null; then
-        #  If `mamba activate` fails, try using `source activate`
-        if ! conda activate "${env_name}" &> /dev/null; then
-            #  If `conda activate` fails, try using `source activate`
-            if ! source activate "${env_name}" &> /dev/null; then
-                #  If `source activate` also fails, return an error
-                error_and_return "Failed to activate environment \"${env_name}\"."
-            fi
-        fi
+#  If not in base environment, then deactivate current environment
+deactivate_env
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following invocation of mamba
+#+ to install it
+if check_env_installed "${env_name}"; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    activate_env "${env_name}"
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is not set, which means user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --name "${env_name}" \
+            --channel bioconda \
+                bamtools \
+                bedtools \
+                bowtie2 \
+                bwa \
+                fastqc \
+                minimap \
+                mosdepth \
+                picard \
+                preseq \
+                samtools \
+                ucsc-bedgraphtobigwig \
+                ucsc-bedsort \
+                ucsc-facount
+        
+        activate_env "${env_name}"
     fi
 fi
 
@@ -1354,8 +1413,6 @@ print_iteration=true
 check_variables=true
 check_operation=true
 run_operation=true
-# check_operations=false
-# run_operations=false
 
 for i in "${!file_fastqs[@]}"; do
     # i=0
@@ -1505,424 +1562,6 @@ EOF
 done
 
 #TODO Initial BAM outfiles (from just after alignment) wern't deleted upon completion; debug this
-
-# for i in "${!file_fastqs[@]}"; do
-#     # i=0
-#     index="${i}"
-#     iter=$(( index + 1 ))
-#     file="${file_fastqs[${index}]}"
-#     stem="$(basename ${file})"
-#     job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
-#    
-#     #  Parse the files' source directory to determine appropriate suffix for
-#     #+ FASTQ files
-#     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
-#         fastq_1=${file}_R1.atria.fastq.gz
-#         fastq_2=${file}_R2.atria.fastq.gz
-#     elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
-#         fastq_1=${file}_R1.fastq.gz
-#         fastq_2=${file}_R2.fastq.gz
-#     else
-#         error_and_return "Processing logic problem for ${file}."
-#     fi
-#    
-#     bam="${dir_bwt2}/bam/${stem}.bam"
-#     bam_coor="${bam/.bam/.sort-coord.bam}"
-#     bam_quer="${bam/.bam/.sort-qname.bam}"
-#    
-#     bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
-#     bed_etc="${dir_bwt2}/cvrg/${stem}"
-#    
-#     txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
-#     txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
-#
-#     #  Echo current iteration
-#     if ${print_iteration}; then
-#         echo "
-#         #  -------------------------------------
-#         ### ${iter} ###
-#         "
-#     fi
-#    
-#     #  Echo loop-dependent variables if check_variables is true
-#     if ${check_variables}; then
-#         echo "
-#         index=${index}
-#         iter=${iter}
-#         file=${file}
-#         stem=${stem}
-#         job_name=${job_name}
-#        
-#         fastq_1=${fastq_1}
-#         fastq_2=${fastq_2}
-#
-#         bam=${bam}
-#         bam_coor=${bam_coor}
-#         bam_quer=${bam_quer}
-#         bed_siQ=${bed_siQ}
-#         bed_etc=${bed_etc}
-#
-#         txt_flg=${txt_flg}
-#         txt_idx=${txt_idx}
-#         "
-#     fi
-#
-#     #  Echo the Atria trimming command if check_operations is true
-#     if ${check_operations}; then
-#         echo "
-#         if [[
-#                  -f \"${fastq_1}\" \\
-#             &&   -f \"${fastq_2}\" \\
-#             && ! -f \"${bam_coor}\" \\
-#             && ! -f \"${bam_quer}\" \\
-#             && ! -f \"${bed}\"
-#         ]]; then
-# sbatch << EOF
-# #!/bin/bash
-#
-# #SBATCH --job-name=\"${job_name}\"
-# #SBATCH --nodes=1
-# #SBATCH --cpus-per-task=${threads}
-# #SBATCH --time=${time}
-# #SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
-# #SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
-#
-# #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
-# #+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
-# #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
-# #+ or any-quality maxi-reads (-q 1)
-# #+ 
-# #+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
-# #+ scores:
-# #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
-# if [[ ! -f \"${bam}\" ]]; then
-#     bowtie2 \\
-#         -p ${threads} \\
-#         -x \"${dir_indx}\" \\
-#         --very-sensitive-local \\
-#         --no-unal \\
-#         --no-mixed \\
-#         --no-discordant \\
-#         --no-overlap \\
-#         --no-dovetail \\
-#         --phred33 \\
-#         -I 10 \\
-#         -X 700 \\
-#         -1 \"${fastq_1}\" \\
-#         -2 \"${fastq_2}\" \\
-#             | samtools view \\
-#                 -@ ${threads} \\
-#                 -b \\
-#                 -f 2 \\
-#                 -q 1 \\
-#                 -o \"${bam}\"
-# fi
-#
-# #  Check if the BAM file exists to perform further operations
-# if [[ -f \"${bam}\" ]]; then
-#     #  Sort the BAM file by queryname if not already done
-#     if [[ ! -f \"${bam_quer}\" ]]; then
-#         samtools sort \\
-#             -@ ${threads} \\
-#             -n \\
-#             -o \"${bam_quer}\" \\
-#             \"${bam}\"
-#     fi
-#
-#     #  Fix the paired read mate information, which is required after sorting by
-#     #+ queryname for subsequent operations
-#     if [[ -f \"${bam_quer}\" ]]; then
-#         samtools fixmate \\
-#             -@ ${threads} \\
-#             -m \\
-#             \"${bam_quer}\" \\
-#             \"${bam_quer%.bam}.tmp.bam\"
-#
-#         #  Replace the original queryname-sorted BAM with queryname-sorted
-#         #+ mate-fixed BAM
-#         if [[ -f \"${bam_quer%.bam}.tmp.bam\" ]]; then
-#             mv -f \\
-#                 \"${bam_quer%.bam}.tmp.bam\" \\
-#                 \"${bam_quer}\"
-#         fi
-#     fi
-#
-#     #  For downstream analyses, sort the queryname-sorted BAM by coordinates
-#     if [[ ! -f \"${bam_coor}\" ]]; then
-#         samtools sort \\
-#             -@ ${threads} \\
-#             -o \"${bam_coor}\" \\
-#             \"${bam_quer}\"
-#     fi
-#
-#     #  Index the coordinate-sorted BAM file
-#     if [[ ! -f \"${bam_coor}.bai\" ]]; then
-#         samtools index \\
-#             -@ ${threads} \\
-#             \"${bam_coor}\"
-#     fi
-#
-#     #  Mark duplicate alignments in the coordinate-sorted BAM file
-#     if [[
-#            -f \"${bam_coor}\" \\
-#         && -f \"${bam_coor}.bai\"
-#     ]]; then
-#         samtools markdup \\
-#             -@ ${threads} \\
-#             \"${bam_coor}\" \\
-#             \"${bam_coor%.bam}.tmp.bam\"
-#
-#         #  Replace the original coordinate-sorted BAM with one in which
-#         #+ duplicates alignments are marked
-#         if [[ -f \"${bam_coor%.bam}.tmp.bam\" ]]; then
-#             mv -f \\
-#                 \"${bam_coor%.bam}.tmp.bam\" \\
-#                 \"${bam_coor}\"
-#         fi
-#
-#         #  If duplicate marking was successful, then generate flagstat and
-#         #+ idxstats reports
-#         if [[ $? -eq 0 ]]; then
-#             samtools flagstat \\
-#                 -@ ${threads} \\
-#                 \"${bam_coor}\" \\
-#                     > \"${txt_flg}\"
-#
-#             samtools idxstats \\
-#                 \"${bam_coor}\" \\
-#                     > \"${txt_idx}\"
-#         fi
-#     fi
-#
-#     #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
-#     if [[
-#          ! -f \"${bed}\" \\
-#         && -f \"${bam_quer}\"
-#     ]]; then
-#         #  Extract fragment information to create the BED file, excluding
-#         #+ chromosomes starting with \"SP_\"
-#         samtools view \"${bam_quer}\" \\
-#             | awk '{
-#                 if (NR % 2 == 1) {
-#                     chr_1 = \$3; 
-#                     start_1 = \$4; 
-#                     len_1 = length(\$10);
-#                 } else {
-#                     chr_2 = \$3;
-#                     start_2 = \$4; 
-#                     len_2 = length(\$10);
-#                     if (chr_1 == chr_2 && substr(chr_1, 1, 3) != \"SP_\") {
-#                         start = (start_1 < start_2) ? start_1 : start_2;
-#                         end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-#                         frag_length = end - start + 1; 
-#                         print chr_1, start, end, frag_length;
-#                     }
-#                 }
-#             }' OFS='\t' \\
-#             | sort -k1,1 -k2,2n \\
-#             | gzip \\
-#                 > \"${bed}\"
-#     fi
-#
-#     #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
-#     #+ all other files have been successfully created
-#     if [[ 
-#            -f \"${bam_coor}\" \\
-#         && -f \"${bam_quer}\" \\
-#         && -f \"${bed}\"
-#     ]]; then
-#         rm \"${bam}\"
-#     fi
-# fi
-# EOF
-#         else
-#             echo \"
-#             Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
-#             \"
-#         fi
-#         "
-#     fi
-#
-#     #TODO Pick up here #TOMORROW: Write up/incluce code teaching how to
-#     #+    generate Bowtie2 indices, and add variable above for the indices
-#     #+    and the scratch directory, where sorting will take place
-#
-#     #  Submit the Atria trimming job if run_operations is true
-#     if ${run_operations}; then
-#         if [[
-#                  -f "${fastq_1}" \
-#             &&   -f "${fastq_2}" \
-#             && ! -f "${bam_coor}" \
-#             && ! -f "${bam_quer}" \
-#             && ! -f "${bed}"
-#         ]]; then
-# sbatch << EOF
-# #!/bin/bash
-#
-# #SBATCH --job-name="${job_name}"
-# #SBATCH --nodes=1
-# #SBATCH --cpus-per-task=${threads}
-# #SBATCH --time=${time}
-# #SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
-# #SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
-#
-# #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
-# #+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
-# #+ retain only properly paired reads (-f 2) that are high-quality multi-reads
-# #+ or any-quality maxi-reads (-q 1)
-# #+ 
-# #+ On what multi- and maxi-reads are, and how to interpret Bowtie 2 MAPQ
-# #+ scores:
-# #+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
-# if [[ ! -f "${bam}" ]]; then
-#     bowtie2 \
-#         -p ${threads} \
-#         -x "${dir_indx}" \
-#         --very-sensitive-local \
-#         --no-unal \
-#         --no-mixed \
-#         --no-discordant \
-#         --no-overlap \
-#         --no-dovetail \
-#         --phred33 \
-#         -I 10 \
-#         -X 700 \
-#         -1 "${fastq_1}" \
-#         -2 "${fastq_2}" \
-#             | samtools view \
-#                 -@ ${threads} \
-#                 -b \
-#                 -f 2 \
-#                 -q 1 \
-#                 -o "${bam}"
-# fi
-#
-# #  Check if the BAM file exists to perform further operations
-# if [[ -f "${bam}" ]]; then
-#     #  Sort the BAM file by queryname if not already done
-#     if [[ ! -f "${bam_quer}" ]]; then
-#         samtools sort \
-#             -@ ${threads} \
-#             -n \
-#             -o "${bam_quer}" \
-#             "${bam}"
-#     fi
-#
-#     #  Fix the paired read mate information, which is required after sorting by
-#     #+ queryname for subsequent operations
-#     if [[ -f "${bam_quer}" ]]; then
-#         samtools fixmate \
-#             -@ ${threads} \
-#             -m \
-#             "${bam_quer}" \
-#             "${bam_quer%.bam}.tmp.bam"
-#
-#         #  Replace the original queryname-sorted BAM with queryname-sorted
-#         #+ mate-fixed BAM
-#         if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
-#             mv -f \
-#                 "${bam_quer%.bam}.tmp.bam" \
-#                 "${bam_quer}"
-#         fi
-#     fi
-#
-#     #  For downstream analyses, sort the queryname-sorted BAM by coordinates
-#     if [[ ! -f "${bam_coor}" ]]; then
-#         samtools sort \
-#             -@ ${threads} \
-#             -o "${bam_coor}" \
-#             "${bam_quer}"
-#     fi
-#
-#     #  Index the coordinate-sorted BAM file
-#     if [[ ! -f "${bam_coor}.bai" ]]; then
-#         samtools index \
-#             -@ ${threads} \
-#             "${bam_coor}"
-#     fi
-#
-#     #  Mark duplicate alignments in the coordinate-sorted BAM file
-#     if [[
-#            -f "${bam_coor}" \
-#         && -f "${bam_coor}.bai"
-#     ]]; then
-#         samtools markdup \
-#             -@ ${threads} \
-#             "${bam_coor}" \
-#             "${bam_coor%.bam}.tmp.bam"
-#
-#         #  Replace the original coordinate-sorted BAM with one in which
-#         #+ duplicates alignments are marked
-#         if [[ -f "${bam_coor%.bam}.tmp.bam" ]]; then
-#             mv -f \
-#                 "${bam_coor%.bam}.tmp.bam" \
-#                 "${bam_coor}"
-#         fi
-#
-#         #  If duplicate marking was successful, then generate flagstat and
-#         #+ idxstats reports
-#         if [[ $? -eq 0 ]]; then
-#             samtools flagstat \
-#                 -@ ${threads} \
-#                 "${bam_coor}" \
-#                     > "${txt_flg}"
-#
-#             samtools idxstats \
-#                 "${bam_coor}" \
-#                     > "${txt_idx}"
-#         fi
-#     fi
-#
-#     #  Generate a BED file from the queryname-sorted BAM if it doesn't exist
-#     if [[
-#          ! -f "${bed}" \
-#         && -f "${bam_quer}"
-#     ]]; then
-#         #  Extract fragment information to create the BED file, excluding
-#         #+ chromosomes starting with "SP_"
-#         samtools view "${bam_quer}" \
-#             | awk '{
-#                 if (NR % 2 == 1) {
-#                     chr_1 = \$3; 
-#                     start_1 = \$4; 
-#                     len_1 = length(\$10);
-#                 } else {
-#                     chr_2 = \$3;
-#                     start_2 = \$4; 
-#                     len_2 = length(\$10);
-#                     if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
-#                         start = (start_1 < start_2) ? start_1 : start_2;
-#                         end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-#                         frag_length = end - start + 1; 
-#                         print chr_1, start, end, frag_length;
-#                     }
-#                 }
-#             }' OFS='\t' \
-#             | sort -k1,1 -k2,2n \
-#             | gzip \
-#                 > "${bed}"
-#     fi
-#
-#     #  Remove the original BAM file (output by Bowtie 2 piped to Samtools) if
-#     #+ all other files have been successfully created
-#     if [[ 
-#            -f "${bam_coor}" \
-#         && -f "${bam_quer}" \
-#         && -f "${bed}"
-#     ]]; then
-#         rm "${bam}"
-#     fi
-# fi
-# EOF
-#         else
-#             echo "
-#             Warning: ${stem} FASTQs do not appear to exist; skipping alignment and processing.
-#             "
-#         fi
-#     fi
-#
-#     sleep 0.2  # Short pause to prevent rapid job-submission overload
-# done
 ```
 </details>
 <br />

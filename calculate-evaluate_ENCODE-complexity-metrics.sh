@@ -43,7 +43,8 @@ EOM
 }
 
 
-#  Function to check if PROGRAM; if not, exit with code 1
+#  Function to check if program is in PATH; if not, print an error message and
+#+ exit with code 1
 function check_program_in_path() {
     local program_name="$1"
     if ! command -v "${program_name}" &> /dev/null; then

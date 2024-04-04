@@ -99,6 +99,7 @@ EOM
 
 #  Something ==================================================================
 check_program_in_path "bedGraphToBigWig"
+check_program_in_path "bedSort"
 check_program_in_path "bowtie2"
 check_program_in_path "mosdepth"
 check_program_in_path "picard"
@@ -122,17 +123,30 @@ if ${debug}; then
     fasta="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.fa"
     sizes="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.chrom-info.tsv"
     mapq=1
-    fastq_1="${dir_exp}/02_trim/in_G1_Hho1_6336_R1.atria.fastq.gz"
-    fastq_2="${dir_exp}/02_trim/in_G1_Hho1_6336_R2.atria.fastq.gz"
-    bam="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.bam"
-    bam_coor="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-coord.bam"
-    bam_quer="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-qname.bam"
-    bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/in_G1_Hho1_6336.bed.gz"
-    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/in_G1_Hho1_6336"
-    txt_met="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.picard-metrics.txt"
-    txt_flg="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-flagstat.txt"
-    txt_idx="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
-    txt_pre="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.preseq"
+
+    # fastq_1="${dir_exp}/02_trim/in_G1_Hho1_6336_R1.atria.fastq.gz"
+    # fastq_2="${dir_exp}/02_trim/in_G1_Hho1_6336_R2.atria.fastq.gz"
+    # bam="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.bam"
+    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-coord.bam"
+    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/in_G1_Hho1_6336.bed.gz"
+    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/in_G1_Hho1_6336"
+    # txt_met="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.picard-metrics.txt"
+    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-flagstat.txt"
+    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
+    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.preseq"
+
+    fastq_1="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R1.atria.fastq.gz"
+    fastq_2="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R2.atria.fastq.gz"
+    bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.bam"
+    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-coord.bam"
+    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-qname.bam"
+    bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
+    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Hmo1_7750"
+    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
+    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
+    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
+    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.preseq"
 
     #  Optional: Check variable assignments 
     check_variables=true
@@ -356,6 +370,7 @@ fi
 
 #  Mark duplicate alignments in the coordinate-sorted BAM file, and generate
 #+ Picard, Samtools, and Preseq QC TXT files
+#TODO Break this up; modularize it
 if [[
          -f "${bam_coor}" \
     &&   -f "${bam_coor}.bai" \
@@ -509,12 +524,35 @@ if [[
         && ! -f "${bed_etc}.rpm.bg" \
         && ! -f "${bed_etc}.rpm.bg.gz"
     ]]; then
+        #TODO Error and exit for if total_reads is assigned 0
         total_reads="$(samtools view -c "${bam_coor}")"
         zcat "${bed_etc}.per-base.bed.gz" \
             | awk \
                 -v total_reads="${total_reads}" \
-                '{ print $1, $2, $3, ($4 / total_reads) * 1000000 }' \
+                'BEGIN {
+                    OFS="\t"
+                } {
+                    print $1, $2, $3, ($4 / total_reads) * 1000000
+                }' \
                     > "${bed_etc}.rpm.bg"
+    fi
+
+    if [[
+             -f "${bed_etc}.rpm.bg" \
+        && ! -f "${bed_etc}.rpm.sort.bg"
+    ]]; then
+        bedSort \
+            "${bed_etc}.rpm.bg" \
+            "${bed_etc}.rpm.sort.bg"
+    fi
+
+    if [[
+           -f "${bed_etc}.rpm.bg" \
+        && -f "${bed_etc}.rpm.sort.bg"
+    ]]; then
+        mv -f \
+            "${bed_etc}.rpm.sort.bg" \
+            "${bed_etc}.rpm.bg"
     fi
 
     if [[
@@ -546,8 +584,8 @@ if [[
     && -f "${bam_quer}" \
     && -f "${bed_siQ}" \
     && -f "${bed_etc}.per-base.bed.gz" \
-    && -f "${bed_etc}.rmp.bg.gz" \
-    && -f "${bed_etc}.rmp.bw"
+    && -f "${bed_etc}.rpm.bg.gz" \
+    && -f "${bed_etc}.rpm.bw"
 ]]; then
     rm "${bam}"
 fi

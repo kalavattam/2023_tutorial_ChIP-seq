@@ -25,13 +25,20 @@
         1. [Code](#code-6)
     1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
         1. [Code](#code-7)
+1. [X. Run `phantompeakqualtools` on aligned data](#x-run-phantompeakqualtools-on-aligned-data)
+    1. [a. Install `phantompeakqualtools`](#a-install-phantompeakqualtools)
+        1. [Code](#code-8)
+        1. [Printed \(remote\)](#printed-remote)
+        1. [Printed \(local\)](#printed-local)
+    1. [b. Run `phantompeakqualtools`](#b-run-phantompeakqualtools)
+        1. [Code](#code-9)
 1. [4. Call peaks with MACS3](#4-call-peaks-with-macs3)
     1. [a. Install MACS3](#a-install-macs3)
-        1. [Code](#code-8)
-    1. [b. Run MACS3](#b-run-macs3)
-        1. [Code](#code-9)
-    1. [c. Run MACS3 with pooled replicates](#c-run-macs3-with-pooled-replicates)
         1. [Code](#code-10)
+    1. [b. Run MACS3](#b-run-macs3)
+        1. [Code](#code-11)
+    1. [c. Run MACS3 with pooled replicates](#c-run-macs3-with-pooled-replicates)
+        1. [Code](#code-12)
 1. [5. Subset peaks](#5-subset-peaks)
     1. [a. Install environment for interactive R scripting](#a-install-environment-for-interactive-r-scripting)
         1. [Bash code](#bash-code)
@@ -45,28 +52,29 @@
             1. [R code](#r-code-2)
         1. [iv. Perform additional set operations with respect to three-way intersections](#iv-perform-additional-set-operations-with-respect-to-three-way-intersections)
             1. [R code](#r-code-3)
-1. [6. Miscellaneous \(to be organized\)](#6-miscellaneous-to-be-organized)
+1. [6. Calculate sample scaling factors from *S. pombe* spike-ins](#6-calculate-sample-scaling-factors-from-s-pombe-spike-ins)
+1. [7. Miscellaneous \(to be organized\)](#7-miscellaneous-to-be-organized)
     1. [x. Scratch](#x-scratch)
-        1. [Code](#code-11)
+        1. [Code](#code-13)
         1. [Notes](#notes)
     1. [a. Determine the locations of low-complexity regions in *S. cerevisiae*](#a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae)
         1. [i. Install `sdust` via `minimap`](#i-install-sdust-via-minimap)
-            1. [Code](#code-12)
+            1. [Code](#code-14)
             1. [Printed](#printed)
         1. [ii. Run `sdust` via `minimap`](#ii-run-sdust-via-minimap)
-            1. [Code](#code-13)
+            1. [Code](#code-15)
     1. [b. Determine the effective genome size of *S. cerevisiae* \(50-mers\)](#b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers)
         1. [i. Install `khmer`](#i-install-khmer)
-            1. [Code](#code-14)
+            1. [Code](#code-16)
             1. [Printed](#printed-1)
         1. [ii. Run `khmer`](#ii-run-khmer)
-            1. [Code](#code-15)
+            1. [Code](#code-17)
             1. [Printed](#printed-2)
     1. [b. Determine base statistics in *S. cerevisiae* FASTA files](#b-determine-base-statistics-in-s-cerevisiae-fasta-files)
         1. [i. Install `faCount`](#i-install-facount)
-            1. [Code](#code-16)
+            1. [Code](#code-18)
         1. [ii. Run `faCount`](#ii-run-facount)
-            1. [Code](#code-17)
+            1. [Code](#code-19)
             1. [Printed](#printed-3)
 
 <!-- /MarkdownTOC -->
@@ -540,6 +548,7 @@ if ${install_atria}; then
     if [[ ! -d "${atria_dir}" ]]; then
         cd "$(dirname "${atria_dir}")" \
             || error_and_return "Failed to cd to $(dirname "${atria_dir}")."
+        
         git clone "https://github.com/cihga39871/Atria.git" \
             || error_and_return "Failed to clone Atria repository."
     else
@@ -1568,6 +1577,8 @@ done
 
 <a id="e-use-bwa-to-align-the-trimmed-fastq-files"></a>
 ## e. Use `bwa` to align the trimmed FASTQ files
+`#TODO`
+
 <a id="code-7"></a>
 ### Code
 <details>
@@ -1624,11 +1635,1000 @@ fi
 <br />
 <br />
 
+<a id="x-run-phantompeakqualtools-on-aligned-data"></a>
+# X. Run `phantompeakqualtools` on aligned data
+<a id="a-install-phantompeakqualtools"></a>
+## a. Install `phantompeakqualtools`
+<a id="code-8"></a>
+### Code
+<details>
+<summary><i>Code: X.a. Install `phantompeakqualtools`</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define functions ===========================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to check if Mamba is installed
+function check_mamba_installed() {
+    if ! : mamba &> /dev/null; then
+        echo "Mamba is not installed on your system. Mamba is a package manager" 
+        echo "that makes package installations faster and more reliable."
+        echo ""
+        echo "For installation instructions, please check the following link:"
+        echo "https://github.com/mamba-org/mamba#installation"
+        return 1
+    fi
+    
+    return 0
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+env_name="ppqt_env"
+
+
+#  Do the main work ===========================================================
+#  Set flag(s)
+create_mamba_env=true  # Install mamba environment if not detected
+
+#  Check that Mamba is installed and in PATH
+check_mamba_installed
+
+#  If not in base environment, then deactivate current environment
+deactivate_env
+
+#  Check that environment assigned to env_name is installed; if environment
+#+ assigned to env_name is not installed, run the following
+if check_env_installed "${env_name}"; then
+    #  Handle the case when the environment is already installed
+    echo "Activating environment ${env_name}"
+    
+    activate_env "${env_name}"
+else
+    #  Handle the case when the environment is not installed
+    echo "Creating environment ${env_name}"
+    
+    if ${create_mamba_env}; then
+        #  Switch `--yes` is set, which means no user input is required
+        #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+        mamba create \
+            --yes \
+            -n "${env_name}" \
+            -c bioconda \
+            -c conda-forge \
+                phantompeakqualtools=1.2.2 \
+                parallel
+    fi
+fi
+```
+</details>
+<br />
+
+<a id="printed-remote"></a>
+### Printed (remote)
+<details>
+<summary><i>Printed: X.a. Install `phantompeakqualtools` (remote)</i></summary>
+
+```txt
+❯ if check_env_installed "${env_name}"; then
+>     #  Handle the case when the environment is already installed
+>     echo "Activating environment ${env_name}"
+> 
+>     activate_env "${env_name}"
+> else
+>     #  Handle the case when the environment is not installed
+>     echo "Creating environment ${env_name}"
+> 
+>     if ${create_mamba_env}; then
+>         #  Switch `--yes` is set, which means no user input is required
+>         #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+>         mamba create \
+>             --yes \
+>             -n "${env_name}" \
+>             -c bioconda \
+>                 phantompeakqualtools=1.2.2
+>     fi
+> fi
+Environment "ppqt_env" is not installed.
+Creating environment ppqt_env
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (1.3.1) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['phantompeakqualtools=1.2.2']
+
+bioconda/linux-64                                           Using cache
+bioconda/noarch                                             Using cache
+conda-forge/linux-64                                        Using cache
+conda-forge/noarch                                          Using cache
+pkgs/main/linux-64                                            No change
+pkgs/main/noarch                                              No change
+pkgs/r/linux-64                                               No change
+pkgs/r/noarch                                                 No change
+Transaction
+
+  Prefix: /home/kalavatt/miniconda3/envs/ppqt_env
+
+  Updating specs:
+
+   - phantompeakqualtools=1.2.2
+
+
+  Package                               Version  Build                Channel                    Size
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  Install:
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  + _libgcc_mutex                           0.1  conda_forge          conda-forge/linux-64     Cached
+  + _openmp_mutex                           4.5  2_gnu                conda-forge/linux-64     Cached
+  + _r-mutex                              1.0.1  anacondar_1          conda-forge/noarch       Cached
+  + argcomplete                           3.2.3  pyhd8ed1ab_0         conda-forge/noarch         40kB
+  + binutils_impl_linux-64                 2.40  hf600244_0           conda-forge/linux-64     Cached
+  + bioconductor-biocgenerics            0.48.1  r43hdfd78af_2        bioconda/noarch           658kB
+  + bioconductor-biocparallel            1.36.0  r43hf17093f_1        bioconda/linux-64           2MB
+  + bioconductor-biostrings              2.70.1  r43ha9d7317_1        bioconda/linux-64          15MB
+  + bioconductor-data-packages         20231203  hdfd78af_0           bioconda/noarch          Cached
+  + bioconductor-genomeinfodb            1.38.1  r43hdfd78af_1        bioconda/noarch             4MB
+  + bioconductor-genomeinfodbdata        1.2.11  r43hdfd78af_1        bioconda/noarch          Cached
+  + bioconductor-genomicranges           1.54.1  r43ha9d7317_1        bioconda/linux-64           2MB
+  + bioconductor-iranges                 2.36.0  r43ha9d7317_1        bioconda/linux-64           3MB
+  + bioconductor-rhtslib                  2.4.0  r43ha9d7317_1        bioconda/linux-64           2MB
+  + bioconductor-rsamtools               2.18.0  r43hf17093f_1        bioconda/linux-64           4MB
+  + bioconductor-s4vectors               0.40.2  r43ha9d7317_1        bioconda/linux-64           3MB
+  + bioconductor-xvector                 0.42.0  r43ha9d7317_1        bioconda/linux-64         755kB
+  + bioconductor-zlibbioc                1.48.0  r43ha9d7317_1        bioconda/linux-64          26kB
+  + boost                                1.84.0  h8da182e_2           conda-forge/linux-64       16kB
+  + bwidget                              1.9.14  ha770c72_1           conda-forge/linux-64     Cached
+  + bzip2                                 1.0.8  hd590300_5           conda-forge/linux-64     Cached
+  + c-ares                               1.28.1  hd590300_0           conda-forge/linux-64      169kB
+  + ca-certificates                    2024.2.2  hbcca054_0           conda-forge/linux-64     Cached
+  + cairo                                1.18.0  h3faef2a_0           conda-forge/linux-64     Cached
+  + curl                                  8.7.1  hca28451_0           conda-forge/linux-64      165kB
+  + expat                                 2.6.2  h59595ed_0           conda-forge/linux-64      138kB
+  + font-ttf-dejavu-sans-mono              2.37  hab24e00_0           conda-forge/noarch       Cached
+  + font-ttf-inconsolata                  3.000  h77eed37_0           conda-forge/noarch       Cached
+  + font-ttf-source-code-pro              2.038  h77eed37_0           conda-forge/noarch       Cached
+  + font-ttf-ubuntu                        0.83  h77eed37_1           conda-forge/noarch       Cached
+  + fontconfig                           2.14.2  h14ed4e7_0           conda-forge/linux-64     Cached
+  + fonts-conda-ecosystem                     1  0                    conda-forge/noarch       Cached
+  + fonts-conda-forge                         1  0                    conda-forge/noarch       Cached
+  + freetype                             2.12.1  h267a509_2           conda-forge/linux-64     Cached
+  + fribidi                              1.0.10  h36c2ea0_0           conda-forge/linux-64     Cached
+  + gawk                                  5.3.0  ha916aea_0           conda-forge/linux-64     Cached
+  + gcc_impl_linux-64                    13.2.0  h338b0a0_5           conda-forge/linux-64     Cached
+  + gettext                              0.21.1  h27087fc_0           conda-forge/linux-64     Cached
+  + gfortran_impl_linux-64               13.2.0  h76e1118_5           conda-forge/linux-64     Cached
+  + gmp                                   6.3.0  h59595ed_1           conda-forge/linux-64      570kB
+  + graphite2                            1.3.13  h59595ed_1003        conda-forge/linux-64       97kB
+  + gxx_impl_linux-64                    13.2.0  h338b0a0_5           conda-forge/linux-64     Cached
+  + harfbuzz                              8.3.0  h3d44ed6_0           conda-forge/linux-64     Cached
+  + icu                                    73.2  h59595ed_0           conda-forge/linux-64     Cached
+  + jq                                      1.5  0                    bioconda/linux-64        Cached
+  + kernel-headers_linux-64              2.6.32  he073ed8_17          conda-forge/noarch       Cached
+  + keyutils                              1.6.1  h166bdaf_0           conda-forge/linux-64     Cached
+  + krb5                                 1.21.2  h659d440_0           conda-forge/linux-64     Cached
+  + ld_impl_linux-64                       2.40  h41732ed_0           conda-forge/linux-64     Cached
+  + lerc                                  4.0.0  h27087fc_0           conda-forge/linux-64     Cached
+  + libblas                               3.9.0  21_linux64_openblas  conda-forge/linux-64     Cached
+  + libboost                             1.84.0  h8013b2b_2           conda-forge/linux-64        3MB
+  + libboost-devel                       1.84.0  h00ab1b0_2           conda-forge/linux-64       39kB
+  + libboost-headers                     1.84.0  ha770c72_2           conda-forge/linux-64       14MB
+  + libboost-python                      1.84.0  py312hfb10629_2      conda-forge/linux-64      123kB
+  + libboost-python-devel                1.84.0  py312h8da182e_2      conda-forge/linux-64       19kB
+  + libcblas                              3.9.0  21_linux64_openblas  conda-forge/linux-64     Cached
+  + libcurl                               8.7.1  hca28451_0           conda-forge/linux-64      398kB
+  + libdeflate                             1.20  hd590300_0           conda-forge/linux-64       72kB
+  + libedit                        3.1.20191231  he28a2e2_2           conda-forge/linux-64     Cached
+  + libev                                  4.33  hd590300_2           conda-forge/linux-64     Cached
+  + libexpat                              2.6.2  h59595ed_0           conda-forge/linux-64       74kB
+  + libffi                                3.4.2  h7f98852_5           conda-forge/linux-64     Cached
+  + libgcc                                7.2.0  h69d50b8_2           conda-forge/linux-64     Cached
+  + libgcc-devel_linux-64                13.2.0  ha9c7c90_105         conda-forge/noarch       Cached
+  + libgcc-ng                            13.2.0  h807b86a_5           conda-forge/linux-64     Cached
+  + libgfortran-ng                       13.2.0  h69a702a_5           conda-forge/linux-64     Cached
+  + libgfortran5                         13.2.0  ha4646dd_5           conda-forge/linux-64     Cached
+  + libglib                              2.78.4  h783c2da_0           conda-forge/linux-64        3MB
+  + libgomp                              13.2.0  h807b86a_5           conda-forge/linux-64     Cached
+  + libiconv                               1.17  hd590300_2           conda-forge/linux-64     Cached
+  + libjpeg-turbo                         3.0.0  hd590300_1           conda-forge/linux-64     Cached
+  + liblapack                             3.9.0  21_linux64_openblas  conda-forge/linux-64     Cached
+  + libnghttp2                           1.58.0  h47da74e_1           conda-forge/linux-64     Cached
+  + libnsl                                2.0.1  hd590300_0           conda-forge/linux-64     Cached
+  + libopenblas                          0.3.26  pthreads_h413a1c8_0  conda-forge/linux-64     Cached
+  + libpng                               1.6.43  h2797004_0           conda-forge/linux-64     Cached
+  + libsanitizer                         13.2.0  h7e041cc_5           conda-forge/linux-64     Cached
+  + libsqlite                            3.45.2  h2797004_0           conda-forge/linux-64      857kB
+  + libssh2                              1.11.0  h0841786_0           conda-forge/linux-64     Cached
+  + libstdcxx-devel_linux-64             13.2.0  ha9c7c90_105         conda-forge/noarch       Cached
+  + libstdcxx-ng                         13.2.0  h7e041cc_5           conda-forge/linux-64     Cached
+  + libtiff                               4.6.0  h1dd3fc0_3           conda-forge/linux-64      283kB
+  + libuuid                              2.38.1  h0b41bf4_0           conda-forge/linux-64     Cached
+  + libwebp-base                          1.3.2  hd590300_0           conda-forge/linux-64     Cached
+  + libxcb                                 1.15  h0b41bf4_0           conda-forge/linux-64     Cached
+  + libxcrypt                            4.4.36  hd590300_1           conda-forge/linux-64     Cached
+  + libzlib                              1.2.13  hd590300_5           conda-forge/linux-64     Cached
+  + make                                    4.3  hd18ef5c_1           conda-forge/linux-64     Cached
+  + mpfr                                  4.2.1  h9458935_0           conda-forge/linux-64     Cached
+  + ncurses                        6.4.20240210  h59595ed_0           conda-forge/linux-64      896kB
+  + numpy                                1.26.4  py312heda63a1_0      conda-forge/linux-64        7MB
+  + openssl                               3.2.1  hd590300_1           conda-forge/linux-64        3MB
+  + pango                                1.52.1  ha41ecd1_0           conda-forge/linux-64      444kB
+  + pcre2                                 10.42  hcad00b1_0           conda-forge/linux-64     Cached
+  + phantompeakqualtools                  1.2.2  hdfd78af_1           bioconda/noarch          Cached
+  + pip                                    24.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + pixman                               0.43.2  h59595ed_0           conda-forge/linux-64     Cached
+  + pthread-stubs                           0.4  h36c2ea0_1001        conda-forge/linux-64     Cached
+  + python                               3.12.2  hab00c5b_0_cpython   conda-forge/linux-64       32MB
+  + python_abi                             3.12  4_cp312              conda-forge/linux-64     Cached
+  + pyyaml                                6.0.1  py312h98912ed_1      conda-forge/linux-64      197kB
+  + r-base                                4.3.3  hb8ee39d_0           conda-forge/linux-64       26MB
+  + r-bh                               1.84.0_0  r43hc72bb7e_0        conda-forge/noarch       Cached
+  + r-bitops                              1.0_7  r43h57805ef_2        conda-forge/linux-64     Cached
+  + r-catools                            1.18.2  r43ha503ecb_2        conda-forge/linux-64     Cached
+  + r-codetools                          0.2_20  r43hc72bb7e_0        conda-forge/noarch        108kB
+  + r-cpp11                               0.4.7  r43hc72bb7e_0        conda-forge/noarch       Cached
+  + r-crayon                              1.5.2  r43hc72bb7e_2        conda-forge/noarch       Cached
+  + r-formatr                              1.14  r43hc72bb7e_1        conda-forge/noarch       Cached
+  + r-futile.logger                       1.4.3  r43hc72bb7e_1005     conda-forge/noarch       Cached
+  + r-futile.options                      1.0.1  r43hc72bb7e_1004     conda-forge/noarch       Cached
+  + r-lambda.r                            1.2.4  r43hc72bb7e_3        conda-forge/noarch       Cached
+  + r-rcpp                               1.0.12  r43h7df8631_0        conda-forge/linux-64     Cached
+  + r-rcurl                           1.98_1.14  r43hf9611b0_0        conda-forge/linux-64     Cached
+  + r-snow                                0.4_4  r43hc72bb7e_2        conda-forge/noarch       Cached
+  + r-snowfall                         1.84_6.3  r43hc72bb7e_0        conda-forge/noarch       Cached
+  + r-spp                                1.16.0  r43h21a89ab_9        bioconda/linux-64        Cached
+  + readline                                8.2  h8228510_1           conda-forge/linux-64     Cached
+  + samtools                                1.6  hc3601fc_10          bioconda/linux-64         513kB
+  + sed                                     4.8  he412f7d_0           conda-forge/linux-64     Cached
+  + setuptools                           69.2.0  pyhd8ed1ab_0         conda-forge/noarch        471kB
+  + sysroot_linux-64                       2.12  he073ed8_17          conda-forge/noarch       Cached
+  + tk                                   8.6.13  noxft_h4845f30_101   conda-forge/linux-64     Cached
+  + tktable                                2.10  h0c5db8f_5           conda-forge/linux-64     Cached
+  + toml                                 0.10.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + tomlkit                              0.12.4  pyha770c72_0         conda-forge/noarch       Cached
+  + tzdata                                2024a  h0c530f3_0           conda-forge/noarch       Cached
+  + wheel                                0.43.0  pyhd8ed1ab_1         conda-forge/noarch         58kB
+  + xmltodict                            0.13.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + xorg-kbproto                          1.0.7  h7f98852_1002        conda-forge/linux-64     Cached
+  + xorg-libice                           1.1.1  hd590300_0           conda-forge/linux-64     Cached
+  + xorg-libsm                            1.2.4  h7391055_0           conda-forge/linux-64     Cached
+  + xorg-libx11                           1.8.7  h8ee46fc_0           conda-forge/linux-64     Cached
+  + xorg-libxau                          1.0.11  hd590300_0           conda-forge/linux-64     Cached
+  + xorg-libxdmcp                         1.1.3  h7f98852_0           conda-forge/linux-64     Cached
+  + xorg-libxext                          1.3.4  h0b41bf4_2           conda-forge/linux-64     Cached
+  + xorg-libxrender                      0.9.11  hd590300_0           conda-forge/linux-64     Cached
+  + xorg-libxt                            1.3.0  hd590300_1           conda-forge/linux-64     Cached
+  + xorg-renderproto                     0.11.1  h7f98852_1002        conda-forge/linux-64     Cached
+  + xorg-xextproto                        7.3.0  h0b41bf4_1003        conda-forge/linux-64     Cached
+  + xorg-xproto                          7.0.31  h7f98852_1007        conda-forge/linux-64     Cached
+  + xz                                    5.2.6  h166bdaf_0           conda-forge/linux-64     Cached
+  + yaml                                  0.2.5  h7f98852_2           conda-forge/linux-64     Cached
+  + yq                                    3.2.3  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + zlib                                 1.2.13  hd590300_5           conda-forge/linux-64     Cached
+  + zstd                                  1.5.5  hfc55251_0           conda-forge/linux-64     Cached
+
+  Summary:
+
+  Install: 147 packages
+
+  Total download: 130MB
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+libexpat                                            73.7kB @ 584.1kB/s  0.1s
+gmp                                                569.9kB @   4.4MB/s  0.1s
+c-ares                                             168.9kB @   1.2MB/s  0.2s
+graphite2                                           96.9kB @ 574.5kB/s  0.2s
+libboost-devel                                      38.5kB @ 215.5kB/s  0.1s
+libboost                                             2.8MB @  12.9MB/s  0.1s
+r-codetools                                        108.2kB @ 470.7kB/s  0.1s
+samtools                                           512.9kB @   2.0MB/s  0.1s
+bioconductor-zlibbioc                               25.6kB @  92.6kB/s  0.1s
+libboost-python                                    123.3kB @ 332.5kB/s  0.1s
+bioconductor-rhtslib                                 2.4MB @   5.2MB/s  0.3s
+libboost-headers                                    13.7MB @  23.8MB/s  0.6s
+bioconductor-genomicranges                           2.3MB @   3.7MB/s  0.3s
+expat                                              137.6kB @ 211.7kB/s  0.1s
+numpy                                                7.5MB @  10.5MB/s  0.5s
+libtiff                                            282.7kB @ 385.8kB/s  0.1s
+bioconductor-rsamtools                               4.2MB @   5.7MB/s  0.3s
+setuptools                                         471.2kB @ 551.4kB/s  0.1s
+argcomplete                                         40.2kB @  47.0kB/s  0.1s
+libglib                                              2.7MB @   3.1MB/s  0.2s
+boost                                               16.0kB @  15.3kB/s  0.2s
+libsqlite                                          857.5kB @ 804.3kB/s  0.2s
+bioconductor-iranges                                 2.6MB @   2.4MB/s  0.4s
+r-base                                              25.7MB @  23.0MB/s  1.0s
+bioconductor-genomeinfodb                            4.4MB @   3.9MB/s  0.3s
+pango                                              444.2kB @ 361.3kB/s  0.2s
+bioconductor-xvector                               755.5kB @ 606.7kB/s  0.1s
+bioconductor-s4vectors                               2.6MB @   2.0MB/s  0.2s
+wheel                                               58.0kB @  42.0kB/s  0.2s
+pyyaml                                             196.6kB @ 141.7kB/s  0.1s
+bioconductor-biocparallel                            1.7MB @   1.1MB/s  0.3s
+ncurses                                            895.7kB @ 582.1kB/s  0.2s
+openssl                                              2.9MB @   1.7MB/s  0.3s
+libdeflate                                          71.5kB @  41.8kB/s  0.3s
+libboost-python-devel                               19.5kB @  11.4kB/s  0.4s
+libcurl                                            398.3kB @ 210.7kB/s  0.2s
+curl                                               164.9kB @  87.1kB/s  0.2s
+bioconductor-biocgenerics                          658.4kB @ 314.9kB/s  0.2s
+bioconductor-biostrings                             14.6MB @   6.4MB/s  1.2s
+python                                              32.3MB @  12.5MB/s  1.6s
+
+Downloading and Extracting Packages
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+To activate this environment, use
+
+     $ mamba activate ppqt_env
+
+To deactivate an active environment, use
+
+     $ mamba deactivate
+```
+</details>
+<br />
+
+<a id="printed-local"></a>
+### Printed (local)
+<details>
+<summary><i>Printed: X.a. Install `phantompeakqualtools` (local)</i></summary>
+
+```txt
+┌─[kalavattam][Kriss-MacBook-Pro][~]
+└─▪  if check_env_installed "${env_name}"; then
+└─▪     #  Handle the case when the environment is already installed
+└─▪     echo "Activating environment ${env_name}"
+└─▪
+└─▪     activate_env "${env_name}"
+└─▪ else
+└─▪     #  Handle the case when the environment is not installed
+└─▪     echo "Creating environment ${env_name}"
+└─▪
+└─▪     if ${create_mamba_env}; then
+└─▪         #  Switch `--yes` is set, which means no user input is required
+└─▪         #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
+└─▪         mamba create \
+└─▪             --yes \
+└─▪             -n "${env_name}" \
+└─▪             -c bioconda \
+└─▪                 phantompeakqualtools=1.2.2 \
+└─▪                 parallel
+└─▪     fi
+└─▪ fi
+Environment "ppqt_env" is not installed.
+Creating environment ppqt_env
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (0.25.0) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['phantompeakqualtools=1.2.2', 'parallel']
+
+r/osx-64                                                      No change
+r/noarch                                                      No change
+bioconda/osx-64                                      4.4MB @   2.4MB/s  1.9s
+pkgs/r/osx-64                                                 No change
+bioconda/noarch                                      5.2MB @   2.4MB/s  2.3s
+pkgs/r/noarch                                                 No change
+pkgs/main/noarch                                              No change
+conda-forge/noarch                                  16.4MB @   4.3MB/s  4.1s
+pkgs/main/osx-64                                     6.5MB @   1.6MB/s  2.4s
+conda-forge/osx-64                                  35.0MB @   5.4MB/s  7.2s
+Transaction
+
+  Prefix: /Users/kalavattam/miniconda3/envs/ppqt_env
+
+  Updating specs:
+
+   - phantompeakqualtools=1.2.2
+   - parallel
+
+
+  Package                               Version  Build                 Channel                  Size
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+  Install:
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  + _r-mutex                              1.0.1  anacondar_1           conda-forge/noarch     Cached
+  + argcomplete                           3.2.3  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + bioconductor-biocgenerics            0.48.1  r43hdfd78af_2         bioconda/noarch        Cached
+  + bioconductor-biocparallel            1.36.0  r43hc0ef7c4_1         bioconda/osx-64        Cached
+  + bioconductor-biostrings              2.70.1  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-data-packages         20231203  hdfd78af_0            bioconda/noarch        Cached
+  + bioconductor-genomeinfodb            1.38.1  r43hdfd78af_1         bioconda/noarch        Cached
+  + bioconductor-genomeinfodbdata        1.2.11  r43hdfd78af_1         bioconda/noarch        Cached
+  + bioconductor-genomicranges           1.54.1  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-iranges                 2.36.0  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-rhtslib                  2.4.0  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-rsamtools               2.18.0  r43hc0ef7c4_1         bioconda/osx-64        Cached
+  + bioconductor-s4vectors               0.40.2  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-xvector                 0.42.0  r43h4c50009_1         bioconda/osx-64        Cached
+  + bioconductor-zlibbioc                1.48.0  r43h4c50009_1         bioconda/osx-64        Cached
+  + boost                                1.84.0  hdce95a9_2            conda-forge/osx-64     Cached
+  + bwidget                              1.9.14  h694c41f_1            conda-forge/osx-64     Cached
+  + bzip2                                 1.0.8  h10d778d_5            conda-forge/osx-64     Cached
+  + c-ares                               1.28.1  h10d778d_0            conda-forge/osx-64     Cached
+  + ca-certificates                    2024.2.2  h8857fd0_0            conda-forge/osx-64     Cached
+  + cairo                                1.18.0  h99e66fa_0            conda-forge/osx-64     Cached
+  + cctools_osx-64                          986  h58a35ae_0            conda-forge/osx-64     Cached
+  + clang                                18.1.2  default_h7151d67_1    conda-forge/osx-64     Cached
+  + clang-18                             18.1.2  default_h7151d67_1    conda-forge/osx-64     Cached
+  + clang_impl_osx-64                    18.1.2  h73f7f27_11           conda-forge/osx-64     Cached
+  + clang_osx-64                         18.1.2  hb91bd55_11           conda-forge/osx-64     Cached
+  + clangxx                              18.1.2  default_h7151d67_1    conda-forge/osx-64     Cached
+  + clangxx_impl_osx-64                  18.1.2  hb14bd1d_11           conda-forge/osx-64     Cached
+  + clangxx_osx-64                       18.1.2  hb91bd55_11           conda-forge/osx-64     Cached
+  + compiler-rt                          18.1.2  ha38d28d_0            conda-forge/osx-64     Cached
+  + compiler-rt_osx-64                   18.1.2  ha38d28d_0            conda-forge/noarch     Cached
+  + curl                                  8.7.1  h726d00d_0            conda-forge/osx-64     Cached
+  + expat                                 2.6.2  h73e2aa4_0            conda-forge/osx-64     Cached
+  + font-ttf-dejavu-sans-mono              2.37  hab24e00_0            conda-forge/noarch     Cached
+  + font-ttf-inconsolata                  3.000  h77eed37_0            conda-forge/noarch     Cached
+  + font-ttf-source-code-pro              2.038  h77eed37_0            conda-forge/noarch     Cached
+  + font-ttf-ubuntu                        0.83  h77eed37_1            conda-forge/noarch     Cached
+  + fontconfig                           2.14.2  h5bb23bf_0            conda-forge/osx-64     Cached
+  + fonts-conda-ecosystem                     1  0                     conda-forge/noarch     Cached
+  + fonts-conda-forge                         1  0                     conda-forge/noarch     Cached
+  + freetype                             2.12.1  h60636b9_2            conda-forge/osx-64     Cached
+  + fribidi                              1.0.10  hbcb3906_0            conda-forge/osx-64     Cached
+  + gawk                                  5.3.0  h2c496e9_0            conda-forge/osx-64     Cached
+  + gettext                              0.21.1  h8a4c099_0            conda-forge/osx-64     Cached
+  + gfortran_impl_osx-64                 12.3.0  hc328e78_3            conda-forge/osx-64     Cached
+  + gfortran_osx-64                      12.3.0  h18f7dce_1            conda-forge/osx-64     Cached
+  + gmp                                   6.3.0  h73e2aa4_1            conda-forge/osx-64     Cached
+  + graphite2                            1.3.13  h73e2aa4_1003         conda-forge/osx-64     Cached
+  + harfbuzz                              8.3.0  hf45c392_0            conda-forge/osx-64     Cached
+  + htslib                               1.19.1  h365c357_2            bioconda/osx-64        Cached
+  + icu                                    73.2  hf5e326d_0            conda-forge/osx-64     Cached
+  + isl                                    0.26  imath32_h2e86a7b_101  conda-forge/osx-64     Cached
+  + jq                                      1.5  0                     bioconda/osx-64        Cached
+  + krb5                                 1.21.2  hb884880_0            conda-forge/osx-64     Cached
+  + ld64_osx-64                             711  had5d0d3_0            conda-forge/osx-64     Cached
+  + lerc                                  4.0.0  hb486fe8_0            conda-forge/osx-64     Cached
+  + libblas                               3.9.0  21_osx64_openblas     conda-forge/osx-64     Cached
+  + libboost                             1.84.0  h6ebd1c4_2            conda-forge/osx-64     Cached
+  + libboost-devel                       1.84.0  hf2b3138_2            conda-forge/osx-64     Cached
+  + libboost-headers                     1.84.0  h694c41f_2            conda-forge/osx-64     Cached
+  + libboost-python                      1.84.0  py312h77b368e_2       conda-forge/osx-64     Cached
+  + libboost-python-devel                1.84.0  py312hdce95a9_2       conda-forge/osx-64     Cached
+  + libcblas                              3.9.0  21_osx64_openblas     conda-forge/osx-64     Cached
+  + libclang-cpp18.1                     18.1.2  default_h7151d67_1    conda-forge/osx-64     Cached
+  + libcurl                               8.7.1  h726d00d_0            conda-forge/osx-64     Cached
+  + libcxx                               16.0.6  hd57cbcb_0            conda-forge/osx-64     Cached
+  + libdeflate                             1.18  hac1461d_0            conda-forge/osx-64     Cached
+  + libedit                        3.1.20191231  h0678c8f_2            conda-forge/osx-64     Cached
+  + libev                                  4.33  h10d778d_2            conda-forge/osx-64     Cached
+  + libexpat                              2.6.2  h73e2aa4_0            conda-forge/osx-64     Cached
+  + libffi                                3.4.2  h0d85af4_5            conda-forge/osx-64     Cached
+  + libgcc                                4.8.5  1                     conda-forge/osx-64     Cached
+  + libgfortran                           5.0.0  13_2_0_h97931a8_3     conda-forge/osx-64     Cached
+  + libgfortran-devel_osx-64             12.3.0  h0b6f5ec_3            conda-forge/noarch     Cached
+  + libgfortran5                         13.2.0  h2873a65_3            conda-forge/osx-64     Cached
+  + libglib                              2.78.1  h6d9ecee_0            conda-forge/osx-64     Cached
+  + libiconv                               1.17  hd75f5a5_2            conda-forge/osx-64     Cached
+  + libjpeg-turbo                       2.1.5.1  h0dc2134_1            conda-forge/osx-64     Cached
+  + liblapack                             3.9.0  21_osx64_openblas     conda-forge/osx-64     Cached
+  + libllvm18                            18.1.2  hbcf5fad_0            conda-forge/osx-64     Cached
+  + libnghttp2                           1.58.0  h64cf6d3_1            conda-forge/osx-64     Cached
+  + libopenblas                          0.3.26  openmp_hfef2a42_0     conda-forge/osx-64     Cached
+  + libpng                               1.6.43  h92b6c6a_0            conda-forge/osx-64     Cached
+  + libsqlite                            3.45.2  h92b6c6a_0            conda-forge/osx-64     Cached
+  + libssh2                              1.11.0  hd019ec5_0            conda-forge/osx-64     Cached
+  + libtiff                               4.6.0  hf955e92_0            conda-forge/osx-64     Cached
+  + libwebp-base                          1.3.2  h0dc2134_0            conda-forge/osx-64     Cached
+  + libxml2                              2.12.6  hc0ae0f7_1            conda-forge/osx-64     Cached
+  + libzlib                              1.2.13  h8a1eda9_5            conda-forge/osx-64     Cached
+  + llvm-openmp                          18.1.2  hb6ac08f_0            conda-forge/osx-64     Cached
+  + llvm-tools                           18.1.2  hbcf5fad_0            conda-forge/osx-64     Cached
+  + make                                    4.3  h22f3db7_1            conda-forge/osx-64     Cached
+  + mpc                                   1.3.1  h81bd1dd_0            conda-forge/osx-64     Cached
+  + mpfr                                  4.2.1  h0c69b56_0            conda-forge/osx-64     Cached
+  + ncurses                        6.4.20240210  h73e2aa4_0            conda-forge/osx-64     Cached
+  + numpy                                1.26.4  py312he3a82b2_0       conda-forge/osx-64     Cached
+  + openssl                               3.2.1  hd75f5a5_1            conda-forge/osx-64     Cached
+  + pango                               1.50.14  h19c1c8a_2            conda-forge/osx-64     Cached
+  + parallel                           20170422  pl5.22.0_0            bioconda/osx-64           1MB
+  + pcre2                                 10.40  h1c4e4bc_0            conda-forge/osx-64     Cached
+  + perl                               5.22.0.1  0                     conda-forge/osx-64       15MB
+  + phantompeakqualtools                  1.2.2  hdfd78af_1            bioconda/noarch        Cached
+  + pip                                    24.0  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + pixman                               0.43.4  h73e2aa4_0            conda-forge/osx-64     Cached
+  + python                               3.12.2  h9f0c242_0_cpython    conda-forge/osx-64     Cached
+  + python_abi                             3.12  4_cp312               conda-forge/osx-64     Cached
+  + pyyaml                                6.0.1  py312h104f124_1       conda-forge/osx-64     Cached
+  + r-base                                4.3.1  h61172b1_5            conda-forge/osx-64     Cached
+  + r-bh                               1.84.0_0  r43hc72bb7e_0         conda-forge/noarch     Cached
+  + r-bitops                              1.0_7  r43h6dc245f_2         conda-forge/osx-64     Cached
+  + r-catools                            1.18.2  r43hac7d2d5_2         conda-forge/osx-64     Cached
+  + r-codetools                          0.2_20  r43hc72bb7e_0         conda-forge/noarch     Cached
+  + r-cpp11                               0.4.7  r43hc72bb7e_0         conda-forge/noarch     Cached
+  + r-crayon                              1.5.2  r43hc72bb7e_2         conda-forge/noarch     Cached
+  + r-formatr                              1.14  r43hc72bb7e_1         conda-forge/noarch     Cached
+  + r-futile.logger                       1.4.3  r43hc72bb7e_1005      conda-forge/noarch     Cached
+  + r-futile.options                      1.0.1  r43hc72bb7e_1004      conda-forge/noarch     Cached
+  + r-lambda.r                            1.2.4  r43hc72bb7e_3         conda-forge/noarch     Cached
+  + r-rcpp                               1.0.12  r43h29979af_0         conda-forge/osx-64     Cached
+  + r-rcurl                           1.98_1.14  r43hbd64cb6_0         conda-forge/osx-64     Cached
+  + r-snow                                0.4_4  r43hc72bb7e_2         conda-forge/noarch     Cached
+  + r-snowfall                         1.84_6.3  r43hc72bb7e_0         conda-forge/noarch     Cached
+  + r-spp                                1.16.0  r43h71b3455_9         bioconda/osx-64        Cached
+  + readline                                8.2  h9e318b2_1            conda-forge/osx-64     Cached
+  + samtools                             1.19.2  hd510865_1            bioconda/osx-64        Cached
+  + setuptools                           69.2.0  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + sigtool                               0.1.3  h88f4db0_0            conda-forge/osx-64     Cached
+  + tapi                              1100.0.11  h9ce4665_0            conda-forge/osx-64     Cached
+  + tk                                   8.6.13  h1abcd95_1            conda-forge/osx-64     Cached
+  + tktable                                2.10  ha166976_5            conda-forge/osx-64     Cached
+  + toml                                 0.10.2  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + tomlkit                              0.12.4  pyha770c72_0          conda-forge/noarch     Cached
+  + tzdata                                2024a  h0c530f3_0            conda-forge/noarch     Cached
+  + wheel                                0.43.0  pyhd8ed1ab_1          conda-forge/noarch     Cached
+  + xmltodict                            0.13.0  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + xz                                    5.2.6  h775f41a_0            conda-forge/osx-64     Cached
+  + yaml                                  0.2.5  h0d85af4_2            conda-forge/osx-64     Cached
+  + yq                                    3.2.3  pyhd8ed1ab_0          conda-forge/noarch     Cached
+  + zlib                                 1.2.13  h8a1eda9_5            conda-forge/osx-64     Cached
+  + zstd                                  1.5.5  h829000d_0            conda-forge/osx-64     Cached
+
+  Summary:
+
+  Install: 140 packages
+
+  Total download: 17MB
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+parallel                                             1.2MB @ 901.0kB/s  1.4s
+perl                                                15.3MB @   8.7MB/s  1.8s
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+To activate this environment, use
+
+     $ mamba activate ppqt_env
+
+To deactivate an active environment, use
+
+     $ mamba deactivate
+```
+</details>
+<br />
+
+<a id="b-run-phantompeakqualtools"></a>
+## b. Run `phantompeakqualtools`
+<a id="code-9"></a>
+### Code
+<details>
+<summary><i>Code: X.b. Run `phantompeakqualtools`</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Define function ============================================================
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Function to deactivate a Conda/Mamba environment
+function deactivate_env() {
+    if [[ "${CONDA_DEFAULT_ENV}" != "base" ]]; then
+        if ! mamba deactivate &> /dev/null; then
+            if ! conda deactivate &> /dev/null; then
+                if ! source deactivate &> /dev/null; then
+                    error_and_return "Failed to deactivate environment."
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+
+#  Function to check if a specific Conda/Mamba environment is installed
+function check_env_installed() {
+    local env_name="${1}"
+
+    if conda env list | grep -q "^${env_name} "; then
+        return 0
+    else
+        echo "Environment \"${env_name}\" is not installed."
+        return 1
+    fi
+}
+
+
+#  Function to activate a specific Conda/Mamba environment
+function activate_env() {
+    local env_name="${1}"
+
+    deactivate_env
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
+#  Initialize variables and arrays ============================================
+dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
+dir_repo="Kris/2023_tutorial_ChIP-seq"                   # Repository directory
+dir_bams="03_bam/bowtie2/bam"                            # Directory for BAMs
+dir_ppqt="03_bam/bowtie2/ppqt"                           # Directory for MACS3 outfiles
+
+fdr=0.05
+# gsize=12157105
+# keep_dup="auto"
+#
+# time="4:00:00"                                           # Job time for SLURM (H:MM:SS)
+# threads=1                                                # Number of threads for SLURM jobs
+
+#  Initialize an indexed array of BAM file stems
+unset file_bam_stems
+typeset -a file_bam_stems=(
+    "Q_untagged_5781"
+    "Q_Esa5_7041"
+    "Q_Esa5_7691"
+    "Q_Rpd3_7568"
+    "Q_Rpd3_7569"
+    "Q_Gcn5_7692"
+    "Q_Gcn5_7709"
+    "G1_Hho1_6336"
+    "G1_Hho1_6337"
+    "G1_Hmo1_7750"
+    "G1_Hmo1_7751"
+    "G2M_Hho1_6336"
+    "G2M_Hho1_6337"
+    "G2M_Hmo1_7750"
+    "G2M_Hmo1_7751"
+    "Q_Hho1_6336"
+    "Q_Hho1_6337"
+    "Q_Hmo1_7750"
+    "Q_Hmo1_7751"
+)
+
+
+#  Do the main work ===========================================================
+#  Set flags for checking variable and array assignments
+check_variables=true
+check_array=true
+
+#  If check_variables is true, then echo the variable assignments
+if ${check_variables}; then
+    echo "
+    dir_base=${dir_base}
+    dir_repo=${dir_repo}
+    dir_bwt2=${dir_bams}
+    dir_ppqt=${dir_ppqt}
+    
+    fdr=${fdr}
+    # gsize=${gsize}
+    # keep_dup=${keep_dup}
+    #
+    # time=${time}
+    # threads=${threads}
+    "
+fi
+
+#  Echo array contents if check_array is true
+if ${check_array}; then
+    for i in "${!file_bam_stems[@]}"; do
+        file="${file_bam_stems[${i}]}"
+
+        # echo "${file}"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_bams}/IP_${file}.sort-coord.bam"
+        ls -lhaFG "${dir_base}/${dir_repo}/${dir_bams}/in_${file}.sort-coord.bam"
+    done
+fi
+
+#  Initialize conda/mamba environment containing necessary programs for
+#+ alignment, quality checks, and post-processing
+env_name="ppqt_env"
+
+check_env_installed "${env_name}"
+activate_env "${env_name}"
+
+#  Navigate to the work directory
+cd "${dir_base}/${dir_repo}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}."
+
+#  If it doesn't exist, create a directory to store MACS3 outfiles
+if [[ ! -d "${dir_ppqt}" ]]; then
+    mkdir -p "${dir_ppqt}"
+fi
+
+#  Set flags: checking variables, checking and submitting Bowtie2 jobs
+print_iteration=true
+check_variables=true
+check_operation=true
+run_operation=true
+
+for i in "${!file_bam_stems[@]}"; do
+    # i=18
+    index="${i}"
+    iter=$(( index + 1 ))
+    stem="${file_bam_stems[${index}]}"
+    job_name="$(echo ${dir_ppqt} | sed 's:\/:_:g').${stem}"
+    
+    in="${dir_bams}/in_${stem}.sort-coord.bam"
+    IP="${dir_bams}/IP_${stem}.sort-coord.bam"
+    out="${dir_ppqt}/IP_${stem}"
+
+    #  Echo current iteration
+    if ${print_iteration}; then
+        echo "
+        #  -------------------------------------
+        ### ${iter} ###
+        "
+    fi
+    
+    #  Echo loop-dependent variables if check_variables is true
+    if ${check_variables}; then
+        echo "
+        index=${index}
+        iter=${iter}
+        stem=${stem}
+        job_name=${job_name}
+
+        in=${in}
+        IP=${IP}
+        out=${out}
+        "
+    fi
+
+    # echo "
+    # run_spp.R \\
+    #         -c=\"${IP}\" \\
+    #         -savp \\
+    #         -out=\"${out}\"
+    # "
+    #
+    # run_spp.R \
+    #     -c="${IP}" \
+    #     -savp="${out}.pdf" \
+    #     -out="${out}.txt"
+
+    echo "
+    run_spp.R \\
+        -c=\"${IP}\" \\
+        -i=\"${in}\" \\
+        -fdr=\"${fdr}\" \\
+        -odir=\"${dir_ppqt}\" \\
+        -savn=\"${out}.narrowPeak\" \\
+        -savr=\"${out}.regionPeak\" \\
+        -savp=\"${out}.CCP.pdf\" \\
+        -savd=\"${out}.Rdata\" \\
+        -rf
+    "
+
+    run_spp.R \
+        -c="${IP}" \
+        -i="${in}" \
+        -fdr="${fdr}" \
+        -filtchr="SP|Mito" \
+        -odir="${dir_ppqt}" \
+        -savn="${out}.narrowPeak" \
+        -savr="${out}.regionPeak" \
+        -savp="${out}.CCP.pdf" \
+        -savd="${out}.Rdata" \
+        -rf
+
+    # run_spp.R \
+    #     -c=<ChIP_tagalign/BAM_file> \
+    #     -i=<control_tagalign/BAM_file> \
+    #     -npeak=<npeaks> \
+    #     -odir=<peak_call_output_dir> \
+    #     -savr \
+    #     -savp \
+    #     -savd \
+    #     -rf
+
+
+    # rm "${out}.txt"
+    #     -i="${in}"
+
+    if ${check_operation}; then
+        echo "
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name=\"${job_name}\"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt\"
+#SBATCH --output=\"$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt\"
+
+macs3 callpeak \\
+    --name \"${stem}\" \\
+    --treatment \"${IP}\" \\
+    --control \"${in}\" \\
+    --format \"BAMPE\" \\
+    --gsize \"${gsize}\" \\
+    --keep-dup \"${keep_dup}\" \\
+    --outdir \"${dir_macs}\" \\
+    --bdg \\
+    --SPMR \\
+    --verbose 3
+
+if [[ -f \"${dir_macs}/${stem}_summits.bed\" ]]; then
+    find \"${dir_macs}\" \\
+        -type f \\
+        \( \\
+               -name \"${stem}\"*\".bdg\" \\
+            -o -name \"${stem}\"*\".narrowPeak\" \\
+            -o -name \"${stem}\"*\".xls\" \\
+            -o -name \"${stem}\"*\".bed\" \\
+        \) \\
+        -exec gzip {} \;
+fi
+EOF
+        "
+    fi
+
+    if ${run_operation}; then
+sbatch << EOF
+#!/bin/bash
+
+#SBATCH --job-name="${job_name}"
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=${threads}
+#SBATCH --time=${time}
+#SBATCH --error="$(dirname ${dir_bams})/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="$(dirname ${dir_bams})/err_out/${job_name}.%A.stdout.txt"
+
+macs3 callpeak \
+    --name "${stem}" \
+    --treatment "${IP}" \
+    --control "${in}" \
+    --format "BAMPE" \
+    --gsize "${gsize}" \
+    --keep-dup "${keep_dup}" \
+    --outdir "${dir_macs}" \
+    --bdg \
+    --SPMR \
+    --verbose 3
+
+if [[ -f "${dir_macs}/${stem}_summits.bed" ]]; then
+    find "${dir_macs}" \
+        -type f \
+        \( \
+               -name "${stem}"*".bdg" \
+            -o -name "${stem}"*".narrowPeak" \
+            -o -name "${stem}"*".xls" \
+            -o -name "${stem}"*".bed" \
+        \) \
+        -exec gzip {} \;
+fi
+EOF
+    fi
+
+    sleep 0.2
+done
+```
+</details>
+<br />
+
 <a id="4-call-peaks-with-macs3"></a>
 # 4. Call peaks with MACS3
 <a id="a-install-macs3"></a>
 ## a. Install MACS3
-<a id="code-8"></a>
+<a id="code-10"></a>
 ### Code
 <details>
 <summary><i>Code: 4.a. Install MACS3</i></summary>
@@ -1738,7 +2738,7 @@ else
         #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
         mamba create \
             --yes \
-            -n "macs3_env" \
+            -n "${env_name}" \
             -c conda-forge \
                 python=3.10 \
                 pip
@@ -1754,11 +2754,9 @@ fi
 </details>
 <br />
 
-
-
 <a id="b-run-macs3"></a>
 ## b. Run MACS3
-<a id="code-9"></a>
+<a id="code-11"></a>
 ### Code
 <details>
 <summary><i>Code: Run MACS3</i></summary>
@@ -2020,7 +3018,7 @@ done
 
 <a id="c-run-macs3-with-pooled-replicates"></a>
 ## c. Run MACS3 with pooled replicates
-<a id="code-10"></a>
+<a id="code-12"></a>
 ### Code
 <details>
 <summary><i>Code: Run MACS3 with pooled replicates</i></summary>
@@ -3392,11 +4390,17 @@ write_BED_from_GRanges(
 </details>
 <br />
 
-<a id="6-miscellaneous-to-be-organized"></a>
-# 6. Miscellaneous (to be organized)
+<a id="6-calculate-sample-scaling-factors-from-s-pombe-spike-ins"></a>
+# 6. Calculate sample scaling factors from *S. pombe* spike-ins
+`#TODO`
+<br />
+<br />
+
+<a id="7-miscellaneous-to-be-organized"></a>
+# 7. Miscellaneous (to be organized)
 <a id="x-scratch"></a>
 ## x. Scratch
-<a id="code-11"></a>
+<a id="code-13"></a>
 ### Code
 <details>
 <summary><i>Code: Scratch</i></summary>
@@ -3414,6 +4418,12 @@ find . \
     -name 'subset-peaks_complete-reduced_*.bed.gz' \
     -exec sh \
         -c 'mv "$0" "${0%/*}/bak.${0##*/}"' {} \;
+
+find . \
+    -type f \
+    -name 'Ch_*.atria.*' \
+    -exec bash \
+        -c 'mv "$0" "${0/\/Ch_/\/IP_}"' {} \;
 ```
 </details>
 <br />
@@ -3435,7 +4445,7 @@ Here's the breakdown of the command:
 ## a. Determine the locations of low-complexity regions in *S. cerevisiae*
 <a id="i-install-sdust-via-minimap"></a>
 ### i. Install [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
-<a id="code-12"></a>
+<a id="code-14"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `sdust` via `minimap`</i></summary>
@@ -3801,7 +4811,7 @@ Executing transaction: done
 
 <a id="ii-run-sdust-via-minimap"></a>
 ### ii. Run [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
-<a id="code-13"></a>
+<a id="code-15"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Run `sdust` via `minimap`</i></summary>
@@ -3897,7 +4907,7 @@ fi
 ## b. Determine the effective genome size of *S. cerevisiae* (50-mers)
 <a id="i-install-khmer"></a>
 ### i. Install [`khmer`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-14"></a>
+<a id="code-16"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `khmer`</i></summary>
@@ -4115,7 +5125,7 @@ To deactivate an active environment, use
 
 <a id="ii-run-khmer"></a>
 ### ii. Run [`khmer`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-15"></a>
+<a id="code-17"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Run `khmer`</i></summary>
@@ -4290,7 +5300,7 @@ Total estimated number of unique 50-mers: 11624332
 ## b. Determine base statistics in *S. cerevisiae* FASTA files
 <a id="i-install-facount"></a>
 ### i. Install [`faCount`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-16"></a>
+<a id="code-18"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `faCount`</i></summary>
@@ -4302,7 +5312,7 @@ Total estimated number of unique 50-mers: 11624332
 
 <a id="ii-run-facount"></a>
 ### ii. Run `faCount`
-<a id="code-17"></a>
+<a id="code-19"></a>
 #### Code
 <details>
 <summary><i>Code: Run `faCount`</i></summary>

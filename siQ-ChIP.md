@@ -18,7 +18,7 @@
         1. [To perform siQ-ChIP](#to-perform-siq-chip)
         1. [Parameter files](#parameter-files)
         1. [The EXPlayout file](#the-explayout-file)
-1. [Dependencies](#dependencies)
+1. [siQ-ChIP dependencies](#siq-chip-dependencies)
     1. [Text](#text-2)
 1. [Create an environment for running siQ-ChIP](#create-an-environment-for-running-siq-chip)
     1. [Code](#code-1)
@@ -92,9 +92,26 @@
         1. [Answering the question and getting feedback from GPT4](#answering-the-question-and-getting-feedback-from-gpt4)
 1. [Reading through Dickson et al., *J Biol Chem* 2020](#reading-through-dickson-et-al-j-biol-chem-2020)
 1. [Running list of questions for Brad](#running-list-of-questions-for-brad)
-1. [Descriptions of siQ-scaled and normalized coverage for siQ-ChIP_update_2024-0403](#descriptions-of-siq-scaled-and-normalized-coverage-for-siq-chip_update_2024-0403)
+1. [Materials related to the meeting with Toshi and Rina on 2024-0408, including descriptions of siQ-scaled and normalized coverage for siQ-ChIP_update_2024-0403](#materials-related-to-the-meeting-with-toshi-and-rina-on-2024-0408-including-descriptions-of-siq-scaled-and-normalized-coverage-for-siq-chip_update_2024-0403)
     1. [My attempt to describe things](#my-attempt-to-describe-things)
     1. [GPT4's attempt to describe things \(with edits from me\)](#gpt4s-attempt-to-describe-things-with-edits-from-me)
+    1. [Attempting to describe why IP efficiency explains in part siQ-ChIP scaling](#attempting-to-describe-why-ip-efficiency-explains-in-part-siq-chip-scaling)
+        1. [Double checking my math](#double-checking-my-math)
+        1. [Calculation of read depths and mean fragment lengths](#calculation-of-read-depths-and-mean-fragment-lengths)
+            1. [Table](#table)
+            1. [Code](#code-11)
+            1. [Printed](#printed-7)
+    1. [Notes from Zoom meeting with Toshi and Rina, 2024-0408](#notes-from-zoom-meeting-with-toshi-and-rina-2024-0408)
+    1. [Email Q&A with Toshi and Rina as follow-up to Zoom meeting, 2024-0409-0412](#email-qa-with-toshi-and-rina-as-follow-up-to-zoom-meeting-2024-0409-0412)
+        1. [Me](#me)
+        1. [Toshi](#toshi)
+        1. [Rina](#rina)
+        1. [Kris](#kris)
+        1. [Rina](#rina-1)
+        1. [Kris](#kris-1)
+        1. [Rina](#rina-2)
+        1. [Kris](#kris-2)
+        1. [Rina](#rina-3)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -305,12 +322,13 @@ The getFracts section outputs datafiles named MyExperiment.
 <br />
 <br />
 
-<a id="dependencies"></a>
-## [Dependencies](https://github.com/kalavattam/siQ-ChIP#dependencies-and-assumptions)
+<a id="siq-chip-dependencies"></a>
+## siQ-ChIP [dependencies](https://github.com/kalavattam/siQ-ChIP#dependencies-and-assumptions)
 <a id="text-2"></a>
 ### Text
 <details>
-<summary><i>Text: Dependencies</i></summary>
+<summary><i>Text: siQ-ChIP dependencies</i></summary>
+<br />
 
 - [bc](https://anaconda.org/conda-forge/bc)
 - [gfortran](https://anaconda.org/conda-forge/gfortran)
@@ -459,7 +477,7 @@ packages=(
 
 #  Do the main work ===========================================================
 #  Set flag(s)
-check_variables=false  # Check variable assignments
+check_variables=true   # Check variable assignments
 create_mamba_env=true  # Install mamba environment if not detected
 
 #  Check variable assignments if flag is set
@@ -494,11 +512,6 @@ else
         echo "Environment creation flag is not set. Skipping setup."
     fi
 fi
-
-# activate_env "${env_name}"
-# CONDA_SUBDIR="osx-64" mamba install bioconda::ucsc-bedgraphtobigwig
-# CONDA_SUBDIR="osx-64" mamba install bioconda::ucsc-bedclip
-# CONDA_SUBDIR="osx-64" mamba install bioconda::deeptools  # Can't be solved
 ```
 </details>
 <br />
@@ -837,40 +850,20 @@ Executing transaction: done
 <summary><i>Printed: Create an environment for running siQ-ChIP (Linux, previous)</i></summary>
 
 ```txt
-❯ unset envs && typeset -a envs
-❯ while IFS=$'\n' read -r line; do
->     env_name=$(echo "${line}" | awk '{ print $1 }')
->     envs+=( "${env_name}" )
-> done < <(conda info -e | grep -v "^#")
-
-
-❯ EOI="siQ-ChIP_env"
-
-
-❯ found=0
-
-
-❯ for env in "${envs[@]}"; do
->     if [[ "${env}" == *"${EOI}"* ]]; then
->         echo "Env found amidst conda envs: ${env}."
->         found=1
->         break
+❯ if check_env_installed "${env_name}"; then
+>     #  Handle the case when the environment is already installed
+>     echo "Activating environment ${env_name}"
+>     activate_env "${env_name}"
+> else
+>     #  Handle the case when the environment is not installed
+>     if ${create_mamba_env}; then
+>         create_env
+>     else
+>         echo "Environment creation flag is not set. Skipping setup."
 >     fi
-> done
- 
-
-❯ if [[ ${found} -eq 0 ]]; then
->     echo "Env not found amidst conda envs. Installing ${EOI}."
->     mamba create \
->         -n "${EOI}" \
->         -c conda-forge \
->         -c bioconda \
->             bc \
->             bedtools \
->             gfortran \
->             gnuplot
 > fi
-Env not found amidst conda envs. Installing siQ-ChIP_env.
+Environment "siQ-ChIP_env" is not installed.
+Creating environment siQ-ChIP_env for Linux on x86_64.
 
                   __    __    __    __
                  /  \  /  \  /  \  /  \
@@ -895,16 +888,16 @@ Env not found amidst conda envs. Installing siQ-ChIP_env.
 █████████████████████████████████████████████████████████████
 
 
-Looking for: ['bc', 'bedtools', 'gfortran', 'gnuplot']
+Looking for: ['bc', 'bedtools', 'gfortran', 'gnuplot', 'parallel', 'ucsc-bedgraphtobigwig', 'ucsc-bedclip']
 
-bioconda/noarch                                      4.9MB @   3.4MB/s  1.6s
-bioconda/linux-64                                    5.2MB @   2.2MB/s  2.5s
-pkgs/main/linux-64                                   6.4MB @   2.7MB/s  2.8s
+bioconda/linux-64                                    5.4MB @   3.4MB/s  1.9s
+bioconda/noarch                                      5.2MB @   2.4MB/s  2.3s
+pkgs/main/linux-64                                   6.8MB @   3.2MB/s  2.8s
 pkgs/r/linux-64                                               No change
-pkgs/main/noarch                                              No change
 pkgs/r/noarch                                                 No change
-conda-forge/noarch                                  14.9MB @   4.5MB/s  3.9s
-conda-forge/linux-64                                36.5MB @   5.6MB/s  7.2s
+pkgs/main/noarch                                              No change
+conda-forge/noarch                                  16.5MB @   4.8MB/s  3.9s
+conda-forge/linux-64                                39.5MB @   4.8MB/s  9.3s
 Transaction
 
   Prefix: /home/kalavatt/miniconda3/envs/siQ-ChIP_env
@@ -915,6 +908,9 @@ Transaction
    - bedtools
    - gfortran
    - gnuplot
+   - parallel
+   - ucsc-bedgraphtobigwig
+   - ucsc-bedclip
 
 
   Package                           Version  Build               Channel                    Size
@@ -924,18 +920,18 @@ Transaction
 
   + _libgcc_mutex                       0.1  conda_forge         conda-forge/linux-64     Cached
   + _openmp_mutex                       4.5  2_gnu               conda-forge/linux-64     Cached
-  + alsa-lib                         1.2.10  hd590300_0          conda-forge/linux-64     Cached
+  + alsa-lib                         1.2.11  hd590300_1          conda-forge/linux-64     Cached
   + atk-1.0                          2.38.0  hd4edc92_1          conda-forge/linux-64     Cached
   + attr                              2.5.1  h166bdaf_1          conda-forge/linux-64     Cached
-  + bc                               1.07.1  h7f98852_0          conda-forge/linux-64      103kB
-  + bedtools                         2.31.1  hf5e1c6e_0          bioconda/linux-64        Cached
+  + bc                               1.07.1  h7f98852_0          conda-forge/linux-64     Cached
+  + bedtools                         2.31.1  hf5e1c6e_1          bioconda/linux-64           2MB
   + binutils_impl_linux-64             2.40  hf600244_0          conda-forge/linux-64     Cached
   + bzip2                             1.0.8  hd590300_5          conda-forge/linux-64     Cached
-  + ca-certificates              2023.11.17  hbcca054_0          conda-forge/linux-64     Cached
+  + ca-certificates                2024.2.2  hbcca054_0          conda-forge/linux-64     Cached
   + cairo                            1.18.0  h3faef2a_0          conda-forge/linux-64     Cached
-  + chrpath                            0.16  h7f98852_1002       conda-forge/linux-64       30kB
+  + chrpath                            0.16  h7f98852_1002       conda-forge/linux-64     Cached
   + dbus                             1.13.6  h5008d03_3          conda-forge/linux-64     Cached
-  + expat                             2.5.0  hcb278e6_1          conda-forge/linux-64     Cached
+  + expat                             2.6.2  h59595ed_0          conda-forge/linux-64     Cached
   + font-ttf-dejavu-sans-mono          2.37  hab24e00_0          conda-forge/noarch       Cached
   + font-ttf-inconsolata              3.000  h77eed37_0          conda-forge/noarch       Cached
   + font-ttf-source-code-pro          2.038  h77eed37_0          conda-forge/noarch       Cached
@@ -945,100 +941,112 @@ Transaction
   + fonts-conda-forge                     1  0                   conda-forge/noarch       Cached
   + freetype                         2.12.1  h267a509_2          conda-forge/linux-64     Cached
   + fribidi                          1.0.10  h36c2ea0_0          conda-forge/linux-64     Cached
-  + gcc                              13.2.0  h574f8da_2          conda-forge/linux-64       27kB
-  + gcc_impl_linux-64                13.2.0  h338b0a0_3          conda-forge/linux-64     Cached
-  + gdk-pixbuf                      2.42.10  h829c605_4          conda-forge/linux-64      572kB
-  + gettext                          0.21.1  h27087fc_0          conda-forge/linux-64     Cached
-  + gfortran                         13.2.0  h0584b13_2          conda-forge/linux-64       27kB
-  + gfortran_impl_linux-64           13.2.0  h76e1118_3          conda-forge/linux-64     Cached
-  + giflib                            5.2.1  h0b41bf4_3          conda-forge/linux-64     Cached
-  + glib                             2.78.2  hfc55251_0          conda-forge/linux-64      488kB
-  + glib-tools                       2.78.2  hfc55251_0          conda-forge/linux-64      112kB
-  + gnuplot                           5.4.8  h142138f_0          conda-forge/linux-64        1MB
-  + graphite2                        1.3.13  h58526e2_1001       conda-forge/linux-64     Cached
-  + gst-plugins-base                 1.22.7  h8e1006c_0          conda-forge/linux-64     Cached
-  + gstreamer                        1.22.7  h98fc4e7_0          conda-forge/linux-64     Cached
-  + gtk2                            2.24.33  h90689f9_2          conda-forge/linux-64     Cached
+  + gcc                              13.2.0  hd6cf55c_3          conda-forge/linux-64       27kB
+  + gcc_impl_linux-64                13.2.0  h338b0a0_5          conda-forge/linux-64     Cached
+  + gdk-pixbuf                      2.42.10  h829c605_5          conda-forge/linux-64      573kB
+  + gettext                          0.22.5  h59595ed_2          conda-forge/linux-64      475kB
+  + gettext-tools                    0.22.5  h59595ed_2          conda-forge/linux-64        3MB
+  + gfortran                         13.2.0  h98b45c4_3          conda-forge/linux-64       27kB
+  + gfortran_impl_linux-64           13.2.0  h76e1118_5          conda-forge/linux-64     Cached
+  + giflib                            5.2.2  hd590300_0          conda-forge/linux-64       77kB
+  + glib                             2.80.0  hf2295e7_4          conda-forge/linux-64      504kB
+  + glib-tools                       2.80.0  hde27a5a_4          conda-forge/linux-64      113kB
+  + gnuplot                           5.4.8  h142138f_0          conda-forge/linux-64     Cached
+  + graphite2                        1.3.13  h59595ed_1003       conda-forge/linux-64     Cached
+  + gst-plugins-base                 1.24.1  hfa15dee_1          conda-forge/linux-64        3MB
+  + gstreamer                        1.24.1  h98fc4e7_1          conda-forge/linux-64        2MB
+  + gtk2                            2.24.33  h280cfa0_4          conda-forge/linux-64        6MB
   + harfbuzz                          8.3.0  h3d44ed6_0          conda-forge/linux-64     Cached
   + icu                                73.2  h59595ed_0          conda-forge/linux-64     Cached
-  + kernel-headers_linux-64          2.6.32  he073ed8_16         conda-forge/noarch       Cached
+  + kernel-headers_linux-64          2.6.32  he073ed8_17         conda-forge/noarch       Cached
   + keyutils                          1.6.1  h166bdaf_0          conda-forge/linux-64     Cached
   + krb5                             1.21.2  h659d440_0          conda-forge/linux-64     Cached
   + lame                              3.100  h166bdaf_1003       conda-forge/linux-64     Cached
   + ld_impl_linux-64                   2.40  h41732ed_0          conda-forge/linux-64     Cached
   + lerc                              4.0.0  h27087fc_0          conda-forge/linux-64     Cached
+  + libasprintf                      0.22.5  h661eb56_2          conda-forge/linux-64       43kB
+  + libasprintf-devel                0.22.5  h661eb56_2          conda-forge/linux-64       34kB
   + libcap                             2.69  h0f662aa_0          conda-forge/linux-64     Cached
-  + libclang                         15.0.7  default_hb11cfb5_4  conda-forge/linux-64     Cached
-  + libclang13                       15.0.7  default_ha2b6cf4_4  conda-forge/linux-64     Cached
+  + libclang-cpp15                   15.0.7  default_h127d8a8_5  conda-forge/linux-64       17MB
+  + libclang13                       18.1.3  default_h5d6823c_0  conda-forge/linux-64       11MB
   + libcups                           2.3.3  h4637d8d_4          conda-forge/linux-64     Cached
-  + libdeflate                         1.19  hd590300_0          conda-forge/linux-64     Cached
+  + libdeflate                         1.20  hd590300_0          conda-forge/linux-64     Cached
   + libedit                    3.1.20191231  he28a2e2_2          conda-forge/linux-64     Cached
   + libevent                         2.1.12  hf998b51_1          conda-forge/linux-64     Cached
-  + libexpat                          2.5.0  hcb278e6_1          conda-forge/linux-64     Cached
+  + libexpat                          2.6.2  h59595ed_0          conda-forge/linux-64     Cached
   + libffi                            3.4.2  h7f98852_5          conda-forge/linux-64     Cached
   + libflac                           1.4.3  h59595ed_0          conda-forge/linux-64     Cached
-  + libgcc-devel_linux-64            13.2.0  ha9c7c90_103        conda-forge/noarch       Cached
-  + libgcc-ng                        13.2.0  h807b86a_3          conda-forge/linux-64     Cached
+  + libgcc-devel_linux-64            13.2.0  ha9c7c90_105        conda-forge/noarch       Cached
+  + libgcc-ng                        13.2.0  h807b86a_5          conda-forge/linux-64     Cached
   + libgcrypt                        1.10.3  hd590300_0          conda-forge/linux-64     Cached
-  + libgd                             2.3.3  h119a65a_9          conda-forge/linux-64      224kB
-  + libgfortran5                     13.2.0  ha4646dd_3          conda-forge/linux-64     Cached
-  + libglib                          2.78.2  h783c2da_0          conda-forge/linux-64        3MB
-  + libgomp                          13.2.0  h807b86a_3          conda-forge/linux-64     Cached
-  + libgpg-error                       1.47  h71f35ed_0          conda-forge/linux-64     Cached
-  + libiconv                           1.17  h166bdaf_0          conda-forge/linux-64     Cached
+  + libgd                             2.3.3  h119a65a_9          conda-forge/linux-64     Cached
+  + libgettextpo                     0.22.5  h59595ed_2          conda-forge/linux-64      171kB
+  + libgettextpo-devel               0.22.5  h59595ed_2          conda-forge/linux-64       37kB
+  + libgfortran5                     13.2.0  ha4646dd_5          conda-forge/linux-64     Cached
+  + libglib                          2.80.0  hf2295e7_4          conda-forge/linux-64        3MB
+  + libgomp                          13.2.0  h807b86a_5          conda-forge/linux-64     Cached
+  + libgpg-error                       1.48  h71f35ed_0          conda-forge/linux-64      266kB
+  + libiconv                           1.17  hd590300_2          conda-forge/linux-64     Cached
   + libjpeg-turbo                     3.0.0  hd590300_1          conda-forge/linux-64     Cached
-  + libllvm15                        15.0.7  h5cf9203_3          conda-forge/linux-64     Cached
+  + libllvm15                        15.0.7  hb3ce162_4          conda-forge/linux-64       33MB
+  + libllvm18                        18.1.3  h2448989_0          conda-forge/linux-64       38MB
   + libnsl                            2.0.1  hd590300_0          conda-forge/linux-64     Cached
   + libogg                            1.3.4  h7f98852_1          conda-forge/linux-64     Cached
   + libopus                           1.3.1  h7f98852_1          conda-forge/linux-64     Cached
-  + libpng                           1.6.39  h753d276_0          conda-forge/linux-64     Cached
-  + libpq                              16.1  hfc447b1_0          conda-forge/linux-64        3MB
-  + libsanitizer                     13.2.0  h7e041cc_3          conda-forge/linux-64     Cached
+  + libpng                           1.6.43  h2797004_0          conda-forge/linux-64     Cached
+  + libpq                              16.2  h33b98f1_1          conda-forge/linux-64        3MB
+  + libsanitizer                     13.2.0  h7e041cc_5          conda-forge/linux-64     Cached
   + libsndfile                        1.2.2  hc60ed4a_1          conda-forge/linux-64     Cached
-  + libsqlite                        3.44.2  h2797004_0          conda-forge/linux-64     Cached
-  + libstdcxx-ng                     13.2.0  h7e041cc_3          conda-forge/linux-64     Cached
-  + libsystemd0                         255  h3516f8a_0          conda-forge/linux-64      404kB
-  + libtiff                           4.6.0  ha9c0a0a_2          conda-forge/linux-64     Cached
+  + libsqlite                        3.45.2  h2797004_0          conda-forge/linux-64     Cached
+  + libstdcxx-ng                     13.2.0  h7e041cc_5          conda-forge/linux-64     Cached
+  + libsystemd0                         255  h3516f8a_1          conda-forge/linux-64      403kB
+  + libtiff                           4.6.0  h1dd3fc0_3          conda-forge/linux-64     Cached
   + libuuid                          2.38.1  h0b41bf4_0          conda-forge/linux-64     Cached
   + libvorbis                         1.3.7  h9c3ff4c_0          conda-forge/linux-64     Cached
-  + libwebp                           1.3.2  h658648e_1          conda-forge/linux-64       85kB
-  + libwebp-base                      1.3.2  hd590300_0          conda-forge/linux-64     Cached
+  + libwebp                           1.3.2  h658648e_1          conda-forge/linux-64     Cached
+  + libwebp-base                      1.3.2  hd590300_1          conda-forge/linux-64      435kB
   + libxcb                             1.15  h0b41bf4_0          conda-forge/linux-64     Cached
-  + libxkbcommon                      1.6.0  h5d7e998_0          conda-forge/linux-64     Cached
-  + libxml2                          2.11.6  h232c23b_0          conda-forge/linux-64     Cached
+  + libxcrypt                        4.4.36  hd590300_1          conda-forge/linux-64     Cached
+  + libxkbcommon                      1.7.0  h662e7e4_0          conda-forge/linux-64      594kB
+  + libxml2                          2.12.6  h232c23b_1          conda-forge/linux-64      706kB
   + libzlib                          1.2.13  hd590300_5          conda-forge/linux-64     Cached
   + lz4-c                             1.9.4  hcb278e6_0          conda-forge/linux-64     Cached
-  + mpg123                           1.32.3  h59595ed_0          conda-forge/linux-64     Cached
-  + mysql-common                     8.0.33  hf1915f5_6          conda-forge/linux-64     Cached
-  + mysql-libs                       8.0.33  hca2cd23_6          conda-forge/linux-64     Cached
-  + ncurses                             6.4  h59595ed_2          conda-forge/linux-64     Cached
+  + mpg123                           1.32.6  h59595ed_0          conda-forge/linux-64      492kB
+  + mysql-common                      8.3.0  hf1915f5_4          conda-forge/linux-64      785kB
+  + mysql-connector-c                6.1.11  h659d440_1008       conda-forge/linux-64     Cached
+  + mysql-libs                        8.3.0  hca2cd23_4          conda-forge/linux-64        2MB
+  + ncurses                    6.4.20240210  h59595ed_0          conda-forge/linux-64     Cached
   + nspr                               4.35  h27087fc_0          conda-forge/linux-64     Cached
-  + nss                                3.95  h1d7d5a4_0          conda-forge/linux-64     Cached
-  + openssl                           3.1.4  hd590300_0          conda-forge/linux-64     Cached
-  + pango                           1.50.14  ha41ecd1_2          conda-forge/linux-64     Cached
-  + pcre2                             10.42  hcad00b1_0          conda-forge/linux-64        1MB
-  + pip                              23.3.1  pyhd8ed1ab_0        conda-forge/noarch       Cached
-  + pixman                           0.42.2  h59595ed_0          conda-forge/linux-64     Cached
+  + nss                                3.98  h1d7d5a4_0          conda-forge/linux-64        2MB
+  + openssl                           3.2.1  hd590300_1          conda-forge/linux-64     Cached
+  + pango                            1.52.2  ha41ecd1_0          conda-forge/linux-64      447kB
+  + parallel                       20240322  ha770c72_0          conda-forge/linux-64        2MB
+  + pcre2                             10.43  hcad00b1_0          conda-forge/linux-64      951kB
+  + perl                             5.32.1  7_hd590300_perl5    conda-forge/linux-64     Cached
+  + pip                                24.0  pyhd8ed1ab_0        conda-forge/noarch       Cached
+  + pixman                           0.43.2  h59595ed_0          conda-forge/linux-64     Cached
   + pthread-stubs                       0.4  h36c2ea0_1001       conda-forge/linux-64     Cached
-  + pulseaudio-client                  16.1  hb77b528_5          conda-forge/linux-64     Cached
-  + python                           3.12.0  hab00c5b_0_cpython  conda-forge/linux-64     Cached
-  + qt-main                          5.15.8  h82b777d_17         conda-forge/linux-64       61MB
+  + pulseaudio-client                  17.0  hb77b528_0          conda-forge/linux-64      758kB
+  + python                           3.12.2  hab00c5b_0_cpython  conda-forge/linux-64     Cached
+  + qt-main                          5.15.8  hc9dc06e_21         conda-forge/linux-64       61MB
   + readline                            8.2  h8228510_1          conda-forge/linux-64     Cached
-  + setuptools                       68.2.2  pyhd8ed1ab_0        conda-forge/noarch       Cached
-  + sysroot_linux-64                   2.12  he073ed8_16         conda-forge/noarch       Cached
+  + setuptools                       69.2.0  pyhd8ed1ab_0        conda-forge/noarch       Cached
+  + sysroot_linux-64                   2.12  he073ed8_17         conda-forge/noarch       Cached
   + tk                               8.6.13  noxft_h4845f30_101  conda-forge/linux-64     Cached
-  + tzdata                            2023c  h71feb2d_0          conda-forge/noarch       Cached
-  + wheel                            0.42.0  pyhd8ed1ab_0        conda-forge/noarch       Cached
+  + tzdata                            2024a  h0c530f3_0          conda-forge/noarch       Cached
+  + ucsc-bedclip                        377  he0e49ee_4          bioconda/linux-64         137kB
+  + ucsc-bedgraphtobigwig               455  h2a80c09_1          bioconda/linux-64           3MB
+  + wheel                            0.43.0  pyhd8ed1ab_1        conda-forge/noarch       Cached
   + xcb-util                          0.4.0  hd590300_1          conda-forge/linux-64     Cached
   + xcb-util-image                    0.4.0  h8ee46fc_1          conda-forge/linux-64     Cached
   + xcb-util-keysyms                  0.4.0  h8ee46fc_1          conda-forge/linux-64     Cached
   + xcb-util-renderutil               0.3.9  hd590300_1          conda-forge/linux-64     Cached
   + xcb-util-wm                       0.4.1  h8ee46fc_1          conda-forge/linux-64     Cached
-  + xkeyboard-config                   2.40  hd590300_0          conda-forge/linux-64     Cached
+  + xkeyboard-config                   2.41  hd590300_0          conda-forge/linux-64      898kB
   + xorg-kbproto                      1.0.7  h7f98852_1002       conda-forge/linux-64     Cached
   + xorg-libice                       1.1.1  hd590300_0          conda-forge/linux-64     Cached
   + xorg-libsm                        1.2.4  h7391055_0          conda-forge/linux-64     Cached
-  + xorg-libx11                       1.8.7  h8ee46fc_0          conda-forge/linux-64     Cached
+  + xorg-libx11                       1.8.9  h8ee46fc_0          conda-forge/linux-64      828kB
   + xorg-libxau                      1.0.11  hd590300_0          conda-forge/linux-64     Cached
   + xorg-libxdmcp                     1.1.3  h7f98852_0          conda-forge/linux-64     Cached
   + xorg-libxext                      1.3.4  h0b41bf4_2          conda-forge/linux-64     Cached
@@ -1054,35 +1062,60 @@ Transaction
 
   Summary:
 
-  Install: 129 packages
+  Install: 141 packages
 
-  Total download: 71MB
+  Total download: 200MB
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────
 
 
-Confirm changes: [Y/n] Y
-pcre2                                                1.0MB @  11.6MB/s  0.1s
-libglib                                              2.7MB @  27.4MB/s  0.1s
-chrpath                                             29.6kB @ 245.7kB/s  0.1s
-gcc                                                 27.0kB @ 206.7kB/s  0.1s
-libpq                                                2.5MB @  15.3MB/s  0.2s
-libwebp                                             84.9kB @ 482.4kB/s  0.1s
-libgd                                              224.4kB @   1.1MB/s  0.1s
-gfortran                                            26.5kB @ 127.6kB/s  0.1s
-glib-tools                                         112.0kB @ 385.9kB/s  0.1s
-bc                                                 102.7kB @ 342.5kB/s  0.3s
-libsystemd0                                        404.3kB @   1.1MB/s  0.1s
-gdk-pixbuf                                         572.0kB @   1.5MB/s  0.1s
-glib                                               488.2kB @   1.2MB/s  0.2s
-gnuplot                                              1.2MB @   2.1MB/s  0.3s
-qt-main                                             61.1MB @  60.4MB/s  1.1s
+libasprintf                                         43.2kB @ 451.9kB/s  0.1s
+gettext-tools                                        2.7MB @  27.8MB/s  0.1s
+mpg123                                             491.8kB @   3.9MB/s  0.1s
+libgettextpo                                       170.6kB @   1.2MB/s  0.1s
+libwebp-base                                       434.7kB @   2.6MB/s  0.2s
+gettext                                            475.1kB @   2.8MB/s  0.1s
+mysql-libs                                           1.5MB @   8.8MB/s  0.1s
+pcre2                                              950.8kB @   4.7MB/s  0.1s
+libglib                                              2.9MB @  12.2MB/s  0.1s
+pulseaudio-client                                  757.6kB @   2.9MB/s  0.1s
+libpq                                                2.6MB @   8.5MB/s  0.2s
+glib                                               503.6kB @   1.5MB/s  0.1s
+gfortran                                            27.0kB @  69.4kB/s  0.1s
+giflib                                              77.2kB @ 196.6kB/s  0.1s
+libgettextpo-devel                                  36.8kB @  91.3kB/s  0.1s
+xorg-libx11                                        828.1kB @   1.8MB/s  0.1s
+libclang13                                          11.1MB @  21.9MB/s  0.3s
+glib-tools                                         113.2kB @ 210.7kB/s  0.1s
+libclang-cpp15                                      17.2MB @  30.9MB/s  0.4s
+pango                                              446.9kB @ 758.6kB/s  0.1s
+gst-plugins-base                                     2.8MB @   4.5MB/s  0.1s
+libxml2                                            706.0kB @   1.0MB/s  0.1s
+ucsc-bedclip                                       137.2kB @ 189.6kB/s  0.2s
+libgpg-error                                       266.4kB @ 340.8kB/s  0.1s
+xkeyboard-config                                   898.0kB @   1.1MB/s  0.1s
+bedtools                                             1.6MB @   2.0MB/s  0.1s
+gdk-pixbuf                                         573.3kB @ 610.2kB/s  0.1s
+gstreamer                                            2.0MB @   2.1MB/s  0.2s
+libasprintf-devel                                   34.2kB @  34.2kB/s  0.1s
+ucsc-bedgraphtobigwig                                2.6MB @   2.4MB/s  0.2s
+gcc                                                 27.4kB @  23.9kB/s  0.1s
+nss                                                  2.0MB @   1.7MB/s  0.2s
+libllvm15                                           33.3MB @  27.7MB/s  0.9s
+libxkbcommon                                       593.5kB @ 463.7kB/s  0.2s
+libsystemd0                                        402.6kB @ 313.7kB/s  0.1s
+libllvm18                                           38.4MB @  28.4MB/s  1.0s
+mysql-common                                       784.8kB @ 572.9kB/s  0.1s
+gtk2                                                 6.5MB @   4.7MB/s  0.3s
+parallel                                             1.9MB @   1.4MB/s  0.1s
+qt-main                                             61.3MB @  38.5MB/s  0.9s
 
 Downloading and Extracting Packages
 
 Preparing transaction: done
 Verifying transaction: done
-Executing transaction: done
+Executing transaction: /
+done
 
 To activate this environment, use
 
@@ -1091,83 +1124,6 @@ To activate this environment, use
 To deactivate an active environment, use
 
      $ mamba deactivate
-
-
-❯ CONDA_SUBDIR="osx-64" mamba install bioconda::ucsc-bedclip
-
-                  __    __    __    __
-                 /  \  /  \  /  \  /  \
-                /    \/    \/    \/    \
-███████████████/  /██/  /██/  /██/  /████████████████████████
-              /  / \   / \   / \   / \  \____
-             /  /   \_/   \_/   \_/   \    o \__,
-            / _/                       \_____/  `
-            |/
-        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
-        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
-        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
-        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
-        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
-        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
-
-        mamba (0.25.0) supported by @QuantStack
-
-        GitHub:  https://github.com/mamba-org/mamba
-        Twitter: https://twitter.com/QuantStack
-
-█████████████████████████████████████████████████████████████
-
-
-Looking for: ['bioconda::ucsc-bedclip']
-
-bioconda/osx-64                                               No change
-r/osx-64                                                      No change
-conda-forge/osx-64                                            No change
-bioconda/osx-64                                               No change
-pkgs/main/osx-64                                              No change
-pkgs/main/noarch                                              No change
-pkgs/r/noarch                                                 No change
-pkgs/r/osx-64                                                 No change
-r/noarch                                                      No change
-bioconda/noarch                                      5.2MB @   3.1MB/s  1.8s
-bioconda/noarch                                      5.2MB @   2.3MB/s  1.8s
-conda-forge/noarch                                  16.1MB @   6.3MB/s  2.9s
-
-Pinned packages:
-  - python 3.12.*
-
-
-Transaction
-
-  Prefix: /Users/kalavattam/miniconda3/envs/siQ-ChIP_env
-
-  Updating specs:
-
-   - bioconda::ucsc-bedclip
-   - ca-certificates
-   - openssl
-
-
-  Package         Version  Build       Channel              Size
-──────────────────────────────────────────────────────────────────
-  Install:
-──────────────────────────────────────────────────────────────────
-
-  + ucsc-bedclip      366  h1341992_0  bioconda/osx-64     398kB
-
-  Summary:
-
-  Install: 1 packages
-
-  Total download: 398kB
-
-──────────────────────────────────────────────────────────────────
-
-Confirm changes: [Y/n] Y
-ucsc-bedclip                                       398.2kB @ 856.1kB/s  0.5s
-Preparing transaction: done
-Verifying transaction: done
-Executing transaction: done
 ```
 </details>
 <br />
@@ -6316,12 +6272,12 @@ Kris
 <br />
 <br />
 
-<a id="descriptions-of-siq-scaled-and-normalized-coverage-for-siq-chip_update_2024-0403"></a>
-## Descriptions of siQ-scaled and normalized coverage for [siQ-ChIP_update_2024-0403](https://docs.google.com/presentation/d/1vwl3ctnTnVeZiPpOlwDzKT4yrPO6FpOa9XxUJf0p1UQ/edit#slide=id.p)
+<a id="materials-related-to-the-meeting-with-toshi-and-rina-on-2024-0408-including-descriptions-of-siq-scaled-and-normalized-coverage-for-siq-chip_update_2024-0403"></a>
+## Materials related to the meeting with Toshi and Rina on 2024-0408, including descriptions of siQ-scaled and normalized coverage for [siQ-ChIP_update_2024-0403](https://docs.google.com/presentation/d/1vwl3ctnTnVeZiPpOlwDzKT4yrPO6FpOa9XxUJf0p1UQ/edit#slide=id.p)
 <a id="my-attempt-to-describe-things"></a>
 ### My attempt to describe things
 <details>
-<summary><i>Text: Descriptions of siQ-scaled and normalized coverage for siQ-ChIP_update_2024-0403: My attempt to describe things</i></summary>
+<summary><i>Text: My attempt to describe things</i></summary>
 <br />
 
 The final siQ-scaled ($\alpha$-scaled) coverage is the ratio of estimated bound chromatin to estimated total chromatin&mdash;i.e., the IP reaction efficiency.
@@ -6379,10 +6335,11 @@ $$α\frac{f_{IP}(x)}{f_{in}(x)} = \frac{c_{IP}}{c_{in}}\frac{f_{IP}(x)}{f_{in}(x
 <a id="gpt4s-attempt-to-describe-things-with-edits-from-me"></a>
 ### GPT4's attempt to describe things (with edits from me)
 <details>
-<summary><i>Text: Descriptions of siQ-scaled and normalized coverage for siQ-ChIP_update_2024-0403: GPT4's attempt to describe things (with edits from me)</i></summary>
+<summary><i>Text: GPT4's attempt to describe things (with edits from me)</i></summary>
 <br />
 
-The final siQ-scaled (α-scaled) coverage represents the IP reaction efficiency—essentially, the ratio of estimated bound chromatin to estimated total chromatin.
+**Details:**
+siQ-scaled ($\alpha$-scaled) coverage represents the IP reaction efficiency&mdash;essentially, the ratio of estimated bound chromatin to estimated total chromatin.
 
 This coverage is calculated as $\alpha\frac{f_{IP}(x)}{f_{in}(x)}$, where $f(x)$ denotes a browser track of sequenced fragments (either IP or input) intersecting genomic interval $x$. $f(x)$ serves as a histogram, and when normalized across the genome, sums to 1, defining **normalized coverage**. This normalization ensures $f(x)$ represents the probability density of where fragments originated within the genome.
 
@@ -6404,5 +6361,435 @@ $c_{in} = \frac{m_{in}}{660L_{in}v_{in}}\frac{1}{\hat{R}_{in}}$.
 In summary, the siQ-scaled coverage integrates bench procedure measurements with computational normalization to accurately reflect IP efficiency, offering a nuanced view of chromatin binding across the genome.
 </details>
 <br />
+
+<a id="attempting-to-describe-why-ip-efficiency-explains-in-part-siq-chip-scaling"></a>
+### Attempting to describe why IP efficiency explains in part siQ-ChIP scaling
+<details>
+<summary><i>Text: Attempting to describe why IP efficiency explains in part siQ-ChIP scaling</i></summary>
 <br />
 
+We say that ChIP-seq coverage is siQ-scaled when it is modeled in the following way:
+$$\alpha\frac{f_{IP}(x)}{f_{in}(x)}$$
+
+Let's break this expression down:
+- $f_{IP}(x)$ represents the normalized IP genome browser track.
+- $f_{in}(x)$ represents the normalized input genome browser track.
+- $\alpha$ is a scaling factor that adjusts for differences in chromatin concentration and sequencing depth between the IP and input samples.
+
+So, the siQ-scaled coverage for a given sample is equal to the scaling factor $\alpha$ multiplied by the ratio of the normalized IP track $f_{IP}(x)$ to the normalized input track $f_{in}(x)$.
+
+IP efficiency is calculated by taking the ratio between antibody-bound chromatin and input chromatin. For example, in Rina's isotherm experiments for Hho1, we see that the IP efficiency is approximately 8.3% for sample `Q_6336` and approximately 6% for sample `Q_6337`. This is going to affect the calculation of siQ-scaled ChIP-seq coverage $\left(\alpha\frac{f_{IP}(x)}{f_{in}(x)}\right)$ by changing how $\alpha$ is calculated.
+
+In brief, $\alpha$ is calculated as the ratio of estimated bound chromatin $\left(c_{IP}\right)$ to estimated total chromatin $\left(c_{in}\right)$.  So,
+$$\alpha = \frac{c_{IP}}{c_{in}}$$
+
+Bound chromatin $\left(c_{IP}\right)$ is equal to IP chromatin concentration divided by IP read depth; total chromatin $\left(c_{in}\right)$ is equal to input chromatin divided by input read depth. Here are what the calculations for $c_{IP}$ and $c_{in}$ look like as equations:
+$$c_{IP} = \frac{m_{IP}}{660L_{IP}v_{IP}}\frac{1}{\hat{R}_{IP}}$$
+$$c_{in} = \frac{m_{in}}{660L_{in}v_{in}}\frac{1}{\hat{R}_{in}}$$
+
+Let's take $c_{IP}$ for example: The first term $\left(\frac{m_{IP}}{660L_{IP}v_{IP}}\right)$ sees us dividing the chromatin mass $\left(m_{IP}\right)$ by what is essentially a conversion factor that converts chromatin mass to concentration $\left(660L_{IP}v_{IP}\right)$; the conversion factor is the product of the average molecular weight of DNA ($660$ $g/mol/bp$), the mean fragment length $\left(L_{IP}\right)$, and the volume of the reaction $\left(v_{IP}\right)$. The second term (e.g., $\frac{1}{\hat{R}_{IP}}$) is a division by read depth ($\hat{R}_{IP}$). The result of the first term gives us a value with units in concentration $\frac{mol}{L}$; the second term sees us divide this value in $\frac{mol}{L}$ by read depth. Taken together, the final siQ-scaled coverage is in read depth-normalized units of concentration $\frac{mol}{L}$.
+
+Here's another way to write the equation for $\alpha$:
+$$\alpha = \frac{c_{IP}}{c_{in}} = \frac{\frac{m_{IP}}{660L_{IP}v_{IP}}\frac{1}{\hat{R}_{IP}}}{\frac{m_{in}}{660L_{in}v_{in}}\frac{1}{\hat{R}_{in}}}$$
+
+And here's a simpler way to write $\alpha = \frac{\frac{m_{IP}}{660L_{IP}v_{IP}}\frac{1}{\hat{R}_{IP}}}{\frac{m_{in}}{660L_{in}v_{in}}\frac{1}{\hat{R}_{in}}}$:
+$$\alpha = \frac{m_{IP}}{m_{in}} \frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}}$$
+
+The first term, $\frac{m_{IP}}{m_{in}}$, is a measure of IP efficiency. In Rina's ChIP-seq benchwork, the IP and input masses for `Q_6336` was $116.9$ $ng$ and $72.7$ $ng$, respectively; the IP and input masses for `Q_6337` was $70.6$ $ng$ and $69.6$ $ng$, respectively. Thus,
+
+...for `Q_6336`,
+$$\frac{m_{IP}}{m_{in}} = \frac{116.9}{72.7} \approx 1.61$$
+
+...and for `Q_6337`,
+$$\frac{m_{IP}}{m_{in}} = \frac{70.6}{69.6} \approx 1.01$$
+
+So, the differences in $\frac{m_{IP}}{m_{in}}$ between `Q_6336` and `Q_6337` is in part driving the differences in their y-axis values. This is consistent with, in the siQ-scaled coverage tracks, the values for `Q_6336` being larger than those for `Q_6337`.
+
+The numbers for the other terms $\left(\frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}}\right)$ also contribute to the differences between `Q_6336` and `Q_6337`. Thus,
+
+...for `Q_6336`,
+$$\frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}} = \frac{20}{280} \times \frac{10026348}{14790849} \times \frac{219.701}{289.520} \approx 0.0367$$
+
+...and for `Q_6337`,
+$$\frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}} = \frac{20}{280} \times \frac{7939822}{13999287} \times \frac{212.126}{281.873} \approx 0.0305$$
+
+Taking it all together,
+
+...for `Q_6336`,
+$$\frac{m_{IP}}{m_{in}} \frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}} = \frac{116.9}{72.7} \times \frac{20}{280} \times \frac{10026348}{14790849} \times \frac{219.701}{289.520} \approx 0.0591$$
+
+...and for `Q_6337`,
+$$\frac{m_{IP}}{m_{in}} \frac{v_{in}}{v_{IP}} \frac{\hat{R}_{in}}{\hat{R}_{IP}} \frac{L_{in}}{L_{IP}} = \frac{70.6}{69.6} \times \frac{20}{280} \times \frac{7939822}{13999287} \times \frac{212.126}{281.873} \approx 0.0309$$
+
+So, $\alpha$ is 0.0591 for `Q_6336` and 0.0309 for `Q_6337`. This explains the discrepancy in y-axis values between the two replicates, showing why and how `Q_6336` has values nearly double those of `Q_6337`.
+
+<a id="double-checking-my-math"></a>
+#### Double checking my math
+<details>
+<summary><i>Text: Double checking my math</i></summary>
+<br />
+
+Are these $\alpha$ values consistent with the values calculated by siQ-ChIP? Yes:
+- `Q_6336_Hho1_seqL.alpha 5.9057710834061881E-002 10027680 14792297`
+- `Q_6337_Hho1_seqL.alpha 3.0908509422046086E-002 7940842 14000715`
+</details>
+<br />
+
+
+<a id="calculation-of-read-depths-and-mean-fragment-lengths"></a>
+#### Calculation of read depths and mean fragment lengths
+<a id="table"></a>
+##### Table
+<details>
+<summary><i>Table: Calculation of read depths and mean fragment lengths</i></summary>
+<br />
+
+| sample                | depth ($\hat{R}$) | mean fragment ($L$) | mass ($m$) | volume ($v$) |
+| --------------------- | ----------------- | ------------------- | ---------- | ------------ |
+| in_Q_Hho1_6336.bed.gz | 10026348          | 219.701             | 72.7       | 20           |
+| IP_Q_Hho1_6336.bed.gz | 14790849          | 289.520             | 116.9      | 280          |
+| in_Q_Hho1_6337.bed.gz | 7939822           | 212.126             | 69.6       | 20           |
+| IP_Q_Hho1_6337.bed.gz | 13999287          | 281.873             | 70.6       | 280          |
+</details>
+<br />
+
+<a id="code-11"></a>
+##### Code
+<details>
+<summary><i>Code: Calculation of read depths and mean fragment lengths</i></summary>
+
+```bash
+#!/bin/bash
+
+conda activate siQ-ChIP_env
+
+cd ~/repos/2023_tutorial_ChIP-seq/src/siQ-ChIP \
+    || echo "cd'ing failed; check on this"
+
+parallel -k 'tally="$(zcat {} | wc -l)" && echo "{} ${tally}"' ::: *.bed.gz
+
+calculate_mean_fragment_length() {
+    local file="${1}"
+    L=$(
+        zcat "${file}" \
+            | awk '{ sum += $4 } END { if (NR > 0) print sum / NR }'
+    )
+    echo "${file} ${L}"
+}
+
+export -f calculate_mean_fragment_length
+
+parallel -k calculate_mean_fragment_length {} ::: *.bed.gz
+```
+</details>
+<br />
+
+<a id="printed-7"></a>
+##### Printed
+<details>
+<summary><i>Printed: Calculation of read depths and mean fragment lengths.</i></summary>
+
+```txt
+❯ conda activate siQ-ChIP_env
+
+
+❯ cd ~/repos/2023_tutorial_ChIP-seq/src/siQ-ChIP \
+>     || echo "cd'ing failed; check on this"
+
+
+❯ parallel -k \
+>     'tally="$(zcat {} | wc -l)" && echo "{} ${tally}"' \
+>     ::: *.bed.gz
+IP_G1_Hho1_6336.bed.gz 14282814
+IP_G1_Hho1_6337.bed.gz 14601813
+IP_G2M_Hho1_6336.bed.gz 13626369
+IP_G2M_Hho1_6337.bed.gz 12935334
+IP_Q_Hho1_6336.bed.gz 14790849
+IP_Q_Hho1_6337.bed.gz 13999287
+in_G1_Hho1_6336.bed.gz 14499449
+in_G1_Hho1_6337.bed.gz 14120715
+in_G2M_Hho1_6336.bed.gz 12156507
+in_G2M_Hho1_6337.bed.gz 11342792
+in_Q_Hho1_6336.bed.gz 10026348
+in_Q_Hho1_6337.bed.gz 7939822
+IP_G1_Hmo1_7750.bed.gz 14757490
+IP_G1_Hmo1_7751.bed.gz 14504871
+IP_G2M_Hmo1_7750.bed.gz 13646153
+IP_G2M_Hmo1_7751.bed.gz 13237417
+IP_Q_Hmo1_7750.bed.gz 12426002
+IP_Q_Hmo1_7751.bed.gz 14827378
+in_G1_Hmo1_7750.bed.gz 8855146
+in_G1_Hmo1_7751.bed.gz 13407284
+in_G2M_Hmo1_7750.bed.gz 13338610
+in_G2M_Hmo1_7751.bed.gz 13966031
+in_Q_Hmo1_7750.bed.gz 13564109
+in_Q_Hmo1_7751.bed.gz 12254268
+
+
+❯ bash
+
+
+┌─[kalavattam][Kriss-MacBook-Pro][±][cerevisiae ?:12 ✗][~/.../src/siQ-ChIP]
+└─▪  calculate_mean_fragment_length() {
+└─▪     local file="${1}"
+└─▪     L=$(
+└─▪         zcat "${file}" \
+└─▪             | awk '{ sum += $4 } END { if (NR > 0) print sum / NR }'
+└─▪     )
+└─▪     echo "${file} ${L}"
+└─▪ }
+
+
+┌─[kalavattam][Kriss-MacBook-Pro][±][cerevisiae ?:12 ✗][~/.../src/siQ-ChIP]
+└─▪  export -f calculate_mean_fragment_length
+
+
+┌─[kalavattam][Kriss-MacBook-Pro][±][cerevisiae ?:12 ✗][~/.../src/siQ-ChIP]
+└─▪  parallel -k calculate_mean_fragment_length {} ::: *.bed.gz
+IP_G1_6336_Hho1.bed.gz 244.635
+IP_G1_6337_Hho1.bed.gz 250.752
+IP_G2M_6336_Hho1.bed.gz 251.9
+IP_G2M_6337_Hho1.bed.gz 251.059
+IP_Q_6336_Hho1.bed.gz 289.52
+IP_Q_6337_Hho1.bed.gz 281.873
+in_G1_6336_Hho1.bed.gz 204.767
+in_G1_6337_Hho1.bed.gz 208.275
+in_G2M_6336_Hho1.bed.gz 214.881
+in_G2M_6337_Hho1.bed.gz 217.355
+in_Q_6336_Hho1.bed.gz 219.701
+in_Q_6337_Hho1.bed.gz 212.126
+IP_G1_Hmo1_7750.bed.gz 235.309
+IP_G1_Hmo1_7751.bed.gz 222.993
+IP_G2M_Hmo1_7750.bed.gz 254.085
+IP_G2M_Hmo1_7751.bed.gz 227.241
+IP_Q_Hmo1_7750.bed.gz 275.705
+IP_Q_Hmo1_7751.bed.gz 239.301
+in_G1_Hmo1_7750.bed.gz 217.076
+in_G1_Hmo1_7751.bed.gz 206.224
+in_G2M_Hmo1_7750.bed.gz 229.42
+in_G2M_Hmo1_7751.bed.gz 209.825
+in_Q_Hmo1_7750.bed.gz 227.431
+in_Q_Hmo1_7751.bed.gz 213.054
+```
+</details>
+</details>
+<br />
+
+<a id="notes-from-zoom-meeting-with-toshi-and-rina-2024-0408"></a>
+### Notes from Zoom meeting with Toshi and Rina, 2024-0408
+<details>
+<summary><i>Text: Notes from Zoom meeting with Toshi and Rina, 2024-0408</i></summary>
+<br />
+
+See the following [link](https://docs.google.com/document/d/1Yn1nltzQxS5m99xCC7GRuu4mDSGMU3QCCCAUwmv-a9s/edit).
+</details>
+<br />
+
+<a id="email-qa-with-toshi-and-rina-as-follow-up-to-zoom-meeting-2024-0409-0412"></a>
+### Email Q&A with Toshi and Rina as follow-up to Zoom meeting, 2024-0409-0412
+<details>
+<summary><i>Text: Email Q&A with Toshi and Rina as follow-up to Zoom meeting, 2024-0409-0412</i></summary>
+
+<a id="me"></a>
+#### Me
+<details>
+<summary><i>Text: Me</i></summary>
+<br />
+
+Dear Toshi and Rina,
+
+As I was reviewing my notes from our meeting yesterday, I realized there were a few questions I forgot to ask—as well as some new ones that came to mind.
+
+1. Concerning the observed differences in Hho1 IP efficiencies between samples `Q_6336` and `Q_6337` that Rina calculated, can we attribute these differences to the variance in strains (`6336` vs `6337`), or are the differences more technical in nature?
+2. In relation to the spiked-in *S. pombe* expressing Abp1-FLAG, I want to ensure my understanding is correct. For example, if there's a lower presence of Hho1-FLAG protein in one sample compared to another, this means the excess anti-FLAG antibody will bind to the *S. pombe* Abp1-FLAG protein. Is my understanding accurate?
+3. Rina, could you explain to me how to interpret the data in your Excel spreadsheet used for ChIP-seq benchwork and calculating isotherms? Specifically, how were the IP efficiencies of ~8.3% for sample `Q_6336` and ~6% for sample `Q_6337` determined?
+4. Additionally, Rina, did you conduct isotherm experiments for the Hmo1 data, as you did with the Hho1 data?
+
+I appreciate your time and help in clarifying these points. If it's easier to quickly discuss these via Zoom rather than write out responses, let me know&mdash;I'm fine with whatever works best for you.
+
+Thanks,  
+Kris
+</details>
+<br />
+
+<a id="toshi"></a>
+#### Toshi
+<details>
+<summary><i>Text: Toshi</i></summary>
+<br />
+
+Kris,
+
+The below are my answers, and Rina should feel free to add and/or change them.
+
+> 1. Concerning the observed differences in Hho1 IP efficiencies between samples `Q_6336` and `Q_6337` that Rina calculated, can we attribute these differences to the variance in strains (`6336` vs `6337`), or are the differences more technical in nature?
+ 
+I suspect it's random experimental variation. If the difference is reproducible, however, it is possible that there are some differences between the strains (for example, one of them has two copies of FLAG epitope instead of three, due to mutations introduced during PCR to generate knock-in templates).
+
+> 2. In relation to the spiked-in *S. pombe* expressing Abp1-FLAG, I want to ensure my understanding is correct. For example, if there's a lower presence of Hho1-FLAG protein in one sample compared to another, this means the excess anti-FLAG antibody will bind to the *S. pombe* Abp1-FLAG protein. Is my understanding accurate?
+
+What you describe can happen if FLAG antibody is not abundant enough to IP every protein that can be bound. However, the isotherm showed that Rina has used enough antibody to saturate FLAG epitope, and *pombe* spike-in should not affect it (because they are added to [a] much lower concentration), so I don’t think it is a big concern here.
+
+> 3. Rina, could you explain to me how to interpret the data in your Excel spreadsheet used for ChIP-seq benchwork and calculating isotherms? Specifically, how were the IP efficiencies of ~8.3% for sample `Q_6336` and ~6% for sample `Q_6337` determined?
+> 4. Additionally, Rina, did you conduct isotherm experiments for the Hmo1 data, as you did with the Hho1 data?
+
+These two questions are for Rina.
+</details>
+<br />
+
+<a id="rina"></a>
+#### Rina
+<details>
+<summary><i>Text: Rina</i></summary>
+<br />
+
+Hi Kris,
+
+Thank you!
+
+I attached the code. [It] contains code that tightens the `x` value (the upper limit of fragment size) in Bowtie 2.
+
+Unfortunately, I didn’t do [the] Hmo1 isotherm experiment. However, both Hho1 and Hmo1 are [FLAG-tagged], and I did the IP with the same type of antibody. Considering that Hho1 is a very abundant protein, I do not think that the amount of antibody used during [the] ChIP-seq of Hmo1 is too small.
+
+**How IP efficiency is calculated**  
+First, I measured the DNA concentrations of input and IP. Their values are `F51` and `F54` respectively. Then, to calculate the amount of DNA [IP'ed], I multiplied the DNA concentration by 20 [µL] (elution volume) of solution. The value is `H54`.
+
+From the [input DNA concentration], I also calculated the total amount of chromatin used in the experiment (ideally, 500 ng). I also calculated the amount of chromatin before IP from the DNA concentration in the input (ideally, 500 ng). However, it is possible that there was an error in the initial concentration measurement, and we thought that the measurement error would be smaller between samples if we measured the concentrations at the same time. Therefore, I back-calculated all chromatin amounts used in the experiment from the amount of input. The value is `H51` (*"calculated total chromain volume (with input) from input"*). [*Note from me: This seems to be `I51`, not `H51`.*] The actual amount of chromatin used in the IP is this total amount minus the amount of input. The calculated value is `J51` (*"calculated (total chromain volume &ndash; input) from input"*).
+
+IP efficiency is calculated by dividing `J51` by `H54`.
+
+If you have any questions, please let me know.
+
+Best,  
+Rina
+</details>
+<br />
+
+<a id="kris"></a>
+#### Kris
+<details>
+<summary><i>Text: Kris</i></summary>
+<br />
+
+Hi Rina,
+
+Thank you for your careful explanation; I understand.
+
+I want to confirm that the values calculated for input and IP mass (ng) in the Excel spreadsheet for isotherms, etc. are different from those used in your actual ChIP-seq experiments&mdash;is that correct?
+
+Also, for some reason, I am unable to download the code you attached to your previous email. Is it possible that I can get the code from the shared `tsukiyamalab/Rina` directory?
+
+Thanks,  
+Kris 
+</details>
+<br />
+
+
+<a id="rina-1"></a>
+#### Rina
+<details>
+<summary><i>Text: Rina</i></summary>
+<br />
+
+Hi Kris,
+
+Thank you for the confirmation!
+
+Sorry for the late response. I couldn't reply because I've been STED observing the whole time.
+
+I uploaded the files as below.
+```txt
+~/tsukiyamalab/Rina/ChIP-seq/230915_hho1_hmo1_rhirano/231002_Hho1_Hmo1_Q_ChIP-seq_rina_data.sh
+```
+
+> I want to confirm that the values calculated for input and IP mass (ng) in the Excel spreadsheet for isotherms, etc. are different from those used in your actual ChIP-seq experiments—is that correct?
+
+I still don't understand whether siQ-ChIP differs from the way I did it with isotherm on this, so I will reply again once I get my head straight!
+
+I'll get back to you by tomorrow.
+
+Thank you,  
+Rina
+</details>
+<br />
+
+<a id="kris-1"></a>
+#### Kris
+<details>
+<summary><i>Text: Kris</i></summary>
+<br />
+
+Thank you, Rina!
+
+> I still don't understand whether siQ-ChIP differs from the way I did it with isotherm on this, so I will reply again once I get my head straight!
+
+I apologize if my previous question was unclear. To clarify, I'm trying to understand whether the DNA amounts used in the ChIP-seq and isotherm experiments are distinct from each other. For example, in the spreadsheet for calculating alpha, the sample `Q_6336` lists 6.06 ng of input DNA and 9.74 ng of IP DNA; however, these values are not found for `Q_6336` in the isotherm experiment's spreadsheet. If I understand correctly, that is because these are separate experiments, and different amounts of chromatin were isolated in each. Is this observation accurate?
+
+I appreciate your patience and help with this.
+
+Thanks again,  
+Kris
+</details>
+<br />
+
+<a id="rina-2"></a>
+#### Rina
+<details>
+<summary><i>Text: Rina</i></summary>
+<br />
+
+Hi Kris,
+
+Thank you for the [detailed] explanation.
+
+I am very sorry. I found a big mistake.
+
+Regarding the DNA mass I told [you], I had mistakenly given the concentration. But since the "elution volume" for both input and IP is the same (12 µL), [I] believe the alpha value will remain the same.
+
+I am attaching an [Excel spreadsheet] containing the correct concentration information (lanes M&ndash;U). Additionally, I calculated all parameters for the ChIP-seq samples as well as [the isotherms].
+
+The "IP/total chromatin (%)" of the experimental isotherm and ChIP-seq IPs are so-so different, but I think the error is due to the different timing of the experiments.
+
+If you have any questions [or concerns], please let me know.
+
+Best,  
+Rina
+</details>
+<br />
+
+<a id="kris-2"></a>
+#### Kris
+<details>
+<summary><i>Text: Kris</i></summary>
+<br />
+
+Thanks, Rina&mdash;no problem at all.
+
+Since $\alpha$ is calculated from the ratio of IP mass to input mass (among other terms), the units are canceled out. And because the elution volumes do not change between IP and input, mass ratio can be replaced by concentration ratio without any consequences. So, as you suggested, the values for $\alpha$ did not change at all.
+
+> The "IP/total chromatin (%)" of the experimental isotherm and ChIP-seq IPs are so-so different, but I think the error is due to the different timing of the experiments.
+
+Thanks&mdash;that makes sense.
+
+Thanks again,  
+Kris
+</details>
+<br />
+
+<a id="rina-3"></a>
+#### Rina
+<details>
+<summary><i>Text: Rina</i></summary>
+<br />
+
+Hi Kris,
+
+I am relieved that the analysis did not have to be redone.
+
+Thank you for the confirmation!
+
+Best,  
+Rina
+</details>
+</details>
+<br />

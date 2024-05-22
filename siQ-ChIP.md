@@ -1,5 +1,5 @@
 
-`#set-up_siQ-ChIP_assessment.md`
+`#siQ-ChIP.md`
 <br />
 
 <details>
@@ -18,6 +18,8 @@
         1. [To perform siQ-ChIP](#to-perform-siq-chip)
         1. [Parameter files](#parameter-files)
         1. [The EXPlayout file](#the-explayout-file)
+1. [A deep reading of the siQ-ChIP code](#a-deep-reading-of-the-siq-chip-code)
+    1. [tracks.f90](#tracksf90)
 1. [siQ-ChIP dependencies](#siq-chip-dependencies)
     1. [Text](#text-2)
 1. [Create an environment for running siQ-ChIP](#create-an-environment-for-running-siq-chip)
@@ -320,6 +322,118 @@ The key here is that you need these section headers in EXPlayout, but the sectio
 The getFracts section outputs datafiles named MyExperiment.
 </details>
 <br />
+<br />
+
+<a id="a-deep-reading-of-the-siq-chip-code"></a>
+## A deep reading of the siQ-ChIP code
+<a id="tracksf90"></a>
+### tracks.f90
+<details>
+<summary><i>Code: tracks.f90</i></summary>
+
+```fortran
+! Declaration of variables
+      real*8 bin(100000), sum, itops
+      integer nleng(2), ilft, irght, leng, leftend, rightend, Reason, lpos
+      character(len=6) :: unk, rchr
+      character(len=5) :: unk2, rchr2
+      character(len=44) :: siq  ! for hmm annotations
+      character(len=62) :: arg, path(2)
+      logical :: file_exists
+
+! Initialization of variables
+      inot = 0
+      itops = 0
+      iread = 0
+      rchr = "I"  ! starts on chromosome I
+
+! Parsing command line arguments
+      do i = 1, iargc()
+         call getarg(i, arg)
+         if (i .lt. 3) then
+            path(i) = arg
+         else
+            read(arg, *) nleng(i - 2)
+         endif
+      enddo
+
+! Processing files loop
+      do k = 1, 2
+         inquire(file=path(k), exist=file_exists)
+         if (file_exists) then
+            open(12, file=path(k))      
+         else
+            write(*,*) 'your first file or path is incorrect'
+            stop
+         endif
+
+         bin = 0d0
+         leftend = 0
+         rightend = 0
+
+! Open output files based on file index
+         if (k .eq. 1) open(88, file='IP.data')
+         if (k .eq. 2) then
+            open(88, file='IN.data')
+            open(89, file='INave.data')
+         endif
+
+12345   continue
+         read(12, *, IOSTAT=Reason) unk, ilft, irght, leng      
+         if (Reason > 0) then
+            write(*,*) 'there was an error in input file ', path(k)
+            stop
+         elseif (Reason .eq. 0) then
+23456       continue
+            ! Only process the specified chromosome
+            if (SCAN(unk(5:6), "_") .eq. 0) then
+               if (ilft .gt. rightend .and. unk .eq. rchr) then
+                  ! Output the current bin data if it is nonempty
+                  if (itops .gt. 1*0) then
+                     lpos = leftend
+                     ave = 0d0
+                     count = 0d0
+                     do i = 1, rightend - leftend, nleng(k)
+                        sum = 0
+                        iend = min(rightend - leftend, i + nleng(k) - 1)
+                        idub = 0
+                        do j = i, iend
+                           lpos = lpos + 1
+                           idub = idub + 1
+                           sum = sum + bin(j)
+                        enddo
+                        write(88, *) unk, lpos - idub, lpos - 1, dble(sum)
+                        ave = ave + dble(sum) / dble(idub)
+                        count = count + 1d0
+                     enddo
+                     if (k .eq. 2) then
+                        write(89, *) unk, leftend, rightend, ave / count
+                     endif
+                  endif
+                  bin = 0
+                  itops = 0
+                  ! Initialize new bins
+                  leftend = ilft
+                  rightend = ilft + leng  ! same as irght sometimes
+                  do i = 1, rightend - leftend
+                     bin(i) = bin(i) + 1d0 / dble(leng)
+                     itops = max(itops, bin(i))
+                  enddo
+                  go to 12345
+               elseif (ilft .le. rightend .and. unk .eq. rchr) then
+                  ! More complex processing logic here...
+                  ! Rest of the code handles additional scenarios
+               endif
+            endif
+         endif
+54321   continue
+         close(12)
+         close(88)
+      enddo  ! End of files loop
+
+    end
+```
+</details>
 <br />
 
 <a id="siq-chip-dependencies"></a>
@@ -4707,7 +4821,7 @@ $\alpha \frac{f(x)}{f_{in}(x)}$ is a projection of the IP efficiency onto the co
 
 In my own work, I do something like this, but I call it the "response distribution". Additionally, I do not do this for IP/input but rather siQ signal over siQ signal for two different conditions&mdash;like a control and an experiment. For example, the control was "treated" by DMSO and the experiment was treated with some inhibitors. The $\log_2$ here is a matter of taste really, but I know this community is strongly conditioned on $\log_2$ plots. Specifically for what you ask, you just want $\log_2\left(\frac{f_{IP}(x)}{f_{in}(x)}\right)$.
 
-Check out the response distributions in Fig 5 [here](https://www.nature.com/articles/s41598-023-34430-2) (I know you dont need a link but).
+Check out the response distributions in Fig 5 [here](https://www.nature.com/articles/s41598-023-34430-2) (I know you don't need a link but).
 
 The "response" itself is computed in the [`frechet.f90`](https://github.com/BradleyDickson/siQ-ChIP/blob/master/frechet.f90) part of the code which I might not have edited for your use case. The best way to do this type of thing really would be: (1) call your peaks in IP however you like, (2) compute $P(x)=\sum_x f(x)$ for the intervals $x$ that are peaks in IP and compute $P_{in}(x)=\sum_x f_{in}(x)$ on the same intervals for input, (3) look at the distribution of $P(x)/P_{in}(x)$ for all your peak-intervals ${x}$. This is the strictly correct way to do this.
 
@@ -4863,6 +4977,23 @@ In conclusion, your proposed method of using clustering techniques on $P(x)/P_{i
 #!/bin/bash
 
 CONDA_SUBDIR="osx-64" mamba create -n deeptools_env -c bioconda deeptools
+CONDA_SUBDIR="osx-64" mamba install bioconda::pysam
+CONDA_SUBDIR="osx-64" mamba install bioconda::ucsc-facount
+CONDA_SUBDIR="osx-64" mamba install conda-forge::ipython
+CONDA_SUBDIR="osx-64" mamba install bioconda::samtools
+CONDA_SUBDIR="osx-64" mamba install conda-forge::flake8
+
+#  Remote installation
+mamba create \
+    -n deeptools_env \
+    -c bioconda \
+    -c conda-forge \
+    deeptools \
+    pysam \
+    ucsc-facount \
+    ipython \
+    samtools \
+    flake8
 ```
 </details>
 <br />
@@ -5073,6 +5204,692 @@ To deactivate an active environment, use
 
      $ mamba deactivate
 
+
+❯ mamba install bioconda::pysam
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (0.25.0) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['bioconda::pysam']
+
+r/osx-64                                                      No change
+bioconda/osx-64                                      4.4MB @   2.8MB/s  1.7s
+bioconda/noarch                                      5.2MB @   2.7MB/s  2.0s
+bioconda/osx-64                                      4.4MB @   2.1MB/s  1.9s
+pkgs/r/noarch                                                 No change
+r/noarch                                                      No change
+pkgs/r/osx-64                                                 No change
+pkgs/main/noarch                                   862.2kB @ 242.6kB/s  0.6s
+pkgs/main/osx-64                                     6.5MB @   1.7MB/s  2.4s
+conda-forge/noarch                                  16.7MB @   4.2MB/s  4.2s
+bioconda/noarch                                      5.2MB @   1.2MB/s  2.2s
+conda-forge/osx-64                                  35.3MB @   5.2MB/s  7.3s
+
+Pinned packages:
+  - python 3.10.*
+
+
+Transaction
+
+  Prefix: /Users/kalavattam/miniconda3/envs/deeptools_env
+
+  Updating specs:
+
+   - bioconda::pysam
+   - ca-certificates
+   - certifi
+   - openssl
+
+
+  Package  Version  Build            Channel      Size
+────────────────────────────────────────────────────────
+  Reinstall:
+────────────────────────────────────────────────────────
+
+  o pysam   0.22.0  py310h2f18660_1  bioconda
+
+  Summary:
+
+  Reinstall: 0 packages
+
+  Total download: 0 B
+
+────────────────────────────────────────────────────────
+
+Confirm changes: [Y/n] Y
+
+
+❯ CONDA_SUBDIR="osx-64" mamba install bioconda::ucsc-facount
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (0.25.0) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['bioconda::ucsc-facount']
+
+conda-forge/osx-64                                          Using cache
+conda-forge/noarch                                          Using cache
+bioconda/osx-64                                             Using cache
+bioconda/noarch                                             Using cache
+r/osx-64                                                    Using cache
+r/noarch                                                    Using cache
+bioconda/osx-64                                             Using cache
+bioconda/noarch                                             Using cache
+pkgs/main/noarch                                              No change
+pkgs/r/osx-64                                                 No change
+pkgs/r/noarch                                                 No change
+pkgs/main/osx-64                                              No change
+
+Pinned packages:
+  - python 3.10.*
+
+
+Transaction
+
+  Prefix: /Users/kalavattam/miniconda3/envs/deeptools_env
+
+  Updating specs:
+
+   - bioconda::ucsc-facount
+   - ca-certificates
+   - certifi
+   - openssl
+
+
+  Package              Version  Build               Channel                  Size
+───────────────────────────────────────────────────────────────────────────────────
+  Install:
+───────────────────────────────────────────────────────────────────────────────────
+
+  + libuuid             2.38.1  hb7f2c08_0          conda-forge/osx-64     Cached
+  + mysql-connector-c   6.1.11  h0f02589_1007       conda-forge/osx-64     Cached
+  + ucsc-facount           377  h516baf0_1          bioconda/osx-64         309kB
+
+  Change:
+───────────────────────────────────────────────────────────────────────────────────
+
+  - pybigwig            0.3.22  py310h17109b5_2     bioconda
+  + pybigwig            0.3.22  py310h17109b5_1     bioconda/osx-64          80kB
+
+  Downgrade:
+───────────────────────────────────────────────────────────────────────────────────
+
+  - krb5                1.21.2  hb884880_0          conda-forge
+  + krb5                1.20.1  h0165f36_0          conda-forge/osx-64     Cached
+  - libcurl              8.7.1  h726d00d_0          conda-forge
+  + libcurl              8.2.1  ha585b31_0          pkgs/main/osx-64        369kB
+  - libnghttp2          1.58.0  h64cf6d3_1          conda-forge
+  + libnghttp2          1.52.0  h1c88b7d_1          pkgs/main/osx-64        678kB
+  - libssh2             1.11.0  hd019ec5_0          conda-forge
+  + libssh2             1.10.0  h7535e13_3          conda-forge/osx-64     Cached
+  - openssl              3.2.1  hd75f5a5_1          conda-forge
+  + openssl             1.1.1w  h8a1eda9_0          conda-forge/osx-64        2MB
+  - pysam               0.22.0  py310h2f18660_1     bioconda
+  + pysam               0.21.0  py310h2f18660_1     bioconda/osx-64        Cached
+  - python             3.10.14  h00d2728_0_cpython  conda-forge
+  + python              3.10.8  h4150a38_0_cpython  conda-forge/osx-64     Cached
+
+  Summary:
+
+  Install: 3 packages
+  Change: 1 packages
+  Downgrade: 7 packages
+
+  Total download: 3MB
+
+───────────────────────────────────────────────────────────────────────────────────
+
+Confirm changes: [Y/n] Y
+libcurl                                            368.9kB @   1.0MB/s  0.4s
+libnghttp2                                         677.8kB @   1.7MB/s  0.4s
+openssl                                              1.7MB @   3.2MB/s  0.5s
+pybigwig                                            80.3kB @ 115.5kB/s  0.7s
+ucsc-facount                                       309.2kB @ 438.0kB/s  0.7s
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+
+❯ CONDA_SUBDIR="osx-64" mamba install conda-forge::ipython
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (0.25.0) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['conda-forge::ipython']
+
+r/osx-64                                                    Using cache
+r/noarch                                                      No change
+bioconda/noarch                                      5.2MB @   1.9MB/s  2.9s
+pkgs/r/osx-64                                                 No change
+bioconda/osx-64                                      4.5MB @   1.4MB/s  3.2s
+pkgs/main/noarch                                   865.4kB @ 258.5kB/s  0.3s
+pkgs/main/osx-64                                     6.6MB @   1.3MB/s  2.1s
+pkgs/r/noarch                                                 No change
+conda-forge/noarch                                  16.8MB @   2.8MB/s  6.3s
+conda-forge/noarch                                  16.8MB @   2.4MB/s  7.0s
+conda-forge/osx-64                                  35.5MB @   4.0MB/s  9.7s
+conda-forge/osx-64                                  35.5MB @   3.0MB/s  9.3s
+
+Pinned packages:
+  - python 3.10.*
+
+
+Transaction
+
+  Prefix: /Users/kalavattam/miniconda3/envs/deeptools_env
+
+  Updating specs:
+
+   - conda-forge::ipython
+   - ca-certificates
+   - certifi
+   - openssl
+
+
+  Package              Version  Build               Channel                  Size
+───────────────────────────────────────────────────────────────────────────────────
+  Install:
+───────────────────────────────────────────────────────────────────────────────────
+
+  + asttokens            2.4.1  pyhd8ed1ab_0        conda-forge/noarch       29kB
+  + decorator            5.1.1  pyhd8ed1ab_0        conda-forge/noarch     Cached
+  + exceptiongroup       1.2.0  pyhd8ed1ab_2        conda-forge/noarch       21kB
+  + executing            2.0.1  pyhd8ed1ab_0        conda-forge/noarch       28kB
+  + ipython             8.22.2  pyh707e725_0        conda-forge/noarch      594kB
+  + jedi                0.19.1  pyhd8ed1ab_0        conda-forge/noarch      841kB
+  + matplotlib-inline    0.1.7  pyhd8ed1ab_0        conda-forge/noarch       15kB
+  + parso                0.8.4  pyhd8ed1ab_0        conda-forge/noarch       75kB
+  + pexpect              4.9.0  pyhd8ed1ab_0        conda-forge/noarch       54kB
+  + pickleshare          0.7.5  py_1003             conda-forge/noarch     Cached
+  + prompt-toolkit      3.0.42  pyha770c72_0        conda-forge/noarch      270kB
+  + ptyprocess           0.7.0  pyhd3deb0d_0        conda-forge/noarch     Cached
+  + pure_eval            0.2.2  pyhd8ed1ab_0        conda-forge/noarch     Cached
+  + stack_data           0.6.2  pyhd8ed1ab_0        conda-forge/noarch     Cached
+  + traitlets           5.14.3  pyhd8ed1ab_0        conda-forge/noarch      110kB
+  + typing_extensions   4.11.0  pyha770c72_0        conda-forge/noarch       38kB
+  + wcwidth             0.2.13  pyhd8ed1ab_0        conda-forge/noarch       33kB
+
+  Change:
+───────────────────────────────────────────────────────────────────────────────────
+
+  - mysql-connector-c   6.1.11  h0f02589_1007       conda-forge
+  + mysql-connector-c   6.1.11  h89ed7f3_1008       conda-forge/osx-64     Cached
+
+  Upgrade:
+───────────────────────────────────────────────────────────────────────────────────
+
+  - krb5                1.20.1  h0165f36_0          conda-forge
+  + krb5                1.21.2  hb884880_0          conda-forge/osx-64     Cached
+  - libcurl              8.2.1  ha585b31_0          pkgs/main
+  + libcurl              8.7.1  h726d00d_0          conda-forge/osx-64     Cached
+  - libnghttp2          1.52.0  h1c88b7d_1          pkgs/main
+  + libnghttp2          1.58.0  h64cf6d3_1          conda-forge/osx-64     Cached
+  - libssh2             1.10.0  h7535e13_3          conda-forge
+  + libssh2             1.11.0  hd019ec5_0          conda-forge/osx-64     Cached
+  - openssl             1.1.1w  h8a1eda9_0          conda-forge
+  + openssl              3.3.0  hd75f5a5_0          conda-forge/osx-64        3MB
+  - python              3.10.8  h4150a38_0_cpython  conda-forge
+  + python             3.10.14  h00d2728_0_cpython  conda-forge/osx-64     Cached
+
+  Downgrade:
+───────────────────────────────────────────────────────────────────────────────────
+
+  - ucsc-facount           377  h516baf0_1          bioconda
+  + ucsc-facount           366  h5eb252a_0          bioconda/osx-64         391kB
+
+  Summary:
+
+  Install: 17 packages
+  Change: 1 packages
+  Upgrade: 6 packages
+  Downgrade: 1 packages
+
+  Total download: 5MB
+
+───────────────────────────────────────────────────────────────────────────────────
+
+Confirm changes: [Y/n] Y
+executing                                           27.7kB @ 123.8kB/s  0.2s
+asttokens                                           28.9kB @ 110.6kB/s  0.3s
+wcwidth                                             32.7kB @ 118.1kB/s  0.3s
+parso                                               75.2kB @ 237.0kB/s  0.3s
+prompt-toolkit                                     270.4kB @ 722.8kB/s  0.2s
+typing_extensions                                   37.6kB @  93.9kB/s  0.1s
+matplotlib-inline                                   14.6kB @  34.2kB/s  0.1s
+openssl                                              2.5MB @   5.2MB/s  0.5s
+exceptiongroup                                      20.6kB @  42.2kB/s  0.1s
+traitlets                                          110.2kB @ 205.9kB/s  0.1s
+ipython                                            593.7kB @ 939.9kB/s  0.2s
+pexpect                                             53.6kB @  81.7kB/s  0.2s
+jedi                                               841.3kB @   1.2MB/s  0.2s
+ucsc-facount                                       391.1kB @ 553.3kB/s  0.5s
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+
+❯ CONDA_SUBDIR="osx-64" mamba install bioconda::samtools
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (0.25.0) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['bioconda::samtools']
+
+conda-forge/noarch                                            No change
+bioconda/osx-64                                               No change
+conda-forge/osx-64                                            No change
+r/osx-64                                                      No change
+bioconda/osx-64                                               No change
+r/noarch                                                      No change
+pkgs/main/osx-64                                              No change
+pkgs/r/noarch                                                 No change
+pkgs/main/noarch                                              No change
+pkgs/r/osx-64                                                 No change
+bioconda/noarch                                      5.2MB @   3.2MB/s  1.8s
+bioconda/noarch                                      5.2MB @   2.7MB/s  1.7s
+
+Pinned packages:
+  - python 3.10.*
+
+
+Transaction
+
+  Prefix: /Users/kalavattam/miniconda3/envs/deeptools_env
+
+  Updating specs:
+
+   - bioconda::samtools
+   - ca-certificates
+   - certifi
+   - openssl
+
+
+  Package     Version  Build       Channel              Size
+──────────────────────────────────────────────────────────────
+  Install:
+──────────────────────────────────────────────────────────────
+
+  + htslib       1.20  h365c357_0  bioconda/osx-64       3MB
+  + samtools     1.20  hd510865_0  bioconda/osx-64     470kB
+
+  Summary:
+
+  Install: 2 packages
+
+  Total download: 3MB
+
+──────────────────────────────────────────────────────────────
+
+Confirm changes: [Y/n] Y
+samtools                                           469.8kB @   1.1MB/s  0.4s
+htslib                                               2.9MB @   5.2MB/s  0.6s
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+
+❯ # Remote installation
+❯ mamba create \
+>     -n deeptools_env \
+>     -c bioconda \
+>     -c conda-forge \
+>     deeptools \
+>     pysam \
+>     ucsc-facount \
+>     ipython \
+>     samtools \
+>     flake8
+
+                  __    __    __    __
+                 /  \  /  \  /  \  /  \
+                /    \/    \/    \/    \
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \   / \   / \   / \  \____
+             /  /   \_/   \_/   \_/   \    o \__,
+            / _/                       \_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+
+        mamba (1.3.1) supported by @QuantStack
+
+        GitHub:  https://github.com/mamba-org/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+
+
+Looking for: ['deeptools', 'pysam', 'ucsc-facount', 'ipython', 'samtools', 'flake8']
+
+bioconda/linux-64                                    5.4MB @   3.9MB/s  1.6s
+bioconda/noarch                                      5.2MB @   3.3MB/s  1.9s
+pkgs/main/linux-64                                   6.9MB @   3.5MB/s  2.3s
+pkgs/r/noarch                                                 No change
+pkgs/r/linux-64                                               No change
+pkgs/main/noarch                                   871.2kB @ 333.7kB/s  1.3s
+conda-forge/noarch                                  17.0MB @   5.6MB/s  3.7s
+conda-forge/linux-64                                40.6MB @   5.1MB/s  9.1s
+Transaction
+
+  Prefix: /home/kalavatt/miniconda3/envs/deeptools_env
+
+  Updating specs:
+
+   - deeptools
+   - pysam
+   - ucsc-facount
+   - ipython
+   - samtools
+   - flake8
+
+
+  Package                               Version  Build                Channel                    Size
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  Install:
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  + _libgcc_mutex                           0.1  conda_forge          conda-forge/linux-64     Cached
+  + _openmp_mutex                           4.5  2_gnu                conda-forge/linux-64     Cached
+  + alabaster                            0.7.16  pyhd8ed1ab_0         conda-forge/noarch         18kB
+  + asttokens                             2.4.1  pyhd8ed1ab_0         conda-forge/noarch         29kB
+  + babel                                2.14.0  pyhd8ed1ab_0         conda-forge/noarch          8MB
+  + brotli                                1.1.0  hd590300_1           conda-forge/linux-64     Cached
+  + brotli-bin                            1.1.0  hd590300_1           conda-forge/linux-64     Cached
+  + brotli-python                         1.1.0  py310hc6cd4ac_1      conda-forge/linux-64     Cached
+  + bzip2                                 1.0.8  hd590300_5           conda-forge/linux-64     Cached
+  + c-ares                               1.28.1  hd590300_0           conda-forge/linux-64     Cached
+  + ca-certificates                    2024.2.2  hbcca054_0           conda-forge/linux-64     Cached
+  + certifi                            2024.2.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + charset-normalizer                    3.3.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + colorama                              0.4.6  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + contourpy                             1.2.1  py310hd41b1e2_0      conda-forge/linux-64      242kB
+  + cycler                               0.12.1  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + decorator                             5.1.1  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + deeptools                             3.5.5  pyhdfd78af_0         bioconda/noarch           146kB
+  + deeptoolsintervals                    0.1.9  py310h8472f5a_8      bioconda/linux-64          78kB
+  + docutils                             0.21.2  pyhd8ed1ab_0         conda-forge/noarch        403kB
+  + exceptiongroup                        1.2.0  pyhd8ed1ab_2         conda-forge/noarch         21kB
+  + executing                             2.0.1  pyhd8ed1ab_0         conda-forge/noarch         28kB
+  + flake8                                7.0.0  pyhd8ed1ab_0         conda-forge/noarch        111kB
+  + fonttools                            4.51.0  py310h2372a71_0      conda-forge/linux-64        2MB
+  + freetype                             2.12.1  h267a509_2           conda-forge/linux-64     Cached
+  + htslib                                 1.17  h6bc39ce_1           bioconda/linux-64        Cached
+  + idna                                    3.7  pyhd8ed1ab_0         conda-forge/noarch         53kB
+  + imagesize                             1.4.1  pyhd8ed1ab_0         conda-forge/noarch         10kB
+  + importlib-metadata                    7.1.0  pyha770c72_0         conda-forge/noarch         27kB
+  + ipython                              8.24.0  pyh707e725_0         conda-forge/noarch        596kB
+  + jedi                                 0.19.1  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + jinja2                                3.1.4  pyhd8ed1ab_0         conda-forge/noarch        112kB
+  + jpeg                                     9e  h0b41bf4_3           conda-forge/linux-64     Cached
+  + keyutils                              1.6.1  h166bdaf_0           conda-forge/linux-64     Cached
+  + kiwisolver                            1.4.5  py310hd41b1e2_1      conda-forge/linux-64     Cached
+  + krb5                                 1.20.1  hf9c8cef_0           conda-forge/linux-64     Cached
+  + lcms2                                  2.14  h6ed2654_0           conda-forge/linux-64     Cached
+  + ld_impl_linux-64                       2.40  h55db66e_0           conda-forge/linux-64      713kB
+  + lerc                                  4.0.0  h27087fc_0           conda-forge/linux-64     Cached
+  + libblas                               3.9.0  22_linux64_openblas  conda-forge/linux-64       15kB
+  + libbrotlicommon                       1.1.0  hd590300_1           conda-forge/linux-64     Cached
+  + libbrotlidec                          1.1.0  hd590300_1           conda-forge/linux-64     Cached
+  + libbrotlienc                          1.1.0  hd590300_1           conda-forge/linux-64     Cached
+  + libcblas                              3.9.0  22_linux64_openblas  conda-forge/linux-64       14kB
+  + libcurl                              7.87.0  h6312ad2_0           conda-forge/linux-64     Cached
+  + libdeflate                             1.13  h166bdaf_0           conda-forge/linux-64     Cached
+  + libedit                        3.1.20191231  he28a2e2_2           conda-forge/linux-64     Cached
+  + libev                                  4.33  hd590300_2           conda-forge/linux-64     Cached
+  + libffi                                3.4.2  h7f98852_5           conda-forge/linux-64     Cached
+  + libgcc-ng                            13.2.0  h77fa898_7           conda-forge/linux-64      776kB
+  + libgfortran-ng                       13.2.0  h69a702a_7           conda-forge/linux-64       24kB
+  + libgfortran5                         13.2.0  hca663fb_7           conda-forge/linux-64        1MB
+  + libgomp                              13.2.0  h77fa898_7           conda-forge/linux-64      422kB
+  + liblapack                             3.9.0  22_linux64_openblas  conda-forge/linux-64       14kB
+  + libnghttp2                           1.51.0  hdcd2b5c_0           conda-forge/linux-64     Cached
+  + libnsl                                2.0.1  hd590300_0           conda-forge/linux-64     Cached
+  + libopenblas                          0.3.27  pthreads_h413a1c8_0  conda-forge/linux-64        6MB
+  + libpng                               1.6.43  h2797004_0           conda-forge/linux-64     Cached
+  + libsqlite                            3.45.3  h2797004_0           conda-forge/linux-64      860kB
+  + libssh2                              1.10.0  haa6b8db_3           conda-forge/linux-64     Cached
+  + libstdcxx-ng                         13.2.0  hc0a3c3a_7           conda-forge/linux-64        4MB
+  + libtiff                               4.4.0  h0e0dad5_3           conda-forge/linux-64     Cached
+  + libuuid                              2.38.1  h0b41bf4_0           conda-forge/linux-64     Cached
+  + libwebp-base                          1.4.0  hd590300_0           conda-forge/linux-64      439kB
+  + libxcb                                 1.13  h7f98852_1004        conda-forge/linux-64     Cached
+  + libzlib                              1.2.13  hd590300_5           conda-forge/linux-64     Cached
+  + markupsafe                            2.1.5  py310h2372a71_0      conda-forge/linux-64       24kB
+  + matplotlib-base                       3.8.4  py310hef631a5_2      conda-forge/linux-64        7MB
+  + matplotlib-inline                     0.1.7  pyhd8ed1ab_0         conda-forge/noarch         15kB
+  + mccabe                                0.7.0  pyhd8ed1ab_0         conda-forge/noarch         11kB
+  + munkres                               1.0.7  py_1                 bioconda/noarch          Cached
+  + mysql-connector-c                    6.1.11  h6eb9d5d_1007        conda-forge/linux-64     Cached
+  + ncurses                                 6.5  h59595ed_0           conda-forge/linux-64      887kB
+  + numpy                                1.26.4  py310hb13e2d6_0      conda-forge/linux-64     Cached
+  + numpydoc                              1.7.0  pyhd8ed1ab_0         conda-forge/noarch         57kB
+  + openjpeg                              2.5.0  h7d73246_1           conda-forge/linux-64     Cached
+  + openssl                              1.1.1w  hd590300_0           conda-forge/linux-64     Cached
+  + packaging                              24.0  pyhd8ed1ab_0         conda-forge/noarch         50kB
+  + parso                                 0.8.4  pyhd8ed1ab_0         conda-forge/noarch         75kB
+  + pexpect                               4.9.0  pyhd8ed1ab_0         conda-forge/noarch         54kB
+  + pickleshare                           0.7.5  py_1003              conda-forge/noarch       Cached
+  + pillow                                9.2.0  py310h454ad03_3      conda-forge/linux-64     Cached
+  + pip                                    24.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + plotly                               5.22.0  pyhd8ed1ab_0         conda-forge/noarch          5MB
+  + prompt-toolkit                       3.0.42  pyha770c72_0         conda-forge/noarch        270kB
+  + pthread-stubs                           0.4  h36c2ea0_1001        conda-forge/linux-64     Cached
+  + ptyprocess                            0.7.0  pyhd3deb0d_0         conda-forge/noarch       Cached
+  + pure_eval                             0.2.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + py2bit                                0.3.0  py310h4b81fae_9      bioconda/linux-64          26kB
+  + pybigwig                             0.3.18  py310h722e95c_2      bioconda/linux-64        Cached
+  + pycodestyle                          2.11.1  pyhd8ed1ab_0         conda-forge/noarch         34kB
+  + pyflakes                              3.2.0  pyhd8ed1ab_0         conda-forge/noarch         59kB
+  + pygments                             2.18.0  pyhd8ed1ab_0         conda-forge/noarch        879kB
+  + pyparsing                             3.1.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + pysam                                0.21.0  py310hff46b53_0      bioconda/linux-64           4MB
+  + pysocks                               1.7.1  pyha2e5f31_6         conda-forge/noarch       Cached
+  + python                               3.10.8  h257c98d_0_cpython   conda-forge/linux-64     Cached
+  + python-dateutil                       2.9.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + python_abi                             3.10  4_cp310              conda-forge/linux-64     Cached
+  + pytz                                 2024.1  pyhd8ed1ab_0         conda-forge/noarch        189kB
+  + readline                                8.2  h8228510_1           conda-forge/linux-64     Cached
+  + requests                             2.31.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + samtools                               1.18  hd87286a_0           bioconda/linux-64        Cached
+  + scipy                                1.13.0  py310h93e2701_1      conda-forge/linux-64       17MB
+  + setuptools                           69.5.1  pyhd8ed1ab_0         conda-forge/noarch        502kB
+  + six                                  1.16.0  pyh6c4a22f_0         conda-forge/noarch       Cached
+  + snowballstemmer                       2.2.0  pyhd8ed1ab_0         conda-forge/noarch         59kB
+  + sphinx                                7.3.7  pyhd8ed1ab_0         conda-forge/noarch          1MB
+  + sphinxcontrib-applehelp               1.0.8  pyhd8ed1ab_0         conda-forge/noarch         30kB
+  + sphinxcontrib-devhelp                 1.0.6  pyhd8ed1ab_0         conda-forge/noarch         24kB
+  + sphinxcontrib-htmlhelp                2.0.5  pyhd8ed1ab_0         conda-forge/noarch         33kB
+  + sphinxcontrib-jsmath                  1.0.1  pyhd8ed1ab_0         conda-forge/noarch         10kB
+  + sphinxcontrib-qthelp                  1.0.7  pyhd8ed1ab_0         conda-forge/noarch         27kB
+  + sphinxcontrib-serializinghtml        1.1.10  pyhd8ed1ab_0         conda-forge/noarch         29kB
+  + stack_data                            0.6.2  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + tabulate                              0.9.0  pyhd8ed1ab_1         conda-forge/noarch       Cached
+  + tenacity                              8.3.0  pyhd8ed1ab_0         conda-forge/noarch         24kB
+  + tk                                   8.6.13  noxft_h4845f30_101   conda-forge/linux-64     Cached
+  + tomli                                 2.0.1  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + traitlets                            5.14.3  pyhd8ed1ab_0         conda-forge/noarch        110kB
+  + typing_extensions                    4.11.0  pyha770c72_0         conda-forge/noarch         38kB
+  + tzdata                                2024a  h0c530f3_0           conda-forge/noarch       Cached
+  + ucsc-facount                            377  ha8a8165_3           bioconda/linux-64        Cached
+  + unicodedata2                         15.1.0  py310h2372a71_0      conda-forge/linux-64     Cached
+  + urllib3                               2.2.1  pyhd8ed1ab_0         conda-forge/noarch         95kB
+  + wcwidth                              0.2.13  pyhd8ed1ab_0         conda-forge/noarch         33kB
+  + wheel                                0.43.0  pyhd8ed1ab_1         conda-forge/noarch       Cached
+  + xorg-libxau                          1.0.11  hd590300_0           conda-forge/linux-64     Cached
+  + xorg-libxdmcp                         1.1.3  h7f98852_0           conda-forge/linux-64     Cached
+  + xz                                    5.2.6  h166bdaf_0           conda-forge/linux-64     Cached
+  + zipp                                 3.17.0  pyhd8ed1ab_0         conda-forge/noarch       Cached
+  + zlib                                 1.2.13  hd590300_5           conda-forge/linux-64     Cached
+  + zstd                                  1.5.6  ha6fb4c9_0           conda-forge/linux-64      555kB
+
+  Summary:
+
+  Install: 133 packages
+
+  Total download: 65MB
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+Confirm changes: [Y/n] Y
+libgomp                                            422.3kB @   2.5MB/s  0.2s
+ld_impl_linux-64                                   713.3kB @   3.7MB/s  0.2s
+libgcc-ng                                          775.8kB @   4.0MB/s  0.2s
+libwebp-base                                       439.0kB @   2.2MB/s  0.2s
+libcblas                                            14.4kB @  52.5kB/s  0.1s
+liblapack                                           14.5kB @  52.4kB/s  0.1s
+setuptools                                         501.8kB @   1.8MB/s  0.1s
+libstdcxx-ng                                         3.8MB @  11.9MB/s  0.4s
+snowballstemmer                                     58.8kB @ 170.4kB/s  0.1s
+imagesize                                           10.2kB @  29.3kB/s  0.1s
+docutils                                           403.2kB @   1.2MB/s  0.1s
+pycodestyle                                         34.3kB @  79.9kB/s  0.1s
+mccabe                                              10.9kB @  25.2kB/s  0.1s
+typing_extensions                                   37.6kB @  86.4kB/s  0.1s
+traitlets                                          110.2kB @ 252.4kB/s  0.1s
+libopenblas                                          5.6MB @  11.0MB/s  0.4s
+prompt-toolkit                                     270.4kB @ 529.5kB/s  0.1s
+flake8                                             110.9kB @ 216.3kB/s  0.1s
+matplotlib-inline                                   14.6kB @  28.2kB/s  0.1s
+ipython                                            596.4kB @   1.1MB/s  0.1s
+sphinx                                               1.3MB @   2.1MB/s  0.1s
+sphinxcontrib-applehelp                             29.5kB @  46.9kB/s  0.1s
+sphinxcontrib-devhelp                               24.5kB @  38.7kB/s  0.1s
+sphinxcontrib-htmlhelp                              33.5kB @  52.8kB/s  0.1s
+sphinxcontrib-qthelp                                27.0kB @  42.4kB/s  0.2s
+alabaster                                           18.4kB @  24.4kB/s  0.1s
+parso                                               75.2kB @  95.1kB/s  0.1s
+tenacity                                            24.0kB @  29.4kB/s  0.1s
+packaging                                           49.8kB @  60.9kB/s  0.1s
+wcwidth                                             32.7kB @  39.9kB/s  0.1s
+contourpy                                          241.9kB @ 293.7kB/s  0.1s
+jinja2                                             111.6kB @ 127.6kB/s  0.1s
+sphinxcontrib-serializinghtml                       28.8kB @  32.2kB/s  0.1s
+deeptoolsintervals                                  78.0kB @  83.9kB/s  0.1s
+urllib3                                             94.7kB @ 101.0kB/s  0.2s
+sphinxcontrib-jsmath                                10.4kB @  10.5kB/s  0.1s
+pytz                                               188.5kB @ 185.4kB/s  0.1s
+exceptiongroup                                      20.6kB @  19.0kB/s  0.2s
+asttokens                                           28.9kB @  25.0kB/s  0.2s
+importlib-metadata                                  27.0kB @  23.3kB/s  0.2s
+pysam                                                4.4MB @   3.5MB/s  0.5s
+deeptools                                          146.1kB @ 114.7kB/s  0.1s
+fonttools                                            2.3MB @   1.7MB/s  0.2s
+pyflakes                                            58.7kB @  43.2kB/s  0.2s
+pygments                                           879.3kB @ 645.0kB/s  0.2s
+babel                                                7.6MB @   5.2MB/s  0.5s
+py2bit                                              25.8kB @  17.7kB/s  0.1s
+numpydoc                                            57.4kB @  38.8kB/s  0.1s
+matplotlib-base                                      6.9MB @   4.3MB/s  0.4s
+libgfortran5                                         1.4MB @ 902.4kB/s  0.1s
+zstd                                               554.8kB @ 340.4kB/s  0.1s
+libblas                                             14.5kB @   8.9kB/s  0.1s
+ncurses                                            887.5kB @ 522.3kB/s  0.2s
+libgfortran-ng                                      24.3kB @  14.1kB/s  0.2s
+libsqlite                                          859.9kB @ 498.5kB/s  0.2s
+markupsafe                                          24.5kB @  14.1kB/s  0.2s
+idna                                                52.7kB @  28.9kB/s  0.2s
+executing                                           27.7kB @  14.9kB/s  0.2s
+pexpect                                             53.6kB @  28.8kB/s  0.2s
+plotly                                               5.3MB @   2.6MB/s  0.4s
+scipy                                               16.5MB @   7.9MB/s  0.5s
+
+Downloading and Extracting Packages
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+
+To activate this environment, use
+
+     $ mamba activate deeptools_env
+
+To deactivate an active environment, use
+
+     $ mamba deactivate
 ```
 </details>
 <br />
@@ -5976,7 +6793,6 @@ In particular, longer fragments will effectively contribute with lower weight be
 
 <mark>Note that paired-end sequencing is required to correctly determine the $L_{i}$.</mark>
 
-`#HERE`
 ¶5  
 In [Figure 2](https://www.nature.com/articles/s41598-023-34430-2/figures/2), we illustrate six sequenced fragments and show the outcome of building a track using the $+1$ or $\frac{+1}{L_{i}}$ accumulations.
 
@@ -6792,4 +7608,5 @@ Best,
 Rina
 </details>
 </details>
+<br />
 <br />

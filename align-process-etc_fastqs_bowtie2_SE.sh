@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#  align-process-etc_fastqs_bowtie2.sh
+#  align-process-etc_fastqs_bowtie2_SE.sh
 #  KA
 
-debug=false
+debug=true
 
 
 #  Define functions ===========================================================
@@ -30,6 +30,10 @@ function show_help() {
     cat << EOM
 Usage: ${0} [OPTIONS]
 
+This script aligns single-end FASTQ files using Bowtie2, processes the output
+with SAMtools (coordinate sorting, marking duplicates, etc.), and outputs both
+a queryname-sorted BAM file and a coordinate-sorted, duplicate-marked BAM file.
+
 This script aligns paired-end FASTQ files using Bowtie2, processes the output
 with SAMtools (coordinate sorting, queryname sorting, marking duplicates,
 etc.), and outputs both a queryname-sorted BAM file and a coordinate-sorted,
@@ -47,12 +51,10 @@ Options:
    -f, --fasta     PATH for genome FASTA file (required).
    -s, --sizes     Path for chromosome sizes file (required).
    -q, --mapq      MAPQ threshold for BAM filtering (default: 1).
-  -f1, --fastq_1   Path to the first FASTQ file (required).
-  -f2, --fastq_2   Path to the second FASTQ file (required).
+  -fq, --fastq     Path to the FASTQ file (required).
    -b, --bam       Output path for the BAM file (required).
   -bc, --bam_coor  Output path for the coordinate-sored BAM file.
   -bq, --bam_quer  Output path for the queryname-sored BAM file.
-  -bs, --bed_siQ   Output path for the BED file used as input to siQ-ChIP.
   -be, --bed_etc   Output path and stem for the BED file of per-base coverage,
                    related Mosdepth output files, and the RPM-scaled BG and BW
                    files derived from the above BED file.
@@ -62,6 +64,9 @@ Options:
   -ti, --txt_idx   Output path for the samtools idxstats TXT file.
   -tl, --txt_pre   Output path and stem for the preseq lc_extrap, bound_pop,
                    and c_curve TXT files.
+
+#TODO Options:
+  -bs, --bed_siQ   Output path for the BED file used as input to siQ-ChIP.
 
 Dependencies:
   - bedGraphToBigWig
@@ -76,23 +81,24 @@ Note:
   and -ti are derived from the -b output path.
 
 Example:
-  align-process-etc_fastqs_bowtie2.sh
+  align-process-etc_fastqs_bowtie2_SE.sh
       --threads 4
       --index path/to/indices/file_prefix
       --fasta path/to/fasta/file.fa
       --sizes path/to/sizes/file.tsv
       --mapq 1
-      --fastq_1 path/to/fastqs/file_1.fq.gz
-      --fastq_2 path/to/fastqs/file_2.fq.gz
+      --fastq path/to/fastqs/file.fq.gz
       --bam path/for/bams/file.bam
       --bam_coor path/for/bams/file.sort-coord.bam
       --bam_quer path/for/bams/file.sort-qname.bam
-      --bed_siQ path/for/siq-ChIP/file.bed
       --bed_etc path/for/coverage/file_prefix
       --txt_met path/for/QC/file_metrics.txt
       --txt_flg path/for/QC/file_flagstat.txt
       --txt_idx path/for/QC/file_idxstats.txt
       --txt_pre path/for/QC/file_prefix
+      
+#TODO Option example:
+      --bed_siQ path/for/siq-ChIP/file.bed
 EOM
 }
 
@@ -117,35 +123,22 @@ if ${debug}; then
     dir_exp="${dir_base}/${dir_repo}"
 
     #  Values for debugging
-    threads=1
+    threads=${SLURM_CPUS_ON_NODE:-1}
     index="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
     fasta="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.fa"
     sizes="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.chrom-info.tsv"
     mapq=1
 
-    # fastq_1="${dir_exp}/02_trim/in_G1_Hho1_6336_R1.atria.fastq.gz"
-    # fastq_2="${dir_exp}/02_trim/in_G1_Hho1_6336_R2.atria.fastq.gz"
-    # bam="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.bam"
-    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-coord.bam"
-    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-qname.bam"
-    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/in_G1_Hho1_6336.bed.gz"
-    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/in_G1_Hho1_6336"
-    # txt_met="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.picard-metrics.txt"
-    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-flagstat.txt"
-    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
-    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.preseq"
-
-    fastq_1="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R1.atria.fastq.gz"
-    fastq_2="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R2.atria.fastq.gz"
-    bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.bam"
-    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-coord.bam"
-    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-qname.bam"
-    bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
-    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Hmo1_7750"
-    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
-    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
-    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
-    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.preseq"
+    fastq="${dir_exp}/01_sym/IP_log_Brn1_rep1.fastq.gz"
+    bam="${dir_exp}/03_bam/bowtie2/bam/IP_log_Brn1_rep1.bam"
+    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_log_Brn1_rep1.sort-coord.bam"
+    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_log_Brn1_rep1.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_log_Brn1_rep1.bed.gz"
+    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_log_Brn1_rep1"
+    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_log_Brn1_rep1.picard-metrics.txt"
+    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_log_Brn1_rep1.samtools-flagstat.txt"
+    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_log_Brn1_rep1.samtools-idxstats.txt"
+    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_log_Brn1_rep1.preseq"
 
     #  Optional: Check variable assignments 
     check_variables=true
@@ -158,12 +151,11 @@ if ${debug}; then
         fasta=${fasta}
         sizes=${sizes}
         mapq=${mapq}
-        fastq_1=${fastq_1}
-        fastq_2=${fastq_2}
+        fastq=${fastq}
         bam=${bam}
         bam_coor=${bam_coor}
         bam_quer=${bam_quer}
-        bed_siQ=${bed_siQ}
+        # bed_siQ=${bed_siQ}
         bed_etc=${bed_etc}
         txt_met=${txt_met}
         txt_flg=${txt_flg}
@@ -180,12 +172,10 @@ else
              -f|--fasta)    fasta="${2}";    shift 2 ;;
              -s|--sizes)    sizes="${2}";    shift 2 ;;
              -q|--mapq)     mapq="${2}";     shift 2 ;;
-            -f1|--fastq_1)  fastq_1="${2}";  shift 2 ;;
-            -f2|--fastq_2)  fastq_2="${2}";  shift 2 ;;
+            -fq|--fastq)    fastq="${2}";    shift 2 ;;
              -b|--bam)      bam="${2}";      shift 2 ;;
             -bc|--bam_coor) bam_coor="${2}"; shift 2 ;;
             -bq|--bam_quer) bam_quer="${2}"; shift 2 ;;
-            -bs|--bed_siQ)  bed_siQ="${2}";  shift 2 ;;
             -be|--bed_etc)  bed_etc="${2}";  shift 2 ;;
             -tm|--txt_met)  txt_met="${2}";  shift 2 ;;
             -tf|--txt_flg)  txt_flg="${2}";  shift 2 ;;
@@ -193,6 +183,7 @@ else
             -tl|--txt_pre)  txt_pre="${2}";  shift 2 ;;
             *) echo "Unknown parameter passed: ${1}"; exit 1 ;;
         esac
+        # -bs|--bed_siQ)  bed_siQ="${2}";  shift 2 ;;
     done
 fi
 
@@ -224,20 +215,12 @@ if [[ -z "${mapq}" ]]; then
     mapq=1
 fi
 
-if [[ -z "${fastq_1}" ]]; then
-    error_and_exit "FASTQ_1 file path is required. Use -f1 or --fastq_1 to specify it."
+if [[ -z "${fastq}" ]]; then
+    error_and_exit "FASTQ file path is required. Use -fq or --fastq to specify it."
 fi
 
-if [[ ! -f "${fastq_1}" ]]; then
-    error_and_exit "Specified FASTQ_1 file does not exist."
-fi
-
-if [[ -z "${fastq_2}" ]]; then
-    error_and_exit "FASTQ_2 file path is required. Use -f2 or --fastq_2 to specify it."
-fi
-
-if [[ ! -f "${fastq_2}" ]]; then
-    error_and_exit "Specified FASTQ_2 file does not exist."
+if [[ ! -f "${fastq}" ]]; then
+    error_and_exit "Specified FASTQ file does not exist."
 fi
 
 if [[ -z "${bam}" ]]; then
@@ -252,9 +235,9 @@ if [[ -z "${bam_quer}" ]]; then
     bam_quer="${bam/.bam/.sort-qname.bam}"
 fi
 
-if [[ -z "${bed_siQ}" ]]; then
-    bed_siQ="${bam/.bam/.siQ-ChIP.bed.gz}"
-fi
+# if [[ -z "${bed_siQ}" ]]; then
+#     bed_siQ="${bam/.bam/.siQ-ChIP.bed.gz}"
+# fi
 
 if [[ -z "${bed_etc}" ]]; then
     bed_etc="${bam%.bam}"
@@ -278,7 +261,7 @@ fi
 
 #  Check if the BAM file exists; if not, perform alignment with Bowtie 2,
 #+ converting the Bowtie 2 output to a BAM file with Samtools; in doing so,
-#+ retain only properly paired reads (-f 2) that are greater than or equal to a
+#+ retain only aligned reads (-f 2) that are greater than or equal to a
 #+ user-supplied MAPQ score (-q "${mapq}") [by default, retain any-quality
 #+ "maxi-reads" (-q 1)]
 #+ 
@@ -294,19 +277,11 @@ if [[
         -x "${index}" \
         --very-sensitive-local \
         --no-unal \
-        --no-mixed \
-        --no-discordant \
-        --no-overlap \
-        --no-dovetail \
         --phred33 \
-        -I 10 \
-        -X 700 \
-        -1 "${fastq_1}" \
-        -2 "${fastq_2}" \
+        -U "${fastq}" \
             | samtools view \
                 -@ "${threads}" \
                 -b \
-                -f 2 \
                 -q "${mapq}" \
                 -o "${bam}"
 else
@@ -324,24 +299,6 @@ if [[
         -n \
         -o "${bam_quer}" \
         "${bam}"
-    
-    #  After sorting by queryname, fix the paired read-mate information, which
-    #+ is required for subsequent operations 
-    if [[ -f "${bam_quer}" ]]; then
-        samtools fixmate \
-            -@ "${threads}" \
-            -m \
-            "${bam_quer}" \
-            "${bam_quer%.bam}.tmp.bam"
-
-        #  Replace the original queryname-sorted BAM with queryname-sorted
-        #+ mate-fixed BAM
-        if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
-            mv -f \
-                "${bam_quer%.bam}.tmp.bam" \
-                "${bam_quer}"
-        fi
-    fi
 else
     echo "Note: Queryname-sored BAM file exists. Skipping sort operations."
 fi
@@ -468,37 +425,37 @@ else
     echo "      Skipping operations."
 fi
 
-#  Generate a siQ-ChIP-input BED file from the queryname-sorted BAM
-if [[
-         -f "${bam_quer}" \
-    && ! -f "${bed_siQ}"
-]]; then
-    #  Extract fragment information to create the BED file, excluding
-    #+ chromosomes starting with "SP_"
-    samtools view "${bam_quer}" \
-        | awk '{
-            if (NR % 2 == 1) {
-                chr_1 = $3; 
-                start_1 = $4; 
-                len_1 = length($10);
-            } else {
-                chr_2 = $3;
-                start_2 = $4; 
-                len_2 = length($10);
-                if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
-                    start = (start_1 < start_2) ? start_1 : start_2;
-                    end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-                    frag_length = end - start + 1; 
-                    print chr_1, start, end, frag_length;
-                }
-            }
-        }' OFS='\t' \
-        | sort -k1,1 -k2,2n \
-        | gzip \
-            > "${bed_siQ}"
-else
-    echo "Note: BED file for siQ-ChIP exists. Skipping operations."
-fi
+# #  Generate a siQ-ChIP-input BED file from the queryname-sorted BAM
+# if [[
+#          -f "${bam_quer}" \
+#     && ! -f "${bed_siQ}"
+# ]]; then
+#     #  Extract fragment information to create the BED file, excluding
+#     #+ chromosomes starting with "SP_"
+#     samtools view "${bam_quer}" \
+#         | awk '{
+#             if (NR % 2 == 1) {
+#                 chr_1 = $3; 
+#                 start_1 = $4; 
+#                 len_1 = length($10);
+#             } else {
+#                 chr_2 = $3;
+#                 start_2 = $4; 
+#                 len_2 = length($10);
+#                 if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
+#                     start = (start_1 < start_2) ? start_1 : start_2;
+#                     end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+#                     frag_length = end - start + 1; 
+#                     print chr_1, start, end, frag_length;
+#                 }
+#             }
+#         }' OFS='\t' \
+#         | sort -k1,1 -k2,2n \
+#         | gzip \
+#             > "${bed_siQ}"
+# else
+#     echo "Note: BED file for siQ-ChIP exists. Skipping operations."
+# fi
 
 #  Using the coordinate-sorted BAM, generate BED file of per-base coverage
 #+ as well as RPM-scaled BG and BW files
@@ -581,13 +538,13 @@ if [[
        -f "${bam}" \
     && -f "${bam_coor}" \
     && -f "${bam_quer}" \
-    && -f "${bed_siQ}" \
     && -f "${bed_etc}.per-base.bed.gz" \
     && -f "${bed_etc}.rpm.bg.gz" \
     && -f "${bed_etc}.rpm.bw"
 ]]; then
     rm "${bam}"
 fi
+# && -f "${bed_siQ}" \
 
 #SCRATCH
 # bamCoverage \

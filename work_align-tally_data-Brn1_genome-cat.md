@@ -8,45 +8,54 @@
 <!-- MarkdownTOC -->
 
 1. [Get situated](#get-situated)
-	1. [Code](#code)
+    1. [Code](#code)
 1. [Align the datasets](#align-the-datasets)
-	1. [Run `bowtie2` alignment, etc.](#run-bowtie2-alignment-etc)
-		1. [Get situated, set up variables and arrays](#get-situated-set-up-variables-and-arrays)
-			1. [Code](#code-1)
-		1. [Trim any adapter sequences present in the reads](#trim-any-adapter-sequences-present-in-the-reads)
-			1. [Code](#code-2)
-		1. [Align, sort, and index the sample datasets](#align-sort-and-index-the-sample-datasets)
-			1. [`SmartMap`'s `Bowtie2` parameters](#smartmaps-bowtie2-parameters)
-				1. [Code](#code-3)
-			1. [Align \(etc.\) `atria`-trimmed `fastq`s](#align-etc-atria-trimmed-fastqs)
-				1. [Code](#code-4)
-			1. [Align \(etc.\) un-trimmed `fastq`s](#align-etc-un-trimmed-fastqs)
-				1. [Code](#code-5)
-	1. [Examine flags in bam outfiles](#examine-flags-in-bam-outfiles)
-		1. [Initialize necessary functions](#initialize-necessary-functions)
-			1. [Code](#code-6)
-		1. [Initialize an array of bams](#initialize-an-array-of-bams)
-			1. [Code](#code-7)
-		1. [Check on flag information in bams](#check-on-flag-information-in-bams)
-			1. [Code](#code-8)
+    1. [Run `bowtie2` alignment, etc.](#run-bowtie2-alignment-etc)
+        1. [Get situated, set up variables and arrays](#get-situated-set-up-variables-and-arrays)
+            1. [Code](#code-1)
+        1. [Align, sort, and index the sample datasets](#align-sort-and-index-the-sample-datasets)
+            1. [`SmartMap`'s `Bowtie2` parameters](#smartmaps-bowtie2-parameters)
+                1. [Code](#code-2)
+            1. [Align \(etc.\) untrimmed `fastq`s](#align-etc-untrimmed-fastqs)
+                1. [Code](#code-3)
+            1. [Align \(etc.\) un-trimmed `fastq`s](#align-etc-un-trimmed-fastqs)
+                1. [Code](#code-4)
+    1. [Examine flags in bam outfiles](#examine-flags-in-bam-outfiles)
+        1. [Initialize necessary functions](#initialize-necessary-functions)
+            1. [Code](#code-5)
+        1. [Initialize an array of bams](#initialize-an-array-of-bams)
+            1. [Code](#code-6)
+        1. [Check on flag information in `bam`s](#check-on-flag-information-in-bams)
+            1. [Code](#code-7)
 1. [Tally/calculate alignments](#tallycalculate-alignments)
-	1. [Tally/calculate alignments](#tallycalculate-alignments-1)
-		1. [Initialize functions for doing floating point arithmetic, etc.](#initialize-functions-for-doing-floating-point-arithmetic-etc)
-			1. [Code](#code-9)
-		1. [Get situated, then initialize arrays, variables, etc.](#get-situated-then-initialize-arrays-variables-etc)
-			1. [Code](#code-10)
-		1. [Generate tab-separated table of alignment tallies/calculations](#generate-tab-separated-table-of-alignment-talliescalculations)
-			1. [Code](#code-11)
-		1. [Calculate CC/SS-styled scaling factors](#calculate-ccss-styled-scaling-factors)
-			1. [Code](#code-12)
-	1. [On calculating scaling factors](#on-calculating-scaling-factors)
-		1. [Email from Christine \(edited by me\)](#email-from-christine-edited-by-me)
-		1. [Notes on using Excel to calculate scaling factors](#notes-on-using-excel-to-calculate-scaling-factors)
-		1. [More detailed notes for Biostars post about this method](#more-detailed-notes-for-biostars-post-about-this-method)
-		1. [How scaling factors are calculated by Egan et al., *PLOS One* 2016-1122](#how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122)
-		1. [Description in answer to Biostars post \(by Jared Andrews\)](#description-in-answer-to-biostars-post-by-jared-andrews)
-			1. [Cleaned up version of the post](#cleaned-up-version-of-the-post)
-			1. [How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?](#how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio)
+    1. [Tally/calculate alignments](#tallycalculate-alignments-1)
+        1. [Initialize functions for doing floating point arithmetic, etc.](#initialize-functions-for-doing-floating-point-arithmetic-etc)
+            1. [Code](#code-8)
+        1. [Get situated, then initialize arrays, variables, etc.](#get-situated-then-initialize-arrays-variables-etc)
+            1. [Code](#code-9)
+        1. [Generate tab-separated table of alignment tallies/calculations](#generate-tab-separated-table-of-alignment-talliescalculations)
+            1. [Code](#code-10)
+        1. [Calculate CC/SS-styled scaling factors](#calculate-ccss-styled-scaling-factors)
+            1. [Code](#code-11)
+    1. [On calculating spike-in-derived scaling factors](#on-calculating-spike-in-derived-scaling-factors)
+        1. [Email from Christine \(edited by me\)](#email-from-christine-edited-by-me)
+        1. [Notes on using Excel to calculate spike-in-derived scaling factors](#notes-on-using-excel-to-calculate-spike-in-derived-scaling-factors)
+        1. [Messages and notes associated with Biostars post on calculating spike-in-derived scaling factors](#messages-and-notes-associated-with-biostars-post-on-calculating-spike-in-derived-scaling-factors)
+            1. [Initial post](#initial-post)
+            1. [Notes associated with initial post](#notes-associated-with-initial-post)
+            1. [Cleaned-up answer to initial post](#cleaned-up-answer-to-initial-post)
+            1. [Question #1 in response to answer: How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?](#question-1-in-response-to-answer-how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio)
+            1. [Question #1: Response #1](#question-1-response-1)
+            1. [Question #1: Response #2](#question-1-response-2)
+            1. [Question #1: Response #3](#question-1-response-3)
+            1. [Question #1: Response #4](#question-1-response-4)
+            1. [Notes on Question #1: Response #4](#notes-on-question-1-response-4)
+            1. [Question #1: Response #5](#question-1-response-5)
+            1. [Question #2 in response to answer: On the use of alignment-ratio scaling factors versus `DESeq2::estimateSizeFactors()` scaling factors](#question-2-in-response-to-answer-on-the-use-of-alignment-ratio-scaling-factors-versus-deseq2estimatesizefactors-scaling-factors)
+            1. [Question #2: Response #1](#question-2-response-1)
+            1. [Question #3 in response to answer: On scaling input coverage and visualizing scaled coverage](#question-3-in-response-to-answer-on-scaling-input-coverage-and-visualizing-scaled-coverage)
+            1. [Question #3: Response #1](#question-3-response-1)
+        1. [How scaling factors are calculated by Egan et al., *PLOS One* 2016-1122](#how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -63,45 +72,43 @@
 ```bash
 #!/bin/bash
 
-run_prev_sym_apch=FALSE
-[[ "${run_prev_sym_apch}" == TRUE ]] &&
-    {
-        p_data="${HOME}/tsukiyamalab/Kris/2023_rDNA/data/PRJNA471802"
-        p_rename="${p_data}/renamed"
+run_previous_sym_approach=false
+if ${run_previous_sym_approach}; then
+    p_data="${HOME}/tsukiyamalab/Kris/2023_rDNA/data/PRJNA471802"
+    p_rename="${p_data}/renamed"
 
-        [[ ! -d "${p_rename}" ]] && mkdir -p "${p_rename}"
+    [[ ! -d "${p_rename}" ]] && mkdir -p "${p_rename}"
 
-        unset data
-        typeset -A data=(
-            ["${p_data}/SRR7175375.fastq"]="${p_rename}/Brn1_Q_rep1_ChIP.fastq"
-            ["${p_data}/SRR7175376.fastq"]="${p_rename}/Brn1_Q_rep1_input.fastq"
-            ["${p_data}/SRR7175377.fastq"]="${p_rename}/Brn1_Q_rep2_ChIP.fastq"
-            ["${p_data}/SRR7175378.fastq"]="${p_rename}/Brn1_Q_rep2_input.fastq"
-            ["${p_data}/SRR7175379.fastq"]="${p_rename}/Brn1_Q_rep3_ChIP.fastq"
-            ["${p_data}/SRR7175380.fastq"]="${p_rename}/Brn1_Q_rep3_input.fastq"
-            ["${p_data}/SRR7175382.fastq"]="${p_rename}/Brn1_Q_all_input.fastq"
-            ["${p_data}/SRR7175381.fastq"]="${p_rename}/Brn1_Q_all_ChIP.fastq"
-            ["${p_data}/SRR7175367.fastq"]="${p_rename}/Brn1_log_rep1_ChIP.fastq"
-            ["${p_data}/SRR7175368.fastq"]="${p_rename}/Brn1_log_rep1_input.fastq"
-            ["${p_data}/SRR7175369.fastq"]="${p_rename}/Brn1_log_rep2_ChIP.fastq"
-            ["${p_data}/SRR7175370.fastq"]="${p_rename}/Brn1_log_rep2_input.fastq"
-            ["${p_data}/SRR7175371.fastq"]="${p_rename}/Brn1_log_rep3_ChIP.fastq"
-            ["${p_data}/SRR7175372.fastq"]="${p_rename}/Brn1_log_rep3_input.fastq"
-            ["${p_data}/SRR7175373.fastq"]="${p_rename}/Brn1_log_all_ChIP.fastq"
-            ["${p_data}/SRR7175374.fastq"]="${p_rename}/Brn1_log_all_input.fastq"
-        )
+    unset data && typeset -A data=(
+        ["${p_data}/SRR7175375.fastq"]="${p_rename}/Brn1_Q_rep1_ChIP.fastq"
+        ["${p_data}/SRR7175376.fastq"]="${p_rename}/Brn1_Q_rep1_input.fastq"
+        ["${p_data}/SRR7175377.fastq"]="${p_rename}/Brn1_Q_rep2_ChIP.fastq"
+        ["${p_data}/SRR7175378.fastq"]="${p_rename}/Brn1_Q_rep2_input.fastq"
+        ["${p_data}/SRR7175379.fastq"]="${p_rename}/Brn1_Q_rep3_ChIP.fastq"
+        ["${p_data}/SRR7175380.fastq"]="${p_rename}/Brn1_Q_rep3_input.fastq"
+        ["${p_data}/SRR7175382.fastq"]="${p_rename}/Brn1_Q_all_input.fastq"
+        ["${p_data}/SRR7175381.fastq"]="${p_rename}/Brn1_Q_all_ChIP.fastq"
+        ["${p_data}/SRR7175367.fastq"]="${p_rename}/Brn1_log_rep1_ChIP.fastq"
+        ["${p_data}/SRR7175368.fastq"]="${p_rename}/Brn1_log_rep1_input.fastq"
+        ["${p_data}/SRR7175369.fastq"]="${p_rename}/Brn1_log_rep2_ChIP.fastq"
+        ["${p_data}/SRR7175370.fastq"]="${p_rename}/Brn1_log_rep2_input.fastq"
+        ["${p_data}/SRR7175371.fastq"]="${p_rename}/Brn1_log_rep3_ChIP.fastq"
+        ["${p_data}/SRR7175372.fastq"]="${p_rename}/Brn1_log_rep3_input.fastq"
+        ["${p_data}/SRR7175373.fastq"]="${p_rename}/Brn1_log_all_ChIP.fastq"
+        ["${p_data}/SRR7175374.fastq"]="${p_rename}/Brn1_log_all_input.fastq"
+    )
 
-        #  Rather than rename the initial files, make "symbolic links" to the
-        #+ files with new, better-detailed names
-        for i in "${!data[@]}"; do
-            echo """
-              key  ${i}
-            value  ${data[${i}]}
-            """
+    #  Rather than rename the initial files, make "symbolic links" to the
+    #+ files with new, better-detailed names
+    for i in "${!data[@]}"; do
+        echo "
+          key  ${i}
+        value  ${data[${i}]}
+        "
 
-            ln -s "${i}" "${data["${i}"]}"
-        done
-    }
+        ln -s "${i}" "${data["${i}"]}"
+    done
+fi
 
 #UPDATE
 #  2023-0715-0716: fastqs are now compressed, and symlinked/renamed files are
@@ -114,6 +121,44 @@ ls -lhaFG "${p_sym}"
 #NOTE
 #  For more details on the symlinking/renaming process, see
 #+ 2023_rDNA/results/2023-0228_work_fastqs_download/work_download-data.md
+
+#UPDATE
+#  2024-0522: re-symlinking the data in new directory 2023_tutorial_ChIP-seq in
+#+ the style of the rest of the data for the manuscript
+run_new_sym_approach=true
+if ${run_new_sym_approach}; then
+    p_data="${HOME}/projects-etc/2023_rDNA/data/PRJNA471802/sym"
+    p_sym="${HOME}/projects-etc/2023_tutorial_ChIP-seq/01_sym"
+
+    unset data && typeset -A data=(
+        ["${p_data}/Ch_log_WT_Brn1_rep1.fastq.gz"]="${p_sym}/IP_log_Brn1_rep1.fastq.gz"
+        ["${p_data}/Ch_log_WT_Brn1_rep2.fastq.gz"]="${p_sym}/IP_log_Brn1_rep2.fastq.gz"
+        ["${p_data}/Ch_log_WT_Brn1_rep3.fastq.gz"]="${p_sym}/IP_log_Brn1_rep3.fastq.gz"
+        ["${p_data}/Ch_log_WT_Brn1_repM.fastq.gz"]="${p_sym}/IP_log_Brn1_repM.fastq.gz"
+        ["${p_data}/Ch_Q_WT_Brn1_rep1.fastq.gz"]="${p_sym}/IP_Q_Brn1_rep1.fastq.gz"
+        ["${p_data}/Ch_Q_WT_Brn1_rep2.fastq.gz"]="${p_sym}/IP_Q_Brn1_rep2.fastq.gz"
+        ["${p_data}/Ch_Q_WT_Brn1_rep3.fastq.gz"]="${p_sym}/IP_Q_Brn1_rep3.fastq.gz"
+        ["${p_data}/Ch_Q_WT_Brn1_repM.fastq.gz"]="${p_sym}/IP_Q_Brn1_repM.fastq.gz"
+        ["${p_data}/in_log_WT_Brn1_rep1.fastq.gz"]="${p_sym}/in_log_Brn1_rep1.fastq.gz"
+        ["${p_data}/in_log_WT_Brn1_rep2.fastq.gz"]="${p_sym}/in_log_Brn1_rep2.fastq.gz"
+        ["${p_data}/in_log_WT_Brn1_rep3.fastq.gz"]="${p_sym}/in_log_Brn1_rep3.fastq.gz"
+        ["${p_data}/in_log_WT_Brn1_repM.fastq.gz"]="${p_sym}/in_log_Brn1_repM.fastq.gz"
+        ["${p_data}/in_Q_WT_Brn1_rep1.fastq.gz"]="${p_sym}/in_Q_Brn1_rep1.fastq.gz"
+        ["${p_data}/in_Q_WT_Brn1_rep2.fastq.gz"]="${p_sym}/in_Q_Brn1_rep2.fastq.gz"
+        ["${p_data}/in_Q_WT_Brn1_rep3.fastq.gz"]="${p_sym}/in_Q_Brn1_rep3.fastq.gz"
+        ["${p_data}/in_Q_WT_Brn1_repM.fastq.gz"]="${p_sym}/in_Q_Brn1_repM.fastq.gz"
+    )
+
+    for i in "${!data[@]}"; do
+        echo "
+        Symlinking...
+          key  ${i}
+        value  ${data[${i}]}
+        "
+
+        ln -s "${i}" "${data["${i}"]}"
+    done
+fi
 ```
 </details>
 <br />
@@ -141,176 +186,83 @@ module purge
 ml SAMtools/1.16.1-GCC-11.2.0 Bowtie2/2.4.4-GCC-11.2.0
 
 #  Set up work directory, directories for processed data
-d_work="${HOME}/tsukiyamalab/Kris/2023_rDNA/results"  # cd "${d_work}"
+d_work="${HOME}/projects-etc/2023_tutorial_ChIP-seq"  # cd "${d_work}"
+# ls -lhaFG "${d_work}"
 
-[[ ! -d "${d_work}/2023-0406_tutorial_ChIP-seq_analysis/atria/err_out" ]] && \
-    mkdir -p "${d_work}/2023-0406_tutorial_ChIP-seq_analysis/atria/err_out"
-
-[[ ! -d "${d_work}/2023-0406_tutorial_ChIP-seq_analysis/bams/err_out" ]] && \
-    mkdir -p "${d_work}/2023-0406_tutorial_ChIP-seq_analysis/bams/err_out"
+if [[ ! -d "${d_work}/03_bam/bowtie2/err_out" ]]; then
+    mkdir -p ${d_work}/03_bam/bowtie2/{bam,cvrg,err_out,macs3,ppqt,qc,siQ-ChIP}
+fi
 
 #  Go to work directory
 cd "${d_work}" || echo "cd'ing failed; check on this"
 
 #  Initialize variables needed for alignment, etc.
-  threads="${SLURM_CPUS_ON_NODE}"                                        # echo "${threads}"
-  scratch="/fh/scratch/delete30/tsukiyama_t"                             # ., "${scratch}"
- d_genome="${HOME}/tsukiyamalab/Kris/genomes/combined_SC_SP"             # ls -lhaFG "${d_genome}"
- f_genome="${d_genome}/fasta/combined_SC_SP.fa"                          # ls -lhaFG "${f_genome}"
-f_indices="${d_genome}/bowtie2/$(basename "${f_genome}" .fa)"            # ls -lhaFG "${f_indices}"*
-  err_out="${d_work}/2023-0406_tutorial_ChIP-seq_analysis/bams/err_out"  # ls -lhaFG "${err_out}"
-   d_bams="$(dirname ${err_out})"                                        # ls -lhaFG "${d_bams}"
+  threads="${SLURM_CPUS_ON_NODE}"                              # echo "${threads}"
+  scratch="/fh/scratch/delete30/tsukiyama_t"                   # ., "${scratch}"
+ d_genome="${HOME}/tsukiyamalab/Kris/genomes/combined_SC_SP"   # ls -lhaFG "${d_genome}"
+ f_genome="${d_genome}/fasta/combined_SC_SP.fa"                # ls -lhaFG "${f_genome}"
+f_indices="${d_genome}/bowtie2/$(basename "${f_genome}" .fa)"  # ls -lhaFG "${f_indices}"*
+  err_out="${d_work}/03_bam/bowtie2/err_out"                   # ls -lhaFG "${err_out}"
+   d_bams="${d_work}/03_bam/bowtie2/bam"                       # ls -lhaFG "${d_bams}"
 
-p_data="${HOME}/tsukiyamalab/Kris/2023_rDNA/data/PRJNA471802/sym"        # ls -lhaFG "${p_data}"
-unset fastqs
-typeset -a fastqs=(
-    "${p_data}/Ch_log_WT_Brn1_rep1.fastq.gz"
-    "${p_data}/Ch_log_WT_Brn1_rep2.fastq.gz"
-    "${p_data}/Ch_log_WT_Brn1_rep3.fastq.gz"
-    "${p_data}/Ch_log_WT_Brn1_repM.fastq.gz"
-    "${p_data}/Ch_Q_WT_Brn1_rep1.fastq.gz"
-    "${p_data}/Ch_Q_WT_Brn1_rep2.fastq.gz"
-    "${p_data}/Ch_Q_WT_Brn1_rep3.fastq.gz"
-    "${p_data}/Ch_Q_WT_Brn1_repM.fastq.gz"
-    "${p_data}/in_log_WT_Brn1_rep1.fastq.gz"
-    "${p_data}/in_log_WT_Brn1_rep2.fastq.gz"
-    "${p_data}/in_log_WT_Brn1_rep3.fastq.gz"
-    "${p_data}/in_log_WT_Brn1_repM.fastq.gz"
-    "${p_data}/in_Q_WT_Brn1_rep1.fastq.gz"
-    "${p_data}/in_Q_WT_Brn1_rep2.fastq.gz"
-    "${p_data}/in_Q_WT_Brn1_rep3.fastq.gz"
-    "${p_data}/in_Q_WT_Brn1_repM.fastq.gz"
+p_data="${HOME}/projects-etc/2023_tutorial_ChIP-seq/01_sym"    # ls -lhaFG "${p_data}"
+unset fastqs && typeset -a fastqs=(
+    "${p_data}/IP_log_Brn1_rep1.fastq.gz"
+    "${p_data}/IP_log_Brn1_rep2.fastq.gz"
+    "${p_data}/IP_log_Brn1_rep3.fastq.gz"
+    "${p_data}/IP_log_Brn1_repM.fastq.gz"
+    "${p_data}/IP_Q_Brn1_rep1.fastq.gz"
+    "${p_data}/IP_Q_Brn1_rep2.fastq.gz"
+    "${p_data}/IP_Q_Brn1_rep3.fastq.gz"
+    "${p_data}/IP_Q_Brn1_repM.fastq.gz"
+    "${p_data}/in_log_Brn1_rep1.fastq.gz"
+    "${p_data}/in_log_Brn1_rep2.fastq.gz"
+    "${p_data}/in_log_Brn1_rep3.fastq.gz"
+    "${p_data}/in_log_Brn1_repM.fastq.gz"
+    "${p_data}/in_Q_Brn1_rep1.fastq.gz"
+    "${p_data}/in_Q_Brn1_rep2.fastq.gz"
+    "${p_data}/in_Q_Brn1_rep3.fastq.gz"
+    "${p_data}/in_Q_Brn1_repM.fastq.gz"
 )
 
-p_atria="${d_work}/2023-0406_tutorial_ChIP-seq_analysis/atria"
-unset atria
-typeset -a atria=(
-    "${p_atria}/Ch_log_WT_Brn1_rep1.atria.fastq.gz"
-    "${p_atria}/Ch_log_WT_Brn1_rep2.atria.fastq.gz"
-    "${p_atria}/Ch_log_WT_Brn1_rep3.atria.fastq.gz"
-    "${p_atria}/Ch_log_WT_Brn1_repM.atria.fastq.gz"
-    "${p_atria}/Ch_Q_WT_Brn1_rep1.atria.fastq.gz"
-    "${p_atria}/Ch_Q_WT_Brn1_rep2.atria.fastq.gz"
-    "${p_atria}/Ch_Q_WT_Brn1_rep3.atria.fastq.gz"
-    "${p_atria}/Ch_Q_WT_Brn1_repM.atria.fastq.gz"
-    "${p_atria}/in_log_WT_Brn1_rep1.atria.fastq.gz"
-    "${p_atria}/in_log_WT_Brn1_rep2.atria.fastq.gz"
-    "${p_atria}/in_log_WT_Brn1_rep3.atria.fastq.gz"
-    "${p_atria}/in_log_WT_Brn1_repM.atria.fastq.gz"
-    "${p_atria}/in_Q_WT_Brn1_rep1.atria.fastq.gz"
-    "${p_atria}/in_Q_WT_Brn1_rep2.atria.fastq.gz"
-    "${p_atria}/in_Q_WT_Brn1_rep3.atria.fastq.gz"
-    "${p_atria}/in_Q_WT_Brn1_repM.atria.fastq.gz"
-)
+run_check=true
+if ${run_check}; then
+    echo '### echo "${threads}" ###'
+    echo "${threads}"
+    echo ""
 
-run_check=TRUE
-[[ "${run_check}" == TRUE ]] &&
-    {
-        echo '### echo "${threads}" ###'
-        echo "${threads}"
-        echo ""
+    echo '### ls -lhaFG "${scratch} ###'
+    ls -lhaFG "${scratch}"
+    echo ""
 
-        echo '### ls -lhaFG "${scratch} ###'
-        ls -lhaFG "${scratch}"
-        echo ""
+    echo '### ls -lhaFG "${d_genome}" ###'
+    ls -lhaFG "${d_genome}"
+    echo ""
 
-        echo '### ls -lhaFG "${d_genome}" ###'
-        ls -lhaFG "${d_genome}"
-        echo ""
+    echo '### ls -lhaFG "${f_genome}" ###'
+    ls -lhaFG "${f_genome}"
+    echo ""
 
-        echo '### ls -lhaFG "${f_genome}" ###'
-        ls -lhaFG "${f_genome}"
-        echo ""
+    echo '### ls -lhaFG "${f_indices}"* ###'
+    ls -lhaFG "${f_indices}"*
+    echo ""
 
-        echo '### ls -lhaFG "${f_indices}"* ###'
-        ls -lhaFG "${f_indices}"*
-        echo ""
+    echo '### ls -lhaFG "${err_out}" ###'
+    ls -lhaFG "${err_out}"
+    echo ""
 
-        echo '### ls -lhaFG "${err_out}" ###'
-        ls -lhaFG "${err_out}"
-        echo ""
+    echo '### ls -lhaFG "${d_bams}" ###'
+    ls -lhaFG "${d_bams}"
+    echo ""
 
-        echo '### ls -lhaFG "${d_bams}" ###'
-        ls -lhaFG "${d_bams}"
-        echo ""
+    echo '### ls -lhaFG "${p_data}" ###'
+    ls -lhaFG "${p_data}"
+    echo ""
 
-        echo '### ls -lhaFG "${p_data}" ###'
-        ls -lhaFG "${p_data}"
-        echo ""
-
-        echo '### for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done ###'
-        for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done
-        echo ""
-
-        echo '### for i in "${atria[@]}"; do echo "${i}"; done ###'
-        for i in "${atria[@]}"; do echo "${i}"; done
-    }
-```
-</details>
-<br />
-
-<a id="trim-any-adapter-sequences-present-in-the-reads"></a>
-#### Trim any adapter sequences present in the reads
-<a id="code-2"></a>
-##### Code
-<details>
-<summary><i>Code</i></summary>
-
-```bash
-#!/bin/bash
-
-#  Run print tests to check that the commands are correct/reasonable
-print_test=TRUE
-[[ "${print_test}" == TRUE ]] &&
-    {
-        for i in "${fastqs[@]}"; do
-            echo """
-            \"\${HOME}/tsukiyamalab/kalavatt/2023_rDNA/src/Atria/app-3.2.2/bin/atria\" \\
-                -t \"${threads}\" \\
-                -r \"${i}\" \\
-                -o \"${p_atria}\" \\
-                --length-range 35:500
-            """
-        done
-    }
-
-#  If things look good, then run the calls to atria (the program for trimming)
-run=TRUE
-[[ "${run}" == TRUE ]] &&
-    {
-        for i in ./2023-0406_tutorial_ChIP-seq_analysis/atria/*.fastq.gz; do
-            if [[ ! -e "${i}" ]]; then
-                echo "File does not exist; making file"
-                #  Initialize environment for atria's dependencies
-                [[ "${CONDA_DEFAULT_ENV}" != "atria_env" ]] && \
-                    source activate atria_env
-                
-                for i in "${fastqs[@]}"; do
-                    "${HOME}/tsukiyamalab/kalavatt/2023_rDNA/src/Atria/app-3.2.2/bin/atria" \
-                        -t "${threads}" \
-                        -r "${i}" \
-                        -o "${p_atria}" \
-                        --length-range 35:500
-                done
-
-                #  Move atria logs to atria/err_out/
-                [[ $(find "${p_atria}" -type f \( -name "*.log" -o -name "*.json" \) | wc -l) -gt 0 ]] && \
-                    mv ${p_atria}/*.{log,json} "${p_atria}/err_out"
-            else
-                echo "Atria-trimmed fastqs exist; skipping the running of Atria"
-                break
-            fi
-
-        done
-    }
-
-#  Check that "${atria[@]}" array elements exist/are recognized by the system
-run_check=TRUE
-[[ "${run_check}" == TRUE ]] &&
-    {
-        echo '### for i in "${atria[@]}"; do ls -lhaFG "${i}"; done ###'
-        for i in "${atria[@]}"; do ls -lhaFG "${i}"; done
-    }
+    echo '### for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done ###'
+    for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done
+    echo ""
+fi
 ```
 </details>
 <br />
@@ -319,7 +271,7 @@ run_check=TRUE
 #### Align, sort, and index the sample datasets
 <a id="smartmaps-bowtie2-parameters"></a>
 ##### `SmartMap`'s `Bowtie2` parameters
-<a id="code-3"></a>
+<a id="code-2"></a>
 ###### Code
 <details>
 <summary><i>Code</i></summary>
@@ -367,12 +319,127 @@ run_check=TRUE
 #+ >     --end-to-end \
 #+ >     --very-fast \
 #+ >     -U "${i}"
+
+#NOTE
+#  Updated Bowtie2 call for alignment of single-end sequenced reads based on
+#+ the call for paired-end sequenced reads in the following Bash script:
+#+ `align-process-etc_fastqs_bowtie2.sh``
+#+ ❯ bowtie2 \
+#+ >     -p "${threads}" \
+#+ >     -x "${f_indices}" \
+#+ >     --very-sensitive-local 
+#+ >     --no-unal \
+#+ >     --phred33 \
+#+ >     -U "${i}"
 ```
 </details>
 <br />
 
-<a id="align-etc-atria-trimmed-fastqs"></a>
-##### Align (etc.) `atria`-trimmed `fastq`s
+<a id="align-etc-untrimmed-fastqs"></a>
+##### Align (etc.) untrimmed `fastq`s
+<a id="code-3"></a>
+###### Code
+<details>
+<summary><i>Code</i></summary>
+
+```bash
+#!/bin/bash
+
+#  Run print tests to check that the commands are correct/reasonable
+print_test=true
+if ${print_test}; then
+    for i in "${atria[@]}"; do
+        # i="${atria[0]}"  # ., "${i}"
+        in_fastq="${i}"  # ., "${in_fastq}"
+        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
+
+        echo "
+        #  ---------------------------------------------------------
+        #  Align untrimmed fastqs
+        {
+            bowtie2 \\
+                -p ${threads} \\
+                -x ${f_indices} \\
+                --very-sensitive-local \
+                --no-unal \\
+                --phred33 \\
+                -U "${i}" \\
+                    | samtools view \\
+                        -@ ${threads} \\
+                        -T ${scratch} \\
+                        -b \\
+                        -q ${mapq} \\
+                        -o ${out_bam}
+        } \\
+             > >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-view.stdout.txt) \\
+            2> >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-view.stderr.txt)
+
+        #  Index the sorted bams
+        if [[ -f ${out_bam} ]]; then
+            samtools index \\
+                -@ ${threads} \\
+                ${out_bam} \\
+                     > >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stdout.txt) \\
+                    2> >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stderr.txt)
+        fi
+        "
+    done
+fi
+
+run=true
+if ${run}; then
+    for i in "${atria[@]}"; do
+        # i="${atria[0]}"  # echo "${i}"
+        in_fastq="${i}"  # ., "${in_fastq}"
+        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
+
+        
+        if [[ ! -e "${out_bam}" ]]; then
+            echo "#### Aligning, sorting, indexing $(basename ${in_fastq}) ####"
+            #  Align fastqs trimmed with atria; sort resulting bams
+            {
+                bowtie2 \
+                    -p "${threads}" \
+                    --end-to-end \
+                    --very-fast \
+                    -x "${f_indices}" \
+                    -U "${in_fastq}" \
+                        | samtools sort \
+                            -@ "${threads}" \
+                            -T "${scratch}" \
+                            -O "bam" \
+                            -o "${out_bam}"
+            } \
+                 > "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" \
+                2> "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
+
+            #  Index the sorted bams
+            if [[ -f "${out_bam}" ]]; then
+                samtools index \
+                    -@ "${threads}" \
+                    "${out_bam}" \
+                         > >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stdout.txt") \
+                        2> >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stderr.txt")
+            fi
+
+            if [[ -f "${out_bam}" && -f "${out_bam}.bai" ]]; then
+                echo "#DONE"
+            else
+                echo "#PROBLEM"
+            fi
+            echo ""
+        else
+            echo "Bams exist; skipping the running of Bowtie 2, Samtools, etc."
+            break
+        fi
+    done
+fi
+```
+</details>
+<br />
+
+<a id="align-etc-un-trimmed-fastqs"></a>
+##### Align (etc.) un-trimmed `fastq`s
 <a id="code-4"></a>
 ###### Code
 <details>
@@ -382,200 +449,95 @@ run_check=TRUE
 #!/bin/bash
 
 #  Run print tests to check that the commands are correct/reasonable
-print_test=TRUE
-[[ "${print_test}" == TRUE ]] &&
-    {
-        for i in "${atria[@]}"; do
-            # i="${atria[0]}"  # ., "${i}"
-            in_fastq="${i}"  # ., "${in_fastq}"
-            out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
+print_test=true
+if ${print_test}; then
+    for i in "${fastqs[@]}"; do
+        # i="${fastqs[0]}"  # ., "${i}"
+        in_fastq="${i}"  # ., "${in_fastq}"
+        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
 
-            echo """
-            #  ---------------------------------------------------------
-            #  Align fastqs trimmed with atria; sort resulting bams
-            {
-                bowtie2 \\
-                    -p ${threads} \\
-                    -x ${f_indices} \\
-                    --end-to-end \\
-                    --very-fast \\
-                    -U ${i} \\
-                        | samtools sort \\
-                            -@ ${threads} \\
-                            -T ${scratch} \\
-                            -O bam \\
-                            -o ${out_bam}
-            } \\
-                 > >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt) \\
-                2> >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt)
+        echo "
+        #  ---------------------------------------------------------
+        #  Align untrimmed fastqs; sort resulting bams
+        {
+            bowtie2 \\
+                -p ${threads} \\
+                -x ${f_indices} \\
+                --very-sensitive-local \\
+                -U ${i} \\
+                    | samtools sort \\
+                        -@ ${threads} \\
+                        -T ${scratch} \\
+                        -O bam \\
+                        -o ${out_bam}
+        } \\
+             > >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt) \\
+            2> >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt)
 
-            #  Index the sorted bams
-            if [[ -f ${out_bam} ]]; then
-                samtools index \\
-                    -@ ${threads} \\
-                    ${out_bam} \\
-                         > >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stdout.txt) \\
-                        2> >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stderr.txt)
-            fi
-            """
-        done
-    }
+        #  Index the sorted bams
+        if [[ -f ${out_bam} ]]; then
+            samtools index \\
+                -@ ${threads} \\
+                ${out_bam} \\
+                     > >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stdout.txt) \\
+                    2> >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stderr.txt)
+        fi
+        "
+    done
+fi
 
-run=TRUE
-[[ "${run}" == TRUE ]] &&
-    {
-        for i in "${atria[@]}"; do
-            # i="${atria[0]}"  # echo "${i}"
-            in_fastq="${i}"  # ., "${in_fastq}"
-            out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
+run=true
+if ${run}; then
+    for i in "${fastqs[@]}"; do
+        # i="${fastqs[0]}"  # echo "${i}"
+        in_fastq="${i}"  # ., "${in_fastq}"
+        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
 
+        if [[ ! -e "${out_bam}" ]]; then
+            [[ -f "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" ]] && \
+                rm "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt"
             
-            if [[ ! -e "${out_bam}" ]]; then
-                echo "#### Aligning, sorting, indexing $(basename ${in_fastq}) ####"
-                #  Align fastqs trimmed with atria; sort resulting bams
-                {
-                    bowtie2 \
-                        -p "${threads}" \
-                        --end-to-end \
-                        --very-fast \
-                        -x "${f_indices}" \
-                        -U "${in_fastq}" \
-                            | samtools sort \
-                                -@ "${threads}" \
-                                -T "${scratch}" \
-                                -O "bam" \
-                                -o "${out_bam}"
-                } \
-                     > "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" \
-                    2> "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
+            [[ -f "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt" ]] && \
+                rm "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
 
-                #  Index the sorted bams
-                if [[ -f "${out_bam}" ]]; then
-                    samtools index \
-                        -@ "${threads}" \
-                        "${out_bam}" \
-                             > >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stdout.txt") \
-                            2> >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stderr.txt")
-                fi
-
-                if [[ -f "${out_bam}" && -f "${out_bam}.bai" ]]; then
-                    echo "#DONE"
-                else
-                    echo "#PROBLEM"
-                fi
-                echo ""
-            else
-                echo "Bams exist; skipping the running of Bowtie 2, Samtools, etc."
-                break
-            fi
-        done
-    }
-```
-</details>
-<br />
-
-<a id="align-etc-un-trimmed-fastqs"></a>
-##### Align (etc.) un-trimmed `fastq`s
-<a id="code-5"></a>
-###### Code
-<details>
-<summary><i>Code</i></summary>
-
-```bash
-#!/bin/bash
-
-#  Run print tests to check that the commands are correct/reasonable
-print_test=TRUE
-[[ "${print_test}" == TRUE ]] &&
-    {
-        for i in "${fastqs[@]}"; do
-            # i="${fastqs[0]}"  # ., "${i}"
-            in_fastq="${i}"  # ., "${in_fastq}"
-            out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
-
-            echo """
-            #  ---------------------------------------------------------
+            echo "#### Aligning, sorting, indexing $(basename ${in_fastq}) ####"
             #  Align untrimmed fastqs; sort resulting bams
             {
-                bowtie2 \\
-                    -p ${threads} \\
-                    -x ${f_indices} \\
-                    --very-sensitive-local \\
-                    -U ${i} \\
-                        | samtools sort \\
-                            -@ ${threads} \\
-                            -T ${scratch} \\
-                            -O bam \\
-                            -o ${out_bam}
-            } \\
-                 > >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt) \\
-                2> >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt)
+                bowtie2 \
+                    -p "${threads}" \
+                    --very-sensitive-local \
+                    -x "${f_indices}" \
+                    -U "${in_fastq}" \
+                        | samtools sort \
+                            -@ "${threads}" \
+                            -T "${scratch}" \
+                            -O "bam" \
+                            -o "${out_bam}"
+            } \
+                 > "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" \
+                2> "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
 
             #  Index the sorted bams
-            if [[ -f ${out_bam} ]]; then
-                samtools index \\
-                    -@ ${threads} \\
-                    ${out_bam} \\
-                         > >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stdout.txt) \\
-                        2> >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stderr.txt)
+            if [[ -f "${out_bam}" ]]; then
+                samtools index \
+                    -@ "${threads}" \
+                    "${out_bam}" \
+                         > >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stdout.txt") \
+                        2> >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stderr.txt")
             fi
-            """
-        done
-    }
 
-run=TRUE
-[[ "${run}" == TRUE ]] &&
-    {
-        for i in "${fastqs[@]}"; do
-            # i="${fastqs[0]}"  # echo "${i}"
-            in_fastq="${i}"  # ., "${in_fastq}"
-            out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
-
-            if [[ ! -e "${out_bam}" ]]; then
-                [[ -f "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" ]] && \
-                    rm "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt"
-                
-                [[ -f "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt" ]] && \
-                    rm "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
-
-                echo "#### Aligning, sorting, indexing $(basename ${in_fastq}) ####"
-                #  Align untrimmed fastqs; sort resulting bams
-                {
-                    bowtie2 \
-                        -p "${threads}" \
-                        --very-sensitive-local \
-                        -x "${f_indices}" \
-                        -U "${in_fastq}" \
-                            | samtools sort \
-                                -@ "${threads}" \
-                                -T "${scratch}" \
-                                -O "bam" \
-                                -o "${out_bam}"
-                } \
-                     > "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" \
-                    2> "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
-
-                #  Index the sorted bams
-                if [[ -f "${out_bam}" ]]; then
-                    samtools index \
-                        -@ "${threads}" \
-                        "${out_bam}" \
-                             > >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stdout.txt") \
-                            2> >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stderr.txt")
-                fi
-
-                if [[ -f "${out_bam}" && -f "${out_bam}.bai" ]]; then
-                    echo "#DONE"
-                else
-                    echo "#PROBLEM"
-                fi
-                echo ""
+            if [[ -f "${out_bam}" && -f "${out_bam}.bai" ]]; then
+                echo "#DONE"
             else
-                echo "Bams exist; skipping the running of Bowtie 2, Samtools, etc."
-                break
+                echo "#PROBLEM"
             fi
-        done
-    }
+            echo ""
+        else
+            echo "Bams exist; skipping the running of Bowtie 2, Samtools, etc."
+            break
+        fi
+    done
+fi
 ```
 </details>
 <br />
@@ -584,7 +546,7 @@ run=TRUE
 ### Examine flags in bam outfiles
 <a id="initialize-necessary-functions"></a>
 #### Initialize necessary functions
-<a id="code-6"></a>
+<a id="code-5"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -593,7 +555,7 @@ run=TRUE
 #!/bin/bash
 
 check_dependency() {
-    what="""
+    what="
     check_dependency()
     ------------------
     Check if a program is available in the current environment
@@ -603,11 +565,11 @@ check_dependency() {
     #DONE Check that params are not empty
     #TODO Check that params are appropriate formats/strings
     #TODO Print to stderr
-    """
+    "
 
-    warning="""
+    warning="
     WARNING: param 1 is empty; stopping the function
-    """
+    "
 
     [[ -z "${1}" ]] &&
         {
@@ -626,7 +588,7 @@ check_dependency() {
 
 
 calculate_run_time() {
-    what="""
+    what="
     calculate_run_time()
     --------------------
     Calculate run time for chunk of code
@@ -638,11 +600,11 @@ calculate_run_time() {
     #DONE Check that params are not empty
     #TODO Check that params are appropriate formats/strings
     #TODO Print to stderr
-    """
+    "
 
-    warning="""
+    warning="
     WARNING: param(s) 1, 2, and/or 3 is/are empty; stopping the function
-    """
+    "
 
     [[ -z "${1}" || -z "${2}" || -z "${3}" ]] &&
         {
@@ -665,7 +627,7 @@ calculate_run_time() {
 
 
 display_spinning_icon() {
-    what="""
+    what="
     display_spinning_icon()
     -----------------------
     Display \"spinning icon\" while a background process runs
@@ -676,11 +638,11 @@ display_spinning_icon() {
     #DONE Check that params are not empty
     #TODO Check that params are appropriate formats/strings
     #TODO Print to stderr
-    """
+    "
 
-    warning="""
+    warning="
     WARNING: param(s) 1 and/or 2 is/are empty; stopping the function
-    """
+    "
 
     [[ -z "${1}" || -z "${2}" ]] &&
         {
@@ -701,7 +663,7 @@ display_spinning_icon() {
 
 
 list_tally_flags() {
-    what="""
+    what="
     list_tally_flags()
     ------------------
     List and tally flags in a bam infile; function acts on a bam infile to
@@ -716,19 +678,19 @@ list_tally_flags() {
     #DONE Check that dependency is present
     #TODO Check that params are appropriate formats/strings
     #TODO Print to stderr
-    """
+    "
 
-    warning_param="""
+    warning_param="
     WARNING: param 1 is empty; stopping the function
-    """
+    "
 
-    warning_file="""
+    warning_file="
     WARNING: param 1 file not found; stopping the function
-    """
+    "
 
-    warning_depend="""
+    warning_depend="
     WARNING: One or more dependencies not found; stopping the function
-    """
+    "
 
     [[ -z "${1}" ]] &&
         {
@@ -774,7 +736,7 @@ list_tally_flags() {
 
 
 list_tally_MAPQs() {
-    what="""
+    what="
     list_tally_MAPQs()
     ------------------
     List and tally MAPQ scores in a bam infile; function acts on a bam infile
@@ -789,19 +751,19 @@ list_tally_MAPQs() {
     #DONE Check that dependency is present
     #TODO Check that params are appropriate formats/strings
     #TODO Print to stderr
-    """
+    "
 
-    warning_param="""
+    warning_param="
     WARNING: param 1 is empty; stopping the function
-    """
+    "
 
-    warning_file="""
+    warning_file="
     WARNING: param 1 file not found; stopping the function
-    """
+    "
 
-    warning_depend="""
+    warning_depend="
     WARNING: One or more dependencies not found; stopping the function
-    """
+    "
 
     [[ -z "${1}" ]] &&
         {
@@ -850,7 +812,7 @@ list_tally_MAPQs() {
 
 <a id="initialize-an-array-of-bams"></a>
 #### Initialize an array of bams
-<a id="code-7"></a>
+<a id="code-6"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -895,18 +857,17 @@ typeset -a bams=(
     "${p_data}/in_Q_WT_Brn1_repM.bam"
 )
 
-run_check=TRUE
-[[ "${run_check}" == TRUE ]] &&
-    {
-        for i in "${bams[@]}"; do ls -lhaFG "${i}"; done
-    }
+run_check=true
+if ${run_check}; then
+    for i in "${bams[@]}"; do ls -lhaFG "${i}"; done
+fi
 ```
 </details>
 <br />
 
 <a id="check-on-flag-information-in-bams"></a>
-#### Check on flag information in bams
-<a id="code-8"></a>
+#### Check on flag information in `bam`s
+<a id="code-7"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -954,7 +915,7 @@ done
 ### Tally/calculate alignments
 <a id="initialize-functions-for-doing-floating-point-arithmetic-etc"></a>
 #### Initialize functions for doing floating point arithmetic, etc.
-<a id="code-9"></a>
+<a id="code-8"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -1128,7 +1089,7 @@ export -f transpose_values
 
 <a id="get-situated-then-initialize-arrays-variables-etc"></a>
 #### Get situated, then initialize arrays, variables, etc.
-<a id="code-10"></a>
+<a id="code-9"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -1163,9 +1124,10 @@ unset bams && typeset -a bams=(
     "${p_data}/Ch_Q_WT_Brn1_repM.atria.bam"
 )
 
-run_check=FALSE
-[[ "${run_check}" == TRUE ]] && \
+run_check=false
+if ${run_check}; then
     for i in "${bams[@]}"; do ls -lhaFG "${i}"; done
+fi
 
 #  Initialize other necessary variables, etc.
     d_proj="${HOME}/tsukiyamalab/Kris/2023_rDNA"
@@ -1215,7 +1177,7 @@ unset rat_test && typeset -a rat_test
 
 <a id="generate-tab-separated-table-of-alignment-talliescalculations"></a>
 #### Generate tab-separated table of alignment tallies/calculations
-<a id="code-11"></a>
+<a id="code-10"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -1305,60 +1267,59 @@ for (( i=0; i < ${#bams[@]}; i++ )); do
 
 
     #  Run print test -------------------------------------
-    print_test=FALSE
-    [[ "${print_test}" == TRUE ]] &&
-        {
-            echo """
-            ${sample}
-            ----------------------------------------
-            ${unmapped}
-            ${mapped}
+    print_test=false
+    if ${print_test}; then
+        echo "
+        ${sample}
+        ----------------------------------------
+        ${unmapped}
+        ${mapped}
 
-            ${total_with_Mito}
-            ${total_SC_with_Mito}
-            ${total_SP_with_Mito}
+        ${total_with_Mito}
+        ${total_SC_with_Mito}
+        ${total_SP_with_Mito}
 
-            ${total_sans_Mito}
-            ${total_SC_sans_Mito}
-            ${total_SP_sans_Mito}
-            ${total_SC_Mito}
-            ${total_SP_Mito}
+        ${total_sans_Mito}
+        ${total_SC_sans_Mito}
+        ${total_SP_sans_Mito}
+        ${total_SC_Mito}
+        ${total_SP_Mito}
 
-            ${total_1}
-            ${total_2}
-            ${total_3}
-            ${total_23}
-            ${total_30}
-            ${total_40}
-            ${total_42}
+        ${total_1}
+        ${total_2}
+        ${total_3}
+        ${total_23}
+        ${total_30}
+        ${total_40}
+        ${total_42}
 
-            ${SC_0}
-            ${SP_0}
-            ${SC_1}
-            ${SP_1}
-            ${SC_2}
-            ${SP_2}
-            ${SC_3}
-            ${SP_3}
-            ${SC_23}
-            ${SP_23}
-            ${SC_30}
-            ${SP_30}
-            ${SC_40}
-            ${SP_40}
-            ${SC_42}
-            ${SC_42}
+        ${SC_0}
+        ${SP_0}
+        ${SC_1}
+        ${SP_1}
+        ${SC_2}
+        ${SP_2}
+        ${SC_3}
+        ${SP_3}
+        ${SC_23}
+        ${SP_23}
+        ${SC_30}
+        ${SP_30}
+        ${SC_40}
+        ${SP_40}
+        ${SC_42}
+        ${SC_42}
 
-            ${CC_SP2SC_0}
-            ${CC_SP2SC_1}
-            ${CC_SP2SC_2}
-            ${CC_SP2SC_3}
-            ${CC_SP2SC_23}
-            ${CC_SP2SC_30}
-            ${CC_SP2SC_40}
-            ${CC_SP2SC_42}
-            """
-        }
+        ${CC_SP2SC_0}
+        ${CC_SP2SC_1}
+        ${CC_SP2SC_2}
+        ${CC_SP2SC_3}
+        ${CC_SP2SC_23}
+        ${CC_SP2SC_30}
+        ${CC_SP2SC_40}
+        ${CC_SP2SC_42}
+        "
+    fi
 
 
     #  Get basic tallies ----------------------------------
@@ -1623,70 +1584,68 @@ for (( i=0; i < ${#bams[@]}; i++ )); do
 
 
     #  Run print test -------------------------------------
-    print_test=TRUE
-    [[ "${print_test}" == TRUE ]] &&
-        {
-            echo """
-            ${sample}
-            ------------------------------------------------------------
-                      \"\${tallies[\${unmapped}]}\"  ${tallies[${unmapped}]}
-                        \"\${tallies[\${mapped}]}\"  ${tallies[${mapped}]}
+    print_test=true
+    if ${print_test}; then
+        echo "
+        ${sample}
+        ------------------------------------------------------------
+                  \"\${tallies[\${unmapped}]}\"  ${tallies[${unmapped}]}
+                    \"\${tallies[\${mapped}]}\"  ${tallies[${mapped}]}
 
-               \"\${tallies[\${total_with_Mito}]}\"  ${tallies[${total_with_Mito}]}
-            \"\${tallies[\${total_SC_with_Mito}]}\"  ${tallies[${total_SC_with_Mito}]}
-            \"\${tallies[\${total_SP_with_Mito}]}\"  ${tallies[${total_SP_with_Mito}]}
+           \"\${tallies[\${total_with_Mito}]}\"  ${tallies[${total_with_Mito}]}
+        \"\${tallies[\${total_SC_with_Mito}]}\"  ${tallies[${total_SC_with_Mito}]}
+        \"\${tallies[\${total_SP_with_Mito}]}\"  ${tallies[${total_SP_with_Mito}]}
 
-               \"\${tallies[\${total_sans_Mito}]}\"  ${tallies[${total_sans_Mito}]}
-            \"\${tallies[\${total_SC_sans_Mito}]}\"  ${tallies[${total_SC_sans_Mito}]}
-            \"\${tallies[\${total_SP_sans_Mito}]}\"  ${tallies[${total_SP_sans_Mito}]}
+           \"\${tallies[\${total_sans_Mito}]}\"  ${tallies[${total_sans_Mito}]}
+        \"\${tallies[\${total_SC_sans_Mito}]}\"  ${tallies[${total_SC_sans_Mito}]}
+        \"\${tallies[\${total_SP_sans_Mito}]}\"  ${tallies[${total_SP_sans_Mito}]}
 
-                 \"\${tallies[\${total_SC_Mito}]}\"  ${tallies[${total_SC_Mito}]}
-                 \"\${tallies[\${total_SP_Mito}]}\"  ${tallies[${total_SP_Mito}]}
+             \"\${tallies[\${total_SC_Mito}]}\"  ${tallies[${total_SC_Mito}]}
+             \"\${tallies[\${total_SP_Mito}]}\"  ${tallies[${total_SP_Mito}]}
 
-                       \"\${tallies[\${total_1}]}\"  ${tallies[${total_1}]}
-                       \"\${tallies[\${total_2}]}\"  ${tallies[${total_2}]}
-                       \"\${tallies[\${total_3}]}\"  ${tallies[${total_3}]}
-                      \"\${tallies[\${total_23}]}\"  ${tallies[${total_23}]}
-                      \"\${tallies[\${total_30}]}\"  ${tallies[${total_30}]}
-                      \"\${tallies[\${total_40}]}\"  ${tallies[${total_40}]}
-                      \"\${tallies[\${total_42}]}\"  ${tallies[${total_42}]}
+                   \"\${tallies[\${total_1}]}\"  ${tallies[${total_1}]}
+                   \"\${tallies[\${total_2}]}\"  ${tallies[${total_2}]}
+                   \"\${tallies[\${total_3}]}\"  ${tallies[${total_3}]}
+                  \"\${tallies[\${total_23}]}\"  ${tallies[${total_23}]}
+                  \"\${tallies[\${total_30}]}\"  ${tallies[${total_30}]}
+                  \"\${tallies[\${total_40}]}\"  ${tallies[${total_40}]}
+                  \"\${tallies[\${total_42}]}\"  ${tallies[${total_42}]}
 
-                          \"\${tallies[\${SC_0}]}\"  ${tallies[${SC_0}]}
-                          \"\${tallies[\${SC_1}]}\"  ${tallies[${SC_1}]}
-                          \"\${tallies[\${SC_2}]}\"  ${tallies[${SC_2}]}
-                          \"\${tallies[\${SC_3}]}\"  ${tallies[${SC_3}]}
-                         \"\${tallies[\${SC_23}]}\"  ${tallies[${SC_23}]}
-                         \"\${tallies[\${SC_30}]}\"  ${tallies[${SC_30}]}
-                         \"\${tallies[\${SC_40}]}\"  ${tallies[${SC_40}]}
-                         \"\${tallies[\${SC_42}]}\"  ${tallies[${SC_42}]}
+                      \"\${tallies[\${SC_0}]}\"  ${tallies[${SC_0}]}
+                      \"\${tallies[\${SC_1}]}\"  ${tallies[${SC_1}]}
+                      \"\${tallies[\${SC_2}]}\"  ${tallies[${SC_2}]}
+                      \"\${tallies[\${SC_3}]}\"  ${tallies[${SC_3}]}
+                     \"\${tallies[\${SC_23}]}\"  ${tallies[${SC_23}]}
+                     \"\${tallies[\${SC_30}]}\"  ${tallies[${SC_30}]}
+                     \"\${tallies[\${SC_40}]}\"  ${tallies[${SC_40}]}
+                     \"\${tallies[\${SC_42}]}\"  ${tallies[${SC_42}]}
 
-                          \"\${tallies[\${SP_0}]}\"  ${tallies[${SP_0}]}
-                          \"\${tallies[\${SP_1}]}\"  ${tallies[${SP_1}]}
-                          \"\${tallies[\${SP_2}]}\"  ${tallies[${SP_2}]}
-                          \"\${tallies[\${SP_3}]}\"  ${tallies[${SP_3}]}
-                         \"\${tallies[\${SP_23}]}\"  ${tallies[${SP_23}]}
-                         \"\${tallies[\${SP_30}]}\"  ${tallies[${SP_30}]}
-                         \"\${tallies[\${SP_40}]}\"  ${tallies[${SP_40}]}
-                         \"\${tallies[\${SP_42}]}\"  ${tallies[${SP_42}]}
+                      \"\${tallies[\${SP_0}]}\"  ${tallies[${SP_0}]}
+                      \"\${tallies[\${SP_1}]}\"  ${tallies[${SP_1}]}
+                      \"\${tallies[\${SP_2}]}\"  ${tallies[${SP_2}]}
+                      \"\${tallies[\${SP_3}]}\"  ${tallies[${SP_3}]}
+                     \"\${tallies[\${SP_23}]}\"  ${tallies[${SP_23}]}
+                     \"\${tallies[\${SP_30}]}\"  ${tallies[${SP_30}]}
+                     \"\${tallies[\${SP_40}]}\"  ${tallies[${SP_40}]}
+                     \"\${tallies[\${SP_42}]}\"  ${tallies[${SP_42}]}
 
-                    \"\${tallies[\${CC_SP2SC_0}]}\"  ${tallies[${CC_SP2SC_0}]}
-                    \"\${tallies[\${CC_SP2SC_1}]}\"  ${tallies[${CC_SP2SC_1}]}
-                    \"\${tallies[\${CC_SP2SC_2}]}\"  ${tallies[${CC_SP2SC_2}]}
-                    \"\${tallies[\${CC_SP2SC_3}]}\"  ${tallies[${CC_SP2SC_3}]}
-                   \"\${tallies[\${CC_SP2SC_23}]}\"  ${tallies[${CC_SP2SC_23}]}
-                   \"\${tallies[\${CC_SP2SC_30}]}\"  ${tallies[${CC_SP2SC_30}]}
-                   \"\${tallies[\${CC_SP2SC_40}]}\"  ${tallies[${CC_SP2SC_40}]}
-                   \"\${tallies[\${CC_SP2SC_42}]}\"  ${tallies[${CC_SP2SC_42}]}
-            """
-        }
+                \"\${tallies[\${CC_SP2SC_0}]}\"  ${tallies[${CC_SP2SC_0}]}
+                \"\${tallies[\${CC_SP2SC_1}]}\"  ${tallies[${CC_SP2SC_1}]}
+                \"\${tallies[\${CC_SP2SC_2}]}\"  ${tallies[${CC_SP2SC_2}]}
+                \"\${tallies[\${CC_SP2SC_3}]}\"  ${tallies[${CC_SP2SC_3}]}
+               \"\${tallies[\${CC_SP2SC_23}]}\"  ${tallies[${CC_SP2SC_23}]}
+               \"\${tallies[\${CC_SP2SC_30}]}\"  ${tallies[${CC_SP2SC_30}]}
+               \"\${tallies[\${CC_SP2SC_40}]}\"  ${tallies[${CC_SP2SC_40}]}
+               \"\${tallies[\${CC_SP2SC_42}]}\"  ${tallies[${CC_SP2SC_42}]}
+        "
+    fi
 
     #  Run print test
-    print_test=FALSE
-    [[ "${print_test}" ==  TRUE ]] &&
-        {
-            echo "${sample} ${tallies[${unmapped}]} ${tallies[${mapped}]} ${tallies[${total_with_Mito}]} ${tallies[${total_SC_with_Mito}]} ${tallies[${total_SP_with_Mito}]} ${tallies[${total_sans_Mito}]} ${tallies[${total_SC_sans_Mito}]} ${tallies[${total_SP_sans_Mito}]} ${tallies[${total_SC_Mito}]} ${tallies[${total_SP_Mito}]} ${tallies[${total_1}]} ${tallies[${total_2}]} ${tallies[${total_3}]} ${tallies[${total_23}]} ${tallies[${total_30}]} ${tallies[${total_40}]} ${tallies[${total_42}]} ${tallies[${SC_0}]} ${tallies[${SC_1}]} ${tallies[${SC_2}]} ${tallies[${SC_3}]} ${tallies[${SC_23}]} ${tallies[${SC_30}]} ${tallies[${SC_40}]} ${tallies[${SC_42}]} ${tallies[${SP_0}]} ${tallies[${SP_1}]} ${tallies[${SP_2}]} ${tallies[${SP_3}]} ${tallies[${SP_23}]} ${tallies[${SP_30}]} ${tallies[${SP_40}]} ${tallies[${SP_42}]} ${tallies[${CC_SP2SC_0}]} ${tallies[${CC_SP2SC_1}]} ${tallies[${CC_SP2SC_2}]} ${tallies[${CC_SP2SC_3}]} ${tallies[${CC_SP2SC_23}]} ${tallies[${CC_SP2SC_30}]} ${tallies[${CC_SP2SC_40}]} ${tallies[${CC_SP2SC_42}]}"
-            echo ""
-        }
+    print_test=false
+    if ${print_test}; then
+        echo "${sample} ${tallies[${unmapped}]} ${tallies[${mapped}]} ${tallies[${total_with_Mito}]} ${tallies[${total_SC_with_Mito}]} ${tallies[${total_SP_with_Mito}]} ${tallies[${total_sans_Mito}]} ${tallies[${total_SC_sans_Mito}]} ${tallies[${total_SP_sans_Mito}]} ${tallies[${total_SC_Mito}]} ${tallies[${total_SP_Mito}]} ${tallies[${total_1}]} ${tallies[${total_2}]} ${tallies[${total_3}]} ${tallies[${total_23}]} ${tallies[${total_30}]} ${tallies[${total_40}]} ${tallies[${total_42}]} ${tallies[${SC_0}]} ${tallies[${SC_1}]} ${tallies[${SC_2}]} ${tallies[${SC_3}]} ${tallies[${SC_23}]} ${tallies[${SC_30}]} ${tallies[${SC_40}]} ${tallies[${SC_42}]} ${tallies[${SP_0}]} ${tallies[${SP_1}]} ${tallies[${SP_2}]} ${tallies[${SP_3}]} ${tallies[${SP_23}]} ${tallies[${SP_30}]} ${tallies[${SP_40}]} ${tallies[${SP_42}]} ${tallies[${CC_SP2SC_0}]} ${tallies[${CC_SP2SC_1}]} ${tallies[${CC_SP2SC_2}]} ${tallies[${CC_SP2SC_3}]} ${tallies[${CC_SP2SC_23}]} ${tallies[${CC_SP2SC_30}]} ${tallies[${CC_SP2SC_40}]} ${tallies[${CC_SP2SC_42}]}"
+        echo ""
+    fi
 
     #  Write the tallies (etc.) to the temporary file (line by line with each
     #+ iteration of the loop)
@@ -1712,7 +1671,7 @@ calculate_run_time "${start}" "${end}"  \
 
 <a id="calculate-ccss-styled-scaling-factors"></a>
 #### Calculate CC/SS-styled scaling factors
-<a id="code-12"></a>
+<a id="code-11"></a>
 ##### Code
 <details>
 <summary><i>Code</i></summary>
@@ -1787,12 +1746,11 @@ for j in "${cols[@]}"; do
 done
 
 #  Run a print test for the arrays of ratios
-print_test=FALSE
-[[ ${print_test} == TRUE ]] &&
-    {
-        echo_test "${rat_ctrl[@]}" && echo ""
-        echo_test "${rat_test[@]}"
-    }
+print_test=false
+if ${print_test}; then
+    echo_test "${rat_ctrl[@]}" && echo ""
+    echo_test "${rat_test[@]}"
+fi
 
 #  Print ctrl array elements, with 8 elements per column
 [[ ! -f "${a_ind_ctrl}" ]] && touch "${a_ind_ctrl}"
@@ -1880,12 +1838,13 @@ calculate_run_time "${start}" "${end}"  \
 <br />
 <br />
 
-<a id="on-calculating-scaling-factors"></a>
-### On calculating scaling factors
+<a id="on-calculating-spike-in-derived-scaling-factors"></a>
+### On calculating spike-in-derived scaling factors
 <a id="email-from-christine-edited-by-me"></a>
 #### Email from Christine (edited by me)
 <details>
 <summary><i>Email from Christine (edited by me)</i></summary>
+<br />
 
 Title: ChIP-seq analyses: Friendly reminder to check if, when using `deepTools`, you input the scaling factors as reciprocals  
 From: Cucinotta, Christine E  
@@ -1902,34 +1861,40 @@ I have trouble writing it out, so here’s an example:
 5m pombe:cerevisiae = 0.26  # Test ratio
 
  Q scaling factor = 0.35/0.35 = 1     # Use this for the scaling factor in deepTools (control/control)  
-5m Scaling factor = 0.35/0.26 = 1.35  # Use this number for the scaling factor in deepTools (control/test)
+5m scaling factor = 0.35/0.26 = 1.35  # Use this number for the scaling factor in deepTools (control/test)
 ```
 I hope this makes sense. Please let me know if not&mdash;happy to chat!
 
 Thanks!
 
--Chrsitine
+-Christine
 </details>
 <br />
 
-<a id="notes-on-using-excel-to-calculate-scaling-factors"></a>
-#### Notes on using Excel to calculate scaling factors
+<a id="notes-on-using-excel-to-calculate-spike-in-derived-scaling-factors"></a>
+#### Notes on using Excel to calculate spike-in-derived scaling factors
 <details>
 <summary><i>Notes on using Excel to calculate scaling factors</i></summary>
+<br />
 
 Calculate the scaling factor by hand using the table of tallies/calculations
-1. Calculate the quotient of a given sample's input SP-to-SC ratio and its ChIP SP-to-SC ratio&mdash;<i>this is the <b>scaling factor</i></b>
-2. For example, for sample `Brn1_Q_rep1`, divide the `input` `SP-to-SC` value by the `ChIP` `SP-to-SC` value: 0.019802 ÷ 0.045415 = <b><i>0.436023</i></b>
-3. Do this for all samples (e.g., sample-and-replicate-wise pairs of input and ChIP `bam`s)
+1. Calculate the quotient of a given sample's input SP-to-SC ratio and its IP SP-to-SC ratio&mdash;<i>this is the <b>scaling factor</i></b>
+2. For example, for sample `Brn1_Q_rep1`, divide the `input` `SP-to-SC` value by the `IP` `SP-to-SC` value: 0.019802 ÷ 0.045415 = <b><i>0.436023</i></b>
+3. Do this for all samples (e.g., sample-and-replicate-wise pairs of input and IP `bam`s)
 </details>
 <br />
 
-<a id="more-detailed-notes-for-biostars-post-about-this-method"></a>
-#### More detailed notes for [Biostars post](https://www.biostars.org/p/9572653/) about this method
+<a id="messages-and-notes-associated-with-biostars-post-on-calculating-spike-in-derived-scaling-factors"></a>
+#### Messages and notes associated with [Biostars post](https://www.biostars.org/p/9572653/) on calculating spike-in-derived scaling factors
+<a id="initial-post"></a>
+##### [Initial post](https://www.biostars.org/p/9572653/#9572653)
 <details>
-<summary><i>More detailed notes for Biostars post</i></summary>
+<summary><i>Initial post</i></summary>
+<br />
 
-1. For each sample, tally the numbers of genome-wide quality-checked (QC'd) alignments for input, immunoprecipitate (IP), spike-in input, and spike-in IP
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+1. For each sample, tally the numbers of genome-wide quality-checked (QC'd) alignments for input, immunoprecipitate (IP), spike-in input, and spike-in IP.
 ```R
 ## R ##
  main_input <- # Integer value of QC'd genome-wide alignments for input "main"
@@ -1940,7 +1905,7 @@ spike_input <- # Integer value of QC'd genome-wide alignments for input spike-in
 ```
 *These alignment counts represent the raw data for each sample.*
 
-2. Calculate the ratio of spike-in input to "main" input, and calculate the ratio spike-in IP to "main" IP
+2. Calculate the ratio of spike-in input to "main" input, and calculate the ratio spike-in IP to "main" IP.
 ```R
 ## R ##
 ratio_input <- spike_input / main_input
@@ -1948,21 +1913,21 @@ ratio_input <- spike_input / main_input
 ```
 *The assumption here is that the spike-in controls are proportional to the actual chromatin content and should ideally represent similar scaling factors.*
 
-3. For the sample IP, calculate a scaling factor by dividing the input ratio by the IP ratio
+3. For the sample IP, calculate a scaling factor by dividing the input ratio by the IP ratio.
 ```R
 ## R ##
       sf_IP <- ratio_input / ratio_IP
 ```
 *This scaling factor aims to correct for potential differences in IP efficiency and sequencing depth between the input and IP samples.*
 
-4. For the sample input, the scaling factor is set to 1
+4. For the sample input, the scaling factor is set to 1.
 ```R
 ## R ##
    sf_input <- 1 # (i.e., from rat_IP / rat_IP)
 ```
 *Since the scaling factor for the input is calculated as 1, the input coverage will remain unchanged after scaling.*
 
-5. Using deepTools `bamCoverage`, compute IP coverage by multiplying by the IP scaling factor
+5. Using deepTools `bamCoverage`, compute IP coverage by multiplying by the IP scaling factor.
 ```bash
 ## shell ##
 
@@ -1979,6 +1944,18 @@ bamCoverage \
 ```
 *This should theoretically normalize the IP coverage based on the spike-in controls.*
 
+I've done some searching, but so far I couldn't find any publications or resources that describe this particular normalization method. I'm curious to know if any of you have come across or used this approach in your ChIP-seq analyses. Are there any potential benefits or limitations associated with this method?
+
+I will appreciate any insights and feedback on this topic, which will help me make informed decisions about normalization approaches for my ChIP-seq data. Thank you in advance for your time and assistance.
+</details>
+<br />
+
+<a id="notes-associated-with-initial-post"></a>
+##### Notes associated with [initial post](https://www.biostars.org/p/9572653/#9572653)
+<details>
+<summary><i>Notes associated with initial post</i></summary>
+<br />
+
 Strengths and assumptions for this normalization approach
 - This method attempts to account for differences in sequencing depth and capture efficiency between IP and input samples using spike-in controls.
 - It is based on the assumption that the spike-in controls accurately reflect the differences in IP efficiency and library preparation between samples.
@@ -1986,33 +1963,24 @@ Strengths and assumptions for this normalization approach
 
 Weaknesses and considerations for this normalization approach
 - The accuracy of the normalization heavily relies on the assumption that spike-in controls are consistent across all samples. If spike-ins vary in proportion or quality between samples, the normalization may introduce errors.
-- This method does not account for biological variability or differences in ChIP efficiency that are not captured by spike-in controls.
+- This method does not account for biological variability or differences in IP efficiency that are not captured by spike-in controls.
     + Antibody variability: The efficiency of the IP step can vary between samples due to differences in antibody affinity, specificity, and the extent of cross-reactivity. Spike-in controls primarily address technical variations and sequencing depth but do not account for variations in antibody-antigen interactions, which can lead to differences in the IP efficiency for different samples.
     + Sample-specific conditions: Each sample might have unique characteristics that affect the efficiency of the IP process. These could include differences in chromatin accessibility, DNA fragmentation, and local chromatin structure, which may not be directly reflected by the spike-in controls.
     + Biological variability: Spike-in controls mainly address technical variation, and they might not capture inherent biological variability between samples. Biological differences in chromatin structure, epigenetic modifications, and transcription factor binding can lead to varying efficiencies in the IP process that are not addressed by the normalization based solely on spike-ins.
     + Non-specific binding: Non-specific binding of antibodies to unintended targets can also lead to differences in IP efficiency. Such non-specific interactions might not be consistently represented by spike-in controls.
-- It assumes that the IP scaling factor applies uniformly across the entire genome, which may not be the case in regions with varying ChIP efficiencies.
+- It assumes that the IP scaling factor applies uniformly across the entire genome, which may not be the case in regions with varying IP efficiencies.
 - ~~The scaling factor can magnify noise and artifacts present in the spike-in controls, potentially introducing bias into the normalization process.~~
 - ~~It might perform well when technical variations dominate the dataset, but biological variations may not be fully corrected.~~
 </details>
 <br />
 
-<a id="how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122"></a>
-#### How scaling factors are calculated by [Egan et al., *PLOS One* 2016-1122](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0166438)
+<a id="cleaned-up-answer-to-initial-post"></a>
+##### Cleaned-up [answer](https://www.biostars.org/p/9572653/#9572655) to [initial post](https://www.biostars.org/p/9572653/)
 <details>
-<summary><i>How scaling factors are calculated by Egan et al., PLOS One 2016-1122</i></summary>
-
-
-</details>
+<summary><i>Cleaned-up answer to initial post</i></summary>
 <br />
 
-
-<a id="description-in-answer-to-biostars-post-by-jared-andrews"></a>
-#### Description in answer to [Biostars post](https://www.biostars.org/p/9572653/) (by Jared Andrews)
-<a id="cleaned-up-version-of-the-post"></a>
-##### Cleaned up version of the post
-<details>
-<summary><i>Cleaned up version of the post</i></summary>
+*[jared.andrews07](https://www.biostars.org/u/40195/)*:
 
 This is largely how our group uses them to account for genome-wide shifts, as [done in this study](https://www.sciencedirect.com/science/article/pii/S1535610818305361?via%3Dihub#sec5). If we don't normalize the tracks this way, they look largely identical, as the binding profiles are largely similar, just very diminished genome-wide.
 
@@ -2020,91 +1988,360 @@ We also normalize the scaling factors to each other so that the highest scaling 
 
 1. Calculate the percent *Drosophila* reads in the IP (from the read counts with duplicates removed)
 2. Calculate the percent *Drosophila* reads in the input (from the read counts with duplicates removed)
-3. Scaling factor = input fly % / ChIP fly %
+3. Scaling factor = input fly % / IP fly %
 4. For groups of samples that are being compared, all the scaling factors can be normalized by dividing by the highest or lowest scaling factor&mdash;this choice is made depending on how the downstream application will use the scaling factor. Ideally you should scale files down, not falsely inflate them. (For deepTools `bamCoverage`, you should divide all scaling factors by the highest scaling factor).
 
 An example calculation:
 
-Determine % of fly reads for each ChIP and input:
-```txt
+Determine % of fly reads for each IP and input:
+
 | Sample  | Human Reads | Fly Reads | Calculation           | % Fly Content |
 |---------|-------------|-----------|-----------------------|---------------|
-| ChIP_1  | 30,000,000  | 700,000   | 700,000/30,700,000    | 2.28%         |
-| Input_1 | 10,000,000  | 400,000   | 400,000/10,400,000    | 3.85%         |
-| ChIP_2  | 40,000,000  | 3,000,000 | 3,000,000/43,000,000  | 6.98%         |
-| Input_2 | 10,000,000  | 450,000   | 450,000/10,450,000    | 4.31%         |
-| ChIP_3  | 25,000,000  | 1,000,000 | 1,000,000/26,000,000  | 3.85%         |
-| Input_3 | 10,000,000  | 380,000   | 380,000/10,380,000    | 3.66%         |
-```
+| IP_1    | 30,000,000  | 700,000   | 700,000/30,700,000    | 2.28%         |
+| In_1    | 10,000,000  | 400,000   | 400,000/10,400,000    | 3.85%         |
+| IP_2    | 40,000,000  | 3,000,000 | 3,000,000/43,000,000  | 6.98%         |
+| In_2    | 10,000,000  | 450,000   | 450,000/10,450,000    | 4.31%         |
+| IP_3    | 25,000,000  | 1,000,000 | 1,000,000/26,000,000  | 3.85%         |
+| In_3    | 10,000,000  | 380,000   | 380,000/10,380,000    | 3.66%         |
 
-Determine scaling factor for each ChIP (input fly % / ChIP fly % = scaling factor):
-```txt
+
+Determine scaling factor for each IP (input fly % / IP fly % = scaling factor):
+
 | Sample  | Calculation | Scaling Factor |
 |---------|-------------|----------------|
-| ChIP_1  | 3.85/2.28   | 1.69           |
-| ChIP_2  | 4.31/6.98   | 0.62           |
-| ChIP_3  | 3.66/3.85   | 0.95           |
-```
+| IP_1    | 3.85/2.28   | 1.69           |
+| IP_2    | 4.31/6.98   | 0.62           |
+| IP_3    | 3.66/3.85   | 0.95           |
+
 Normalize scaling factors by dividing all scaling factors by highest scaling factor (this is used for `bamCoverage`&mdash;if the scaling factor is in the denominator instead, scale by the lowest scale factor):
-```txt
+
 | Sample  | Calculation | Normalized Scaling Factor |
 |---------|-------------|---------------------------|
-| ChIP_1  | 1.69/1.69   | 1.00                      |
-| ChIP_2  | 0.62/1.69   | 0.367                     |
-| ChIP_3  | 0.95/1.69   | 0.562                     |
-```
+| IP_1    | 1.69/1.69   | 1.00                      |
+| IP_2    | 0.62/1.69   | 0.367                     |
+| IP_3    | 0.95/1.69   | 0.562                     |
 </details>
 <br />
 
-<a id="how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio"></a>
-##### How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?
+<a id="question-1-in-response-to-answer-how-do-things-look-if-we-take-the-fly-to-human-ratio-instead-of-the-fly-to-all-ratio"></a>
+##### [Question #1 in response to answer](https://www.biostars.org/p/9572653/): How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?
 <details>
-<summary><i>How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?</i></summary>
+<summary><i>Question #1 in response to answer: How do things look if we take the fly-to-human ratio instead of the fly-to-all ratio?</i></summary>
+<br />
 
-Determine % of fly reads for each ChIP and input:
-```txt
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+Thank you for this. In your example, you divide the fly counts by all counts (i.e., human plus fly counts) rather than human counts alone, which was what my colleagues described. Is there a reason you use the former denominator over the latter?
+
+Because the spike-in alignment counts are low to begin with, the resulting scaling factors are similar if using (a) only human counts or (b) all counts for the denominator.
+
+**(a) Using human counts in the denominator**
+
+Determine % of fly reads for each IP and input:
+
 | Sample  | Human Reads | Fly Reads | Calculation           | % Fly Content |
 |---------|-------------|-----------|-----------------------|---------------|
-| ChIP_1  | 30,000,000  | 700,000   | 700,000 / 30,000,000  | 2.33%         |
+| IP_1    | 30,000,000  | 700,000   | 700,000 / 30,000,000  | 2.33%         |
 | Input_1 | 10,000,000  | 400,000   | 400,000 / 10,000,000  | 4.00%         |
-| ChIP_2  | 40,000,000  | 3,000,000 | 3,000,000 / 40,000,000| 7.50%         |
+| IP_2    | 40,000,000  | 3,000,000 | 3,000,000 / 40,000,000| 7.50%         |
 | Input_2 | 10,000,000  | 450,000   | 450,000 / 10,000,000  | 4.50%         |
-| ChIP_3  | 25,000,000  | 1,000,000 | 1,000,000 / 25,000,000| 4.00%         |
+| IP_3    | 25,000,000  | 1,000,000 | 1,000,000 / 25,000,000| 4.00%         |
 | Input_3 | 10,000,000  | 380,000   | 380,000 / 10,000,000  | 3.80%         |
-```
 
-Determine scaling factor for each ChIP (input fly % / ChIP fly % = scaling factor):
-```txt
+Determine scaling factor for each IP (input fly % / IP fly % = scaling factor):
+
 | Sample  | Calculation | Scaling Factor |
 |---------|-------------|----------------|
-| ChIP_1  | 4.00 / 2.33 | 1.72           |
-| ChIP_2  | 4.50 / 7.50 | 0.600          |
-| ChIP_3  | 3.80 / 4.00 | 0.950          |
-```
+| IP_1    | 4.00 / 2.33 | 1.72           |
+| IP_2    | 4.50 / 7.50 | 0.600          |
+| IP_3    | 3.80 / 4.00 | 0.950          |
+
 Normalize scaling factors by dividing all scaling factors by highest scaling factor (this is used for `bamCoverage`&mdash;if the scaling factor is in the denominator instead, scale by the lowest scale factor):
-```txt
+
 | Sample  | Calculation | Normalized Scaling Factor |
 |---------|-------------|---------------------------|
-| ChIP_1  | 1.72 / 1.72 | 1.00                      |
-| ChIP_2  | 0.60 / 1.72 | 0.349                     |
-| ChIP_3  | 0.95 / 1.72 | 0.552                     |
-```
+| IP_1    | 1.72 / 1.72 | 1.00                      |
+| IP_2    | 0.60 / 1.72 | 0.349                     |
+| IP_3    | 0.95 / 1.72 | 0.552                     |
+
+**(b) Using all counts in the denominator**
+
+Determine % of fly reads for each IP and input:
+
+| Sample  | Human Reads | Fly Reads | Calculation          | % Fly Content |
+|---------|-------------|-----------|----------------------|---------------|
+| IP_1    | 30,000,000  | 700,000   | 700,000/30,700,000   | 2.28%         |
+| Input_1 | 10,000,000  | 400,000   | 400,000/10,400,000   | 3.85%         |
+| IP_2    | 40,000,000  | 3,000,000 | 3,000,000/43,000,000 | 6.98%         |
+| Input_2 | 10,000,000  | 450,000   | 450,000/10,450,000   | 4.31%         |
+| IP_3    | 25,000,000  | 1,000,000 | 1,000,000/26,000,000 | 3.85%         |
+| Input_3 | 10,000,000  | 380,000   | 380,000/10,380,000   | 3.66%         |
+
+Determine scaling factor for each IP (input fly % / IP fly % = scaling factor):
+
+| Sample  | Calculation | Scaling Factor |
+|---------|-------------|----------------|
+| IP_1    | 3.85/2.28   | 1.69           |
+| IP_2    | 4.31/6.98   | 0.62           |
+| IP_3    | 3.66/3.85   | 0.95           |
+
+Normalize scaling factors by dividing all scaling factors by highest scaling factor (this is used for `bamCoverage`&mdash;if the scaling factor is in the denominator instead, scale by the lowest scale factor):
+
+| Sample  | Calculation | Normalized Scaling Factor |
+|---------|-------------|---------------------------|
+| IP_1    | 1.69/1.69   | 1.00                      |
+| IP_2    | 0.62/1.69   | 0.367                     |
+| IP_3    | 0.95/1.69   | 0.562                     |
 </details>
 <br />
+
+<a id="question-1-response-1"></a>
+##### [Question #1: Response #1](https://www.biostars.org/p/9572653/#9572681)
+<details>
+<summary><i>Question #1: Response #1</i></summary>
+<br />
+
+*[jared.andrews07](https://www.biostars.org/u/40195/)*:
+
+> Thank you for this. In your example, you divide the fly counts by all counts (i.e., human plus fly counts) rather than human counts alone, which was what my colleagues described. Is there a reason you use the former denominator over the latter?
+
+Well, the human and fly reads are still from one sample, so it makes sense to take them both into account to address total read depth differences (as one sample could have many more fly reads than another if the global shift is large). We can get pretty dramatic shifts where fly counts will be >5$\times$ higher in a sample with widespread depletion than a wildtype [sample] because the IP doesn't work as well due to much less protein. That represents a biological shift and is information that shouldn't be tossed out.
+
+In this example, it doesn't make much of a difference in the final number, but in some experiments, I expect it'd be a more significant shift. In your example, you can already see a larger impact on samples with a greater proportion of fly reads&mdash;[e.g., a] change of 0.018 for `IP_2`, 0.01 for `IP_3`.
+
+I can't think of any compelling reasons to not include the fly reads&mdash;it may be worth asking your colleagues why they do not.
+</details>
+<br />
+
+<a id="question-1-response-2"></a>
+##### [Question #1: Response #2](https://www.biostars.org/p/9572653/#9572685)
+<details>
+<summary><i>Question #1: Response #2</i></summary>
+<br />
+
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+Thank you, makes sense.
+
+> In this example, it doesn't make much of a difference in the final number, but in some of experiments, I expect it'd be a more significant shift. In your example, you can already see a larger impact on samples with a greater proportion of fly reads&mdash;[e.g., a] change of 0.018 for `IP_2`, 0.01 for `IP_3`.
+> 
+> I can't think of any compelling reasons to not include the mouse reads&mdash;it may be worth asking your colleagues why they do not.
+
+Good point, I will do so.
+</details>
+<br />
+
+<a id="question-1-response-3"></a>
+##### [Question #1: Response #3](https://www.biostars.org/p/9572653/#9574493)
+<details>
+<summary><i>Question #1: Response #3</i></summary>
+<br />
+
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+Thanks again, [jared.andrews07](https://www.biostars.org/u/40195/).
+
+> In this example, it doesn't make much of a difference in the final number, but in some experiments, I expect it'd be a more significant shift. In your example, you can already see a larger impact on samples with a greater proportion of fly reads&mdash;[e.g., a] change of 0.018 for `IP_2`, 0.01 for `IP_3`.
+
+In your previous work, did you happen to work with any ChIP-seq datasets where this shift is demonstrable?
+
+One of the goals of my current work is&mdash;in addition to standard analyses&mdash;to provide my colleagues with a kind of tutorial for basic ChIP-seq analyses. I'd like to present and demonstrate the point that, with this approach to normalization, it's preferable to divide by the total counts (i.e, the "main" plus spike-in counts) rather than just the "main" counts to address read-depth differences. The shift is not apparent with the datasets I'm currently working with&mdash;i.e., dividing by either total or "main" yields similar scaling coefficients. I want to clearly show this because some colleagues have been dividing by only "main" counts and getting (apparently) reasonable results; I want to make the point that more extreme circumstances will yield inappropriate scaling coefficients.
+
+So, if you happen to have encountered or know of any publicly available datasets useful for this purpose, would you mind to point me to their papers or accession numbers?
+</details>
+<br />
+
+<a id="question-1-response-4"></a>
+##### [Question #1: Response #4](https://www.biostars.org/p/9572653/#9574495)
+<details>
+<summary><i>Question #1: Response #4</i></summary>
+<br />
+
+*[jared.andrews07](https://www.biostars.org/u/40195/)*:
+
+The study I linked to in my answer has some ChIP-seq data that will have some skew, as it contains data for a mutation that ablates H3K27me3 across the genome (with focal retention at certain loci, so not completely gone). So the samples with the mutation tend to have more fly reads than those without, as the IP just doesn't pull down as much.
+
+If a rather extreme toy example is good enough, let's use the calculations in your comment above. I kicked the `IP_2` fly reads up to 9 million, and using all reads results in a normalized scaling factor of 0.144 while using only the human reads results in 0.116. Not a huge absolute difference, but noticeable compared to the difference between using all reads and only human reads seen for `IP_3` (0.028 for `IP_2` versus 0.01 for `IP_3`).
+</details>
+<br />
+
+<a id="notes-on-question-1-response-4"></a>
+##### Notes on [Question #1: Response #4](https://www.biostars.org/p/9572653/#9574495)
+<details>
+<summary><i>Notes on Question #1: Response #4</i></summary>
+<br />
+
+**(a) Using all counts in the denominator**
+
+Determine % of fly reads for each IP and input:
+
+| Sample  | Human Reads | Fly Reads | Calculation          | % Fly Content |
+|---------|-------------|-----------|----------------------|---------------|
+| IP_1    | 30,000,000  | 700,000   | 700,000/30,700,000   | 2.28%         |
+| Input_1 | 10,000,000  | 400,000   | 400,000/10,400,000   | 3.85%         |
+| IP_2    | 40,000,000  | <mark>9,000,000</mark> | <mark>9,000,000/49,000,000</mark> | <mark>18.37%</mark> |
+| Input_2 | 10,000,000  | 450,000   | 450,000/10,450,000   | 4.31%         |
+| IP_3    | 25,000,000  | 1,000,000 | 1,000,000/26,000,000 | 3.85%         |
+| Input_3 | 10,000,000  | 380,000   | 380,000/10,380,000   | 3.66%         |
+
+Determine scaling factor for each IP (input fly % / IP fly % = scaling factor):
+
+| Sample  | Calculation | Scaling Factor |
+|---------|-------------|----------------|
+| IP_1    | 3.85/2.28   | 1.69           |
+| IP_2    | 4.31/<mark>18.37</mark> | 0.23 |
+| IP_3    | 3.66/3.85   | 0.95           |
+
+Normalize scaling factors by dividing all scaling factors by highest scaling factor:
+
+| Sample  | Calculation | Normalized Scaling Factor |
+|---------|-------------|---------------------------|
+| IP_1    | 1.69/1.69   | 1.00                      |
+| IP_2    | <mark>0.23</mark>/1.69   | <mark>0.136</mark> |
+| IP_3    | 0.95/1.69   | 0.562                     |
+
+**(b) Using only human counts in the denominator**
+
+Determine % of fly reads for each IP and input:
+
+| Sample  | Human Reads | Fly Reads | Calculation          | % Fly Content |
+|---------|-------------|-----------|----------------------|---------------|
+| IP_1    | 30,000,000  | 700,000   | 700,000/30,000,000   | 2.33%         |
+| Input_1 | 10,000,000  | 400,000   | 400,000/10,000,000   | 4.00%         |
+| IP_2    | 40,000,000  | <mark>9,000,000</mark> | <mark>9,000,000/40,000,000</mark> | <mark>22.5%</mark> |
+| Input_2 | 10,000,000  | 450,000   | 450,000/10,000,000   | 4.50%         |
+| IP_3    | 25,000,000  | 1,000,000 | 1,000,000/25,000,000 | 4.00%         |
+| Input_3 | 10,000,000  | 380,000   | 380,000/10,000,000   | 3.80%         |
+
+Determine scaling factor for each IP (input fly % / IP fly % = scaling factor):
+
+| Sample  | Calculation | Scaling Factor |
+|---------|-------------|----------------|
+| IP_1    | 4.00/2.33   | 1.72           |
+| IP_2    | 4.50/<mark>22.5</mark> | 0.20 |
+| IP_3    | 3.80/4.00   | 0.95           |
+
+Normalize scaling factors by dividing all scaling factors by highest scaling factor:
+
+| Sample  | Calculation | Normalized Scaling Factor |
+|---------|-------------|---------------------------|
+| IP_1    | 1.72/1.72   | 1.00                      |
+| IP_2    | <mark>0.20</mark>/1.72   | <mark>0.116</mark> |
+| IP_3    | 0.95/1.72   | 0.552                     |
+
+**(c) Notes, comments**
+> ...and using all reads results in a normalized scaling factor of 0.144 while using only the human reads results in 0.116.
+
+Using all reads (main and spike-in), I'm not getting the 0.144 reported by Jared; instead, I am getting 0.136. However, using only main reads in the denominator of the scaling factor calculation, I am getting the 0.116 reported by Jared.
+</details>
+<br />
+
+<a id="question-1-response-5"></a>
+##### [Question #1: Response #5](https://www.biostars.org/p/9572653/#9574499)
+<details>
+<summary><i>Question #1: Response #5</i></summary>
+<br />
+
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+Sounds good, thank you so much!
+</details>
+<br />
+
+<a id="question-2-in-response-to-answer-on-the-use-of-alignment-ratio-scaling-factors-versus-deseq2estimatesizefactors-scaling-factors"></a>
+##### [Question #2 in response to answer](https://www.biostars.org/p/9572653/#9572677): On the use of alignment-ratio scaling factors versus `DESeq2::estimateSizeFactors()` scaling factors
+<details>
+<summary><i>Question #2 in response to answer: On the use of alignment-ratio scaling factors versus `DESeq2::estimateSizeFactors()` scaling factors</i></summary>
+<br />
+
+*[kalavattam](https://www.biostars.org/u/53721/)*:
 
 Perhaps this question is better suited for a new post, but since it follows on this work, I will post it here for now and move it if requested.
 
-If I wanted to use `DESeq2` for a differential binding analysis by generating a matrix of ChIP counts per *n*-bp bins, for example:
+If I wanted to use `DESeq2` for a differential binding analysis by generating a matrix of IP counts per *n*-bp bins, for example:
 
-```txt
-| chr   | start | stop  | ChIP_1_WT | ChIP_2_WT | ChIP_3_KO | ChIP_4_KO |
-|-------|-------|-------|-----------|-----------|-----------|-----------|
-| chr1  | 1     | 150   | 300       | 400       | 1200      | 1800      |
-| chr1  | 151   | 300   | 250       | 433       | 1000      | 1100      |
-| ...   | ...   | ...   | ...       | ...       | ...       | ...       |
-| chrX  | 45001 | 45150 | 15000     | 18000     | 5500      | 4500      |
-| chrX  | 45151 | 45300 | 12500     | 17500     | 5000      | 4500      |
-| ...   | ...   | ...   | ...       | ...       | ...       | ...       |
-```
+| chr   | start | stop  | IP_1_WT | IP_2_WT | IP_3_KO | IP_4_KO |
+|-------|-------|-------|---------|---------|---------|---------|
+| chr1  | 1     | 150   | 300     | 400     | 1200    | 1800    |
+| chr1  | 151   | 300   | 250     | 433     | 1000    | 1100    |
+| ...   | ...   | ...   | ...     | ...     | ...     | ...     |
+| chrX  | 45001 | 45150 | 15000   | 18000   | 5500    | 4500    |
+| chrX  | 45151 | 45300 | 12500   | 17500   | 5000    | 4500    |
+| ...   | ...   | ...   | ...     | ...     | ...     | ...     |
 
 Is it reasonable for me to supply the scaling factors calculated by the above-described method rather than use the values generated by `DESeq2::estimateSizeFactors()` (using either the human "main" counts or the fly spike-in counts)?
+</details>
+<br />
+
+<a id="question-2-response-1"></a>
+##### [Question #2: Response #1](https://www.biostars.org/p/9572653/#9572680)
+<details>
+<summary><i>Question #2: Response #1</i></summary>
+<br />
+
+*[jared.andrews07](https://www.biostars.org/u/40195/)*:
+
+I'd probably use `DiffBind` and use the spike-ins in the [normalization function](https://rdrr.io/bioc/DiffBind/man/dba.normalize.html) (it uses `DESeq2` on the backend). It limits analysis to peak regions though, so depending on what you're trying to do, [you] may have to adjust.
+</details>
+<br />
+
+<a id="question-3-in-response-to-answer-on-scaling-input-coverage-and-visualizing-scaled-coverage"></a>
+##### [Question #3 in response to answer](https://www.biostars.org/p/9572653/#9572962): On scaling input coverage and visualizing scaled coverage
+<details>
+<summary><i>Question #3 in response to answer</i></summary>
+<br />
+
+*[kalavattam](https://www.biostars.org/u/53721/)*:
+
+Hi [jared.andrews07](https://www.biostars.org/u/40195/) &ndash; thanks again for your advice and guidance.
+
+A couple quick follow-up questions regarding these points:
+
+> For groups of samples that are being compared, all the scaling factors can be normalized by dividing by the highest or lowest scaling factor...
+> 
+> ...
+> 
+> Normalized scaling factors by dividing all scaling factors by highest scaling factor (this used for bamCoverage - if the scaling factor is in the denominator instead, scale by the lowest scale factor):
+> 
+> IP 1 normalized scaling factor = 1.69/1.69 = 1
+>
+> IP 2 normalized scaling factor = 0.62/1.69 = 0.367
+> 
+> IP 3 normalized scaling factor = 0.95/1.69 = 0.562
+
+
+\#1 &ndash; If we wanted to plot input coverage alongside IP coverage, would you also scale input down in this manner?
+
+For example...
+- Input 1 normalized scaling factor = 1/1.69 = 0.592
+- Input 2 normalized scaling factor = 1/1.69 = 0.592
+- Input 3 normalized scaling factor = 1/1.69 = 0.592
+
+
+\#2 &ndash; And if we wanted to examine the $\log_2$ ratios of IP to input with, e.g., `bigwigCompare`, we'd use the scaled-down IP and input bigwigs? (However, to identify these kinds of positional changes in signal with confidence, I think a statistical approach (e.g., via `DiffBind`, `DESeq2`, `csaw`, etc.) is better suited than visualizing ratios of IP coverage to input coverage&mdash;but I'm asking because this is what my bench biologist colleagues are used to.)
+</details>
+<br />
+
+<a id="question-3-response-1"></a>
+##### [Question #3: Response #1](https://www.biostars.org/p/9572653/#9573065)
+<details>
+<summary><i>Question #3: Response #1</i></summary>
+<br />
+
+*[jared.andrews07](https://www.biostars.org/u/40195/)*:
+
+1. I typically don't bother normalizing the input tracks, so kind of your call. I suppose I would scale them similarly.
+2. I do the comparisons with the tools you mentioned to find actual differential loci, then use the normalized tracks if I need to actually show the profile/tracks in a figure. I don't do direct comparison[s] of the tracks&mdash;they are just a nice visual aid to go along with the statistical methods.
+</details>
+<br />
+
+
+<a id="how-scaling-factors-are-calculated-by-egan-et-al-plos-one-2016-1122"></a>
+#### How scaling factors are calculated by [Egan et al., *PLOS One* 2016-1122](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0166438)
+<details>
+<summary><i>How scaling factors are calculated by Egan et al., PLOS One 2016-1122</i></summary>
+<br />
+
+...
+</details>
+<br />

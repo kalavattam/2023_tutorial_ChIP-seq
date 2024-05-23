@@ -3,7 +3,7 @@
 #  align-process-etc_fastqs_bowtie2.sh
 #  KA
 
-debug=false
+debug=true
 
 
 #  Define functions ===========================================================
@@ -30,15 +30,23 @@ function show_help() {
     cat << EOM
 Usage: ${0} [OPTIONS]
 
-This script aligns paired-end FASTQ files using Bowtie2, processes the output
-with SAMtools (coordinate sorting, queryname sorting, marking duplicates,
-etc.), and outputs both a queryname-sorted BAM file and a coordinate-sorted,
-duplicate-marked BAM file.
+This script aligns paired- or single-end FASTQ files using Bowtie 2, processes
+the output with SAMtools (coordinate sorting, queryname sorting, marking
+duplicates, etc.), and outputs both a queryname-sorted BAM file and a
+coordinate-sorted, duplicate-marked BAM file.
 
-The script also (1) generates a BED file of fragments for use as input to
-siQ-ChIP, (2) generates another BED file of per-base coverage, and (3) uses the
-per-base coverage to calculate and output BG and BW files for reads per million
-(RPM)-scaled coverage.
+The script also (1) generates a BED file of fragments for use as input to siQ-
+ChIP (for paired-end FASTQ input files only), (2) generates another BED file of
+per-base coverage, and (3) uses the per-base coverage to calculate and output
+bedGraph and bigWig files for reads per million (RPM)-scaled coverage.
+
+Additionally, the script (1) calls picard CollectAlignmentSummaryMetrics to
+assess the quality of read alignments as well as "the proportion of reads that
+passed machine signal-to-noise threshold quality filters," (2) generates
+Samtools flagstat and idxstats reports, and (3) calls preseq lc_extrap to
+generate the expected yield for theoretical larger experiments; preseq
+lc_extrap also gives bounds on the number of distinct reads in the library and
+the associated confidence intervals.
 
 Options:
    -h, --help      Display this help message.
@@ -47,6 +55,7 @@ Options:
    -f, --fasta     PATH for genome FASTA file (required).
    -s, --sizes     Path for chromosome sizes file (required).
    -q, --mapq      MAPQ threshold for BAM filtering (default: 1).
+   -m, --mode      Run Bowtie 2 in 'single' or 'paired' mode (default: paired).
   -f1, --fastq_1   Path to the first FASTQ file (required).
   -f2, --fastq_2   Path to the second FASTQ file (required).
    -b, --bam       Output path for the BAM file (required).
@@ -54,8 +63,8 @@ Options:
   -bq, --bam_quer  Output path for the queryname-sored BAM file.
   -bs, --bed_siQ   Output path for the BED file used as input to siQ-ChIP.
   -be, --bed_etc   Output path and stem for the BED file of per-base coverage,
-                   related Mosdepth output files, and the RPM-scaled BG and BW
-                   files derived from the above BED file.
+                   related Mosdepth output files, and the RPM-scaled bedGraph
+                   and bigWig files derived from the above BED file.
   -tm, --txt_met   Output path for the picard CollectAlignmentSummaryMetrics
                    TXT file.
   -tf, --txt_flg   Output path for the samtools flagstat TXT file.
@@ -72,22 +81,47 @@ Dependencies:
   - samtools
 
 Note:
-  If not specified, then output paths for -bc, -bq, -bs, -be, -tm, -tf, -ti,
-  and -ti are derived from the -b output path.
+  - If not specified, then output paths for -bc, -bq, -bs, -be, -tm, -tf, -ti,
+    and -ti are derived from the -b output path.
+  - Arguments -f2 and -bs are not recognized when running in 'single' mode
+    (-m 'single'). #TODO I may later implement an argument to allow for the
+    input of a mean fragment length in order to generate a siQ-ChIP BED file
+    from a single-end sequenced ChIP-seq alignments (or to override the use of
+    TLEN with paired-end sequenced ChIP-seq alignments).
 
-Example:
+Examples:
+  #  Running in 'paired' mode
   align-process-etc_fastqs_bowtie2.sh
       --threads 4
       --index path/to/indices/file_prefix
       --fasta path/to/fasta/file.fa
       --sizes path/to/sizes/file.tsv
       --mapq 1
+      --mode paired
       --fastq_1 path/to/fastqs/file_1.fq.gz
       --fastq_2 path/to/fastqs/file_2.fq.gz
       --bam path/for/bams/file.bam
       --bam_coor path/for/bams/file.sort-coord.bam
       --bam_quer path/for/bams/file.sort-qname.bam
       --bed_siQ path/for/siq-ChIP/file.bed
+      --bed_etc path/for/coverage/file_prefix
+      --txt_met path/for/QC/file_metrics.txt
+      --txt_flg path/for/QC/file_flagstat.txt
+      --txt_idx path/for/QC/file_idxstats.txt
+      --txt_pre path/for/QC/file_prefix
+
+  #  Running in 'single' mode
+  align-process-etc_fastqs_bowtie2.sh
+      --threads 4
+      --index path/to/indices/file_prefix
+      --fasta path/to/fasta/file.fa
+      --sizes path/to/sizes/file.tsv
+      --mapq 1
+      --mode single
+      --fastq_1 path/to/fastqs/file.fastq.gz
+      --bam path/for/bams/file.bam
+      --bam_coor path/for/bams/file.sort-coord.bam
+      --bam_quer path/for/bams/file.sort-qname.bam
       --bed_etc path/for/coverage/file_prefix
       --txt_met path/for/QC/file_metrics.txt
       --txt_flg path/for/QC/file_flagstat.txt
@@ -117,12 +151,13 @@ if ${debug}; then
     dir_exp="${dir_base}/${dir_repo}"
 
     #  Values for debugging
-    threads=1
+    threads="${SLURM_CPUS_ON_NODE:-8}"
     index="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
     fasta="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.fa"
     sizes="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.chrom-info.tsv"
     mapq=1
 
+    # mode="paired"
     # fastq_1="${dir_exp}/02_trim/in_G1_Hho1_6336_R1.atria.fastq.gz"
     # fastq_2="${dir_exp}/02_trim/in_G1_Hho1_6336_R2.atria.fastq.gz"
     # bam="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.bam"
@@ -135,17 +170,31 @@ if ${debug}; then
     # txt_idx="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
     # txt_pre="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.preseq"
 
-    fastq_1="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R1.atria.fastq.gz"
-    fastq_2="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R2.atria.fastq.gz"
-    bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.bam"
-    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-coord.bam"
-    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-qname.bam"
-    bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
-    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Hmo1_7750"
-    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
-    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
-    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
-    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.preseq"
+    # mode="paired"
+    # fastq_1="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R1.atria.fastq.gz"
+    # fastq_2="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R2.atria.fastq.gz"
+    # bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.bam"
+    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-coord.bam"
+    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
+    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Hmo1_7750"
+    # txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
+    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
+    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
+    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.preseq"
+
+    mode="single"
+    fastq_1="${dir_exp}/01_sym/IP_Q_Brn1_rep1.fastq.gz"
+    if [[ -n "${fastq_2}" ]]; then unset fastq_2; fi
+    bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.bam"
+    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.sort-coord.bam"
+    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.sort-qname.bam"
+    if [[ -n "${bed_siQ}" ]]; then unset bed_siQ; fi
+    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Brn1_rep1"
+    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.picard-metrics.txt"
+    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.samtools-flagstat.txt"
+    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.samtools-idxstats.txt"
+    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.preseq"
 
     #  Optional: Check variable assignments 
     check_variables=true
@@ -158,6 +207,7 @@ if ${debug}; then
         fasta=${fasta}
         sizes=${sizes}
         mapq=${mapq}
+        mode=${mode}
         fastq_1=${fastq_1}
         fastq_2=${fastq_2}
         bam=${bam}
@@ -180,6 +230,7 @@ else
              -f|--fasta)    fasta="${2}";    shift 2 ;;
              -s|--sizes)    sizes="${2}";    shift 2 ;;
              -q|--mapq)     mapq="${2}";     shift 2 ;;
+             -m|--mode)     mode="${2}";     shift 2 ;;
             -f1|--fastq_1)  fastq_1="${2}";  shift 2 ;;
             -f2|--fastq_2)  fastq_2="${2}";  shift 2 ;;
              -b|--bam)      bam="${2}";      shift 2 ;;
@@ -224,6 +275,15 @@ if [[ -z "${mapq}" ]]; then
     mapq=1
 fi
 
+if [[ -z "${mode}" ]]; then
+    mode="paired"
+fi
+
+case "${mode}" in
+    single|paired) : ;;
+    *) error_and_exit "Mode has been set to ${mode} but must be either 'single' or 'paired'." ;;
+esac
+
 if [[ -z "${fastq_1}" ]]; then
     error_and_exit "FASTQ_1 file path is required. Use -f1 or --fastq_1 to specify it."
 fi
@@ -232,12 +292,14 @@ if [[ ! -f "${fastq_1}" ]]; then
     error_and_exit "Specified FASTQ_1 file does not exist."
 fi
 
-if [[ -z "${fastq_2}" ]]; then
-    error_and_exit "FASTQ_2 file path is required. Use -f2 or --fastq_2 to specify it."
-fi
+if [[ "${mode}" == "paired" ]]; then
+    if [[ -z "${fastq_2}" ]]; then
+        error_and_exit "FASTQ_2 file path is required. Use -f2 or --fastq_2 to specify it."
+    fi
 
-if [[ ! -f "${fastq_2}" ]]; then
-    error_and_exit "Specified FASTQ_2 file does not exist."
+    if [[ ! -f "${fastq_2}" ]]; then
+        error_and_exit "Specified FASTQ_2 file does not exist."
+    fi
 fi
 
 if [[ -z "${bam}" ]]; then
@@ -252,8 +314,10 @@ if [[ -z "${bam_quer}" ]]; then
     bam_quer="${bam/.bam/.sort-qname.bam}"
 fi
 
-if [[ -z "${bed_siQ}" ]]; then
-    bed_siQ="${bam/.bam/.siQ-ChIP.bed.gz}"
+if [[ "${mode}" == "paired" ]]; then
+    if [[ -z "${bed_siQ}" ]]; then
+        bed_siQ="${bam/.bam/.siQ-ChIP.bed.gz}"
+    fi
 fi
 
 if [[ -z "${bed_etc}" ]]; then
@@ -289,26 +353,41 @@ if [[
     && ! -f "${bam_coor}" \
     && ! -f "${bam_quer}"
 ]]; then
-    bowtie2 \
-        -p "${threads}" \
-        -x "${index}" \
-        --very-sensitive-local \
-        --no-unal \
-        --no-mixed \
-        --no-discordant \
-        --no-overlap \
-        --no-dovetail \
-        --phred33 \
-        -I 10 \
-        -X 700 \
-        -1 "${fastq_1}" \
-        -2 "${fastq_2}" \
-            | samtools view \
-                -@ "${threads}" \
-                -b \
-                -f 2 \
-                -q "${mapq}" \
-                -o "${bam}"
+    if [[ "${mode}" == "paired" ]]; then
+        bowtie2 \
+            -p "${threads}" \
+            -x "${index}" \
+            --very-sensitive-local \
+            --no-unal \
+            --no-mixed \
+            --no-discordant \
+            --no-overlap \
+            --no-dovetail \
+            --phred33 \
+            -I 10 \
+            -X 700 \
+            -1 "${fastq_1}" \
+            -2 "${fastq_2}" \
+                | samtools view \
+                    -@ "${threads}" \
+                    -b \
+                    -f 2 \
+                    -q "${mapq}" \
+                    -o "${bam}"
+    elif [[ "${mode}" == "single" ]]; then
+        bowtie2 \
+            -p "${threads}" \
+            -x "${index}" \
+            --very-sensitive-local \
+            --no-unal \
+            --phred33 \
+            -U "${fastq_1}" \
+                | samtools view \
+                    -@ "${threads}" \
+                    -b \
+                    -q "${mapq}" \
+                    -o "${bam}"
+    fi
 else
     echo "Note: BAM file exists. Skipping alignment operations."
 fi
@@ -324,22 +403,24 @@ if [[
         -n \
         -o "${bam_quer}" \
         "${bam}"
-    
-    #  After sorting by queryname, fix the paired read-mate information, which
-    #+ is required for subsequent operations 
-    if [[ -f "${bam_quer}" ]]; then
-        samtools fixmate \
-            -@ "${threads}" \
-            -m \
-            "${bam_quer}" \
-            "${bam_quer%.bam}.tmp.bam"
 
-        #  Replace the original queryname-sorted BAM with queryname-sorted
-        #+ mate-fixed BAM
-        if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
-            mv -f \
-                "${bam_quer%.bam}.tmp.bam" \
-                "${bam_quer}"
+    if [[ "${mode}" == "paired" ]]; then
+        #  After sorting by queryname, fix the paired read-mate information, which
+        #+ is required for subsequent operations 
+        if [[ -f "${bam_quer}" ]]; then
+            samtools fixmate \
+                -@ "${threads}" \
+                -m \
+                "${bam_quer}" \
+                "${bam_quer%.bam}.tmp.bam"
+
+            #  Replace the original queryname-sorted BAM with queryname-sorted
+            #+ mate-fixed BAM
+            if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
+                mv -f \
+                    "${bam_quer%.bam}.tmp.bam" \
+                    "${bam_quer}"
+            fi
         fi
     fi
 else
@@ -468,36 +549,38 @@ else
     echo "      Skipping operations."
 fi
 
-#  Generate a siQ-ChIP-input BED file from the queryname-sorted BAM
-if [[
-         -f "${bam_quer}" \
-    && ! -f "${bed_siQ}"
-]]; then
-    #  Extract fragment information to create the BED file, excluding
-    #+ chromosomes starting with "SP_"
-    samtools view "${bam_quer}" \
-        | awk '{
-            if (NR % 2 == 1) {
-                chr_1 = $3; 
-                start_1 = $4; 
-                len_1 = length($10);
-            } else {
-                chr_2 = $3;
-                start_2 = $4; 
-                len_2 = length($10);
-                if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
-                    start = (start_1 < start_2) ? start_1 : start_2;
-                    end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
-                    frag_length = end - start + 1; 
-                    print chr_1, start, end, frag_length;
+if [[ "${mode}" == "paired" ]]; then
+    #  Generate a siQ-ChIP-input BED file from the queryname-sorted BAM
+    if [[
+             -f "${bam_quer}" \
+        && ! -f "${bed_siQ}"
+    ]]; then
+        #  Extract fragment information to create the BED file, excluding
+        #+ chromosomes starting with "SP_"
+        samtools view "${bam_quer}" \
+            | awk '{
+                if (NR % 2 == 1) {
+                    chr_1 = $3; 
+                    start_1 = $4; 
+                    len_1 = length($10);
+                } else {
+                    chr_2 = $3;
+                    start_2 = $4; 
+                    len_2 = length($10);
+                    if (chr_1 == chr_2 && substr(chr_1, 1, 3) != "SP_") {
+                        start = (start_1 < start_2) ? start_1 : start_2;
+                        end = (start_1 < start_2) ? start_2 + len_2 - 1 : start_1 + len_1 - 1;
+                        frag_length = end - start + 1; 
+                        print chr_1, start, end, frag_length;
+                    }
                 }
-            }
-        }' OFS='\t' \
-        | sort -k1,1 -k2,2n \
-        | gzip \
-            > "${bed_siQ}"
-else
-    echo "Note: BED file for siQ-ChIP exists. Skipping operations."
+            }' OFS='\t' \
+            | sort -k1,1 -k2,2n \
+            | gzip \
+                > "${bed_siQ}"
+    else
+        echo "Note: BED file for siQ-ChIP exists. Skipping operations."
+    fi
 fi
 
 #  Using the coordinate-sorted BAM, generate BED file of per-base coverage
@@ -520,8 +603,8 @@ if [[
 
     if [[
              -f "${bed_etc}.per-base.bed.gz" \
-        && ! -f "${bed_etc}.rpm.bg" \
-        && ! -f "${bed_etc}.rpm.bg.gz"
+        && ! -f "${bed_etc}.rpm.bedgraph" \
+        && ! -f "${bed_etc}.rpm.bedgraph.gz"
     ]]; then
         #TODO Error and exit for if total_reads is assigned 0
         total_reads="$(samtools view -c "${bam_coor}")"
@@ -533,43 +616,43 @@ if [[
                 } {
                     print $1, $2, $3, ($4 / total_reads) * 1000000
                 }' \
-                    > "${bed_etc}.rpm.bg"
+                    > "${bed_etc}.rpm.bedgraph"
     fi
 
     if [[
-             -f "${bed_etc}.rpm.bg" \
+             -f "${bed_etc}.rpm.bedgraph" \
         && ! -f "${bed_etc}.rpm.sort.bg"
     ]]; then
         bedSort \
-            "${bed_etc}.rpm.bg" \
+            "${bed_etc}.rpm.bedgraph" \
             "${bed_etc}.rpm.sort.bg"
     fi
 
     if [[
-           -f "${bed_etc}.rpm.bg" \
+           -f "${bed_etc}.rpm.bedgraph" \
         && -f "${bed_etc}.rpm.sort.bg"
     ]]; then
         mv -f \
             "${bed_etc}.rpm.sort.bg" \
-            "${bed_etc}.rpm.bg"
+            "${bed_etc}.rpm.bedgraph"
     fi
 
     if [[
-             -f "${bed_etc}.rpm.bg" \
-        && ! -f "${bed_etc}.rpm.bw"
+             -f "${bed_etc}.rpm.bedgraph" \
+        && ! -f "${bed_etc}.rpm.bigwig"
     ]]; then
         bedGraphToBigWig \
-            "${bed_etc}.rpm.bg" \
+            "${bed_etc}.rpm.bedgraph" \
             "${sizes}" \
-            "${bed_etc}.rpm.bw"
+            "${bed_etc}.rpm.bigwig"
     fi
 
     if [[
-             -f "${bed_etc}.rpm.bg" \
-        &&   -f "${bed_etc}.rpm.bw" \
-        && ! -f "${bed_etc}.rpm.bg.gz"
+             -f "${bed_etc}.rpm.bedgraph" \
+        &&   -f "${bed_etc}.rpm.bigwig" \
+        && ! -f "${bed_etc}.rpm.bedgraph.gz"
     ]]; then
-        gzip "${bed_etc}.rpm.bg"
+        gzip "${bed_etc}.rpm.bedgraph"
     fi
 else
     echo "Note: Coverage BED, BG, and BW files exist. Skipping operations."
@@ -583,8 +666,8 @@ if [[
     && -f "${bam_quer}" \
     && -f "${bed_siQ}" \
     && -f "${bed_etc}.per-base.bed.gz" \
-    && -f "${bed_etc}.rpm.bg.gz" \
-    && -f "${bed_etc}.rpm.bw"
+    && -f "${bed_etc}.rpm.bedgraph.gz" \
+    && -f "${bed_etc}.rpm.bigwig"
 ]]; then
     rm "${bam}"
 fi

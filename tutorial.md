@@ -1255,8 +1255,7 @@ function activate_env() {
 
 #  Initialize variables and arrays ============================================
 dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
-dir_repo="Kris/2023_rDNA"                                # Repository directory
-dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
+dir_repo="Kris/2023_tutorial_ChIP-seq"                   # Repository directory
 dir_untr="01_sym"                                        # Directory for initial, non-trimmed FASTQs
 dir_trim="02_trim"                                       # Directory for trimmed FASTQs
 dir_bwt2="03_bam/bowtie2"
@@ -1272,30 +1271,30 @@ threads=8                                                # Number of threads for
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    "${dir_trim}/in_G1_Hho1_6336"
-    "${dir_trim}/IP_G1_Hho1_6336"
-    "${dir_trim}/in_G2M_Hho1_6336"
-    "${dir_trim}/IP_G2M_Hho1_6336"
-    "${dir_trim}/in_Q_Hho1_6336"
-    "${dir_trim}/IP_Q_Hho1_6336"
-    "${dir_trim}/in_G1_Hho1_6337"
-    "${dir_trim}/IP_G1_Hho1_6337"
-    "${dir_trim}/in_G2M_Hho1_6337"
-    "${dir_trim}/IP_G2M_Hho1_6337"
-    "${dir_trim}/in_Q_Hho1_6337"
-    "${dir_trim}/IP_Q_Hho1_6337"
-    "${dir_trim}/in_G1_Hmo1_7750"
-    "${dir_trim}/IP_G1_Hmo1_7750"
-    "${dir_trim}/in_G2M_Hmo1_7750"
-    "${dir_trim}/IP_G2M_Hmo1_7750"
-    "${dir_trim}/in_Q_Hmo1_7750"
-    "${dir_trim}/IP_Q_Hmo1_7750"
-    "${dir_trim}/in_G1_Hmo1_7751"
-    "${dir_trim}/IP_G1_Hmo1_7751"
-    "${dir_trim}/in_G2M_Hmo1_7751"
-    "${dir_trim}/IP_G2M_Hmo1_7751"
-    "${dir_trim}/in_Q_Hmo1_7751"
-    "${dir_trim}/IP_Q_Hmo1_7751"
+    # "${dir_trim}/in_G1_Hho1_6336"
+    # "${dir_trim}/IP_G1_Hho1_6336"
+    # "${dir_trim}/in_G2M_Hho1_6336"
+    # "${dir_trim}/IP_G2M_Hho1_6336"
+    # "${dir_trim}/in_Q_Hho1_6336"
+    # "${dir_trim}/IP_Q_Hho1_6336"
+    # "${dir_trim}/in_G1_Hho1_6337"
+    # "${dir_trim}/IP_G1_Hho1_6337"
+    # "${dir_trim}/in_G2M_Hho1_6337"
+    # "${dir_trim}/IP_G2M_Hho1_6337"
+    # "${dir_trim}/in_Q_Hho1_6337"
+    # "${dir_trim}/IP_Q_Hho1_6337"
+    # "${dir_trim}/in_G1_Hmo1_7750"
+    # "${dir_trim}/IP_G1_Hmo1_7750"
+    # "${dir_trim}/in_G2M_Hmo1_7750"
+    # "${dir_trim}/IP_G2M_Hmo1_7750"
+    # "${dir_trim}/in_Q_Hmo1_7750"
+    # "${dir_trim}/IP_Q_Hmo1_7750"
+    # "${dir_trim}/in_G1_Hmo1_7751"
+    # "${dir_trim}/IP_G1_Hmo1_7751"
+    # "${dir_trim}/in_G2M_Hmo1_7751"
+    # "${dir_trim}/IP_G2M_Hmo1_7751"
+    # "${dir_trim}/in_Q_Hmo1_7751"
+    # "${dir_trim}/IP_Q_Hmo1_7751"
     # "${dir_untr}/in_Q_untagged_5781"
     # "${dir_untr}/IP_Q_untagged_5781"
     # "${dir_untr}/in_Q_Esa5_7041"
@@ -1310,6 +1309,22 @@ unset file_fastqs && typeset -a file_fastqs=(
     # "${dir_untr}/IP_Q_Gcn5_7692"
     # "${dir_untr}/in_Q_Gcn5_7709"
     # "${dir_untr}/IP_Q_Gcn5_7709"
+    "${dir_untr}/IP_log_Brn1_rep1"
+    "${dir_untr}/IP_log_Brn1_rep2"
+    "${dir_untr}/IP_log_Brn1_rep3"
+    "${dir_untr}/IP_log_Brn1_repM"
+    "${dir_untr}/IP_Q_Brn1_rep1"
+    "${dir_untr}/IP_Q_Brn1_rep2"
+    "${dir_untr}/IP_Q_Brn1_rep3"
+    "${dir_untr}/IP_Q_Brn1_repM"
+    "${dir_untr}/in_log_Brn1_rep1"
+    "${dir_untr}/in_log_Brn1_rep2"
+    "${dir_untr}/in_log_Brn1_rep3"
+    "${dir_untr}/in_log_Brn1_repM"
+    "${dir_untr}/in_Q_Brn1_rep1"
+    "${dir_untr}/in_Q_Brn1_rep2"
+    "${dir_untr}/in_Q_Brn1_rep3"
+    "${dir_untr}/in_Q_Brn1_repM"
 )
 
 
@@ -1318,14 +1333,13 @@ unset file_fastqs && typeset -a file_fastqs=(
 #+ necessary mamba environment if not found
 check_variables=true
 check_array=true
-create_mamba_env=true
+create_mamba_env=false
 
 #  If check_variables is true, then echo the variable assignments
 if ${check_variables}; then
     echo "
     dir_base=${dir_base}
     dir_repo=${dir_repo}
-    dir_work=${dir_work}
     dir_untr=${dir_untr}
     dir_trim=${dir_trim}
     dir_bwt2=${dir_bwt2}
@@ -1347,15 +1361,23 @@ if ${check_array}; then
         file="${file_fastqs[${i}]}"
 
         if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
-            echo "
-            read #1 ...... ${file}_R1.atria.fastq.gz
-            read #2 ...... ${file}_R2.atria.fastq.gz
-            "
+            if [[ "$(basename ${file})" =~ "Brn1" ]]; then
+                echo "read ...... ${file}.atria.fastq.gz"
+            else
+                echo "
+                read #1 ...... ${file}_R1.atria.fastq.gz
+                read #2 ...... ${file}_R2.atria.fastq.gz
+                "
+            fi
         elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
-            echo "
-            read #1 ...... ${file}_R1.fastq.gz
-            read #2 ...... ${file}_R2.fastq.gz
-            "
+            if [[ "$(basename ${file})" =~ "Brn1" ]]; then
+                echo "read ...... ${file}.fastq.gz"
+            else
+                echo "
+                read #1 ...... ${file}_R1.fastq.gz
+                read #2 ...... ${file}_R2.fastq.gz
+                "
+            fi
         else
             error_and_return "Processing logic problem for ${file}."
         fi
@@ -1380,6 +1402,7 @@ if check_env_installed "${env_name}"; then
     echo "Activating environment ${env_name}"
     
     activate_env "${env_name}"
+    module load Java/17.0.6  #TEMP Until install up-to-date Java with Mamba
 else
     #  Handle the case when the environment is not installed
     echo "Creating environment ${env_name}"
@@ -1405,16 +1428,17 @@ else
                 ucsc-facount
         
         activate_env "${env_name}"
+        module load Java/17.0.6  #TEMP Until install up-to-date Java with Mamba
     fi
 fi
 
 #  Navigate to the work directory
-cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+cd "${dir_base}/${dir_repo}" \
+    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}."
 
 #  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
 if [[ ! -d "${dir_bwt2}" ]]; then
-    mkdir -p "${dir_bwt2}/"{err_out,bam,siQ-ChIP,cvrg,qc}
+    mkdir -p "${dir_bwt2}/"{bam,cvrg,err_out,qc,siQ-ChIP}
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
@@ -1427,18 +1451,33 @@ for i in "${!file_fastqs[@]}"; do
     # i=0
     index="${i}"
     iter=$(( index + 1 ))
-    file="${file_fastqs[${index}]}"
-    stem="$(basename ${file})"
-    job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"
+    file="${file_fastqs[${index}]}"                          # echo "${file}"
+    stem="$(basename ${file})"                               # echo "${stem}"
+    job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"  # echo "${job_name}"
+    script="align-process-etc_fastqs_bowtie2.sh"             #TODO Move out of loop
     
-    #  Parse the files' source directory to determine appropriate suffix for
-    #+ FASTQ file names
+    #  Parse the files' source directory to determine which alignment script to
+    #+ use and appropriate suffix for FASTQ file names
     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
-        fastq_1=${file}_R1.atria.fastq.gz
-        fastq_2=${file}_R2.atria.fastq.gz
+        if [[ "$(basename ${file})" =~ "Brn1" ]]; then
+            mode="single"                                    # echo "${mode}"
+            fastq_1="${file}.atria.fastq.gz"                 # echo "${fastq_1}"
+            fastq_2="ignore"                                 # echo "${fastq_2}"
+        else
+            mode="paired"                                    # echo "${mode}"
+            fastq_1="${file}_R1.atria.fastq.gz"              # echo "${fastq_1}"
+            fastq_2="${file}_R2.atria.fastq.gz"              # echo "${fastq_2}"
+        fi
     elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
-        fastq_1=${file}_R1.fastq.gz
-        fastq_2=${file}_R2.fastq.gz
+        if [[ "$(basename ${file})" =~ "Brn1" ]]; then
+            mode="single"                                    # echo "${mode}"
+            fastq_1="${file}.fastq.gz"                       # echo "${fastq_1}"
+            fastq_2="ignore"                                 # echo "${fastq_2}"
+        else
+            mode="paired"                                    # echo "${mode}"
+            fastq_1="${file}_R1.fastq.gz"                    # echo "${fastq_1}"
+            fastq_2="${file}_R2.fastq.gz"                    # echo "${fastq_2}"
+        fi
     else
         error_and_return "Processing logic problem for ${file}."
     fi
@@ -1447,7 +1486,11 @@ for i in "${!file_fastqs[@]}"; do
     bam_coor="${bam/.bam/.sort-coord.bam}"
     bam_quer="${bam/.bam/.sort-qname.bam}"
     
-    bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
+    if [[ "${mode}" == "paired" ]]; then
+        bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
+    else
+        bed_siQ="ignore"
+    fi
     bed_etc="${dir_bwt2}/cvrg/${stem}"
     
     txt_met="${dir_bwt2}/qc/${stem}.picard-metrics.txt"
@@ -1471,7 +1514,10 @@ for i in "${!file_fastqs[@]}"; do
         file=${file}
         stem=${stem}
         job_name=${job_name}
-        
+
+        script=${script}
+        mode=${mode}
+
         fastq_1=${fastq_1}
         fastq_2=${fastq_2}
 
@@ -1488,7 +1534,6 @@ for i in "${!file_fastqs[@]}"; do
 
         dir_base=${dir_base}
         dir_repo=${dir_repo}
-        dir_work=${dir_work}
         dir_untr=${dir_untr}
         dir_trim=${dir_trim}
         dir_bwt2=${dir_bwt2}
@@ -1515,12 +1560,13 @@ sbatch << EOF
 #SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
 #SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
 
-bash align-process-etc_fastqs_bowtie2.sh \\
+bash ${script} \\
     --threads \"${threads}\" \\
     --index \"${dir_indx}\" \\
     --fasta \"${file_fasta}\" \\
     --sizes \"${file_sizes}\" \\
     --mapq \"${mapq}\" \\
+    --mode \"${mode}\" \\
     --fastq_1 \"${fastq_1}\" \\
     --fastq_2 \"${fastq_2}\" \\
     --bam \"${bam}\" \\
@@ -1547,12 +1593,13 @@ sbatch << EOF
 #SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
 #SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
 
-bash align-process-etc_fastqs_bowtie2.sh \
+bash ${script} \
     --threads "${threads}" \
     --index "${dir_indx}" \
     --fasta "${file_fasta}" \
     --sizes "${file_sizes}" \
     --mapq "${mapq}" \
+    --mode "${mode}" \
     --fastq_1 "${fastq_1}" \
     --fastq_2 "${fastq_2}" \
     --bam "${bam}" \

@@ -197,32 +197,25 @@ fi
 cd "${d_work}" || echo "cd'ing failed; check on this"
 
 #  Initialize variables needed for alignment, etc.
-  threads="${SLURM_CPUS_ON_NODE}"                              # echo "${threads}"
-  scratch="/fh/scratch/delete30/tsukiyama_t"                   # ., "${scratch}"
- d_genome="${HOME}/tsukiyamalab/Kris/genomes/combined_SC_SP"   # ls -lhaFG "${d_genome}"
- f_genome="${d_genome}/fasta/combined_SC_SP.fa"                # ls -lhaFG "${f_genome}"
-f_indices="${d_genome}/bowtie2/$(basename "${f_genome}" .fa)"  # ls -lhaFG "${f_indices}"*
-  err_out="${d_work}/03_bam/bowtie2/err_out"                   # ls -lhaFG "${err_out}"
-   d_bams="${d_work}/03_bam/bowtie2/bam"                       # ls -lhaFG "${d_bams}"
+dir_base="${HOME}/tsukiyamalab"
+dir_repo="Kris/2023_tutorial_ChIP-seq_analyses"
+dir_untr="01_sym"
+dir_trim="02_trim"
+dir_bwt2="03_bam/bowtie2"
+dir_genome=${HOME}/genomes/combined_SC_SP
+dir_indx="${dir_genome}/bowtie2/combined_SC_SP"
+file_fasta="${dir_genome}/fasta/combined_SC_SP.fa"
+file_sizes="${dir_genome}/fasta/combined_SC_SP.chrom-info.tsv"
+
+mapq=1
+
+threads="${SLURM_CPUS_ON_NODE:-8}"                             # echo "${threads}"
+time="8:00:00"                                                 # Job time for SLURM
+
 
 p_data="${HOME}/projects-etc/2023_tutorial_ChIP-seq/01_sym"    # ls -lhaFG "${p_data}"
 unset fastqs && typeset -a fastqs=(
-    "${p_data}/IP_log_Brn1_rep1.fastq.gz"
-    "${p_data}/IP_log_Brn1_rep2.fastq.gz"
-    "${p_data}/IP_log_Brn1_rep3.fastq.gz"
-    "${p_data}/IP_log_Brn1_repM.fastq.gz"
-    "${p_data}/IP_Q_Brn1_rep1.fastq.gz"
-    "${p_data}/IP_Q_Brn1_rep2.fastq.gz"
-    "${p_data}/IP_Q_Brn1_rep3.fastq.gz"
-    "${p_data}/IP_Q_Brn1_repM.fastq.gz"
-    "${p_data}/in_log_Brn1_rep1.fastq.gz"
-    "${p_data}/in_log_Brn1_rep2.fastq.gz"
-    "${p_data}/in_log_Brn1_rep3.fastq.gz"
-    "${p_data}/in_log_Brn1_repM.fastq.gz"
-    "${p_data}/in_Q_Brn1_rep1.fastq.gz"
-    "${p_data}/in_Q_Brn1_rep2.fastq.gz"
-    "${p_data}/in_Q_Brn1_rep3.fastq.gz"
-    "${p_data}/in_Q_Brn1_repM.fastq.gz"
+    "${p_data}"  #INPROGRESS Moving all this to tutorial.md
 )
 
 run_check=true
@@ -259,8 +252,8 @@ if ${run_check}; then
     ls -lhaFG "${p_data}"
     echo ""
 
-    echo '### for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done ###'
-    for i in "${fastqs[@]}"; do ls -lhaFG "${i}"; done
+    echo '### for i in "${fastqs[@]}"; do ls -lhaFG "${i}"*; done ###'
+    for i in "${fastqs[@]}"; do ls -lhaFG "${i}"*; done
     echo ""
 fi
 ```
@@ -346,94 +339,77 @@ fi
 #!/bin/bash
 
 #  Run print tests to check that the commands are correct/reasonable
-print_test=true
-if ${print_test}; then
-    for i in "${atria[@]}"; do
-        # i="${atria[0]}"  # ., "${i}"
-        in_fastq="${i}"  # ., "${in_fastq}"
-        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
+print_iteration=true
+check_variables=true
+for i in "${!fastqs[@]}"; do
+    # i=0
+    index="${i}"
+    iter=$(( index + 1 ))
+    file="${fastqs[${index}]}"            # echo "${file}"
+    stem="$(basename ${file})"            # echo "${stem}"
+    job_name="align-process-etc.${stem}"  # echo "${job_name}"
+    
+    fastq="${file}.fastq.gz"
 
+    bam="${dir_bwt2}/bam/${stem}.bam"
+    bam_coor="${bam/.bam/.sort-coord.bam}"
+    bam_quer="${bam/.bam/.sort-qname.bam}"
+    
+    # bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
+    bed_etc="${dir_bwt2}/cvrg/${stem}"
+    
+    txt_met="${dir_bwt2}/qc/${stem}.picard-metrics.txt"
+    txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
+    txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
+    txt_pre="${dir_bwt2}/qc/${stem}.preseq"
+
+    #  Echo current iteration
+    if ${print_iteration}; then
         echo "
-        #  ---------------------------------------------------------
-        #  Align untrimmed fastqs
-        {
-            bowtie2 \\
-                -p ${threads} \\
-                -x ${f_indices} \\
-                --very-sensitive-local \
-                --no-unal \\
-                --phred33 \\
-                -U "${i}" \\
-                    | samtools view \\
-                        -@ ${threads} \\
-                        -T ${scratch} \\
-                        -b \\
-                        -q ${mapq} \\
-                        -o ${out_bam}
-        } \\
-             > >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-view.stdout.txt) \\
-            2> >(tee -a ${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-view.stderr.txt)
-
-        #  Index the sorted bams
-        if [[ -f ${out_bam} ]]; then
-            samtools index \\
-                -@ ${threads} \\
-                ${out_bam} \\
-                     > >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stdout.txt) \\
-                    2> >(tee -a ${err_out}/$(basename ${out_bam} .bam).samtools-index.stderr.txt)
-        fi
+        #  -------------------------------------
+        ### ${iter} ###
         "
-    done
-fi
+    fi
 
-run=true
-if ${run}; then
-    for i in "${atria[@]}"; do
-        # i="${atria[0]}"  # echo "${i}"
-        in_fastq="${i}"  # ., "${in_fastq}"
-        out_bam="${d_bams}/$(basename "${in_fastq}" .fastq.gz).bam"  # echo "${out_bam}"
-
+    #  Echo loop-dependent variables if check_variables is true
+    if ${check_variables}; then
+        echo "
+        index=${index}
+        iter=${iter}
+        file=${file}
+        stem=${stem}
+        job_name=${job_name}
         
-        if [[ ! -e "${out_bam}" ]]; then
-            echo "#### Aligning, sorting, indexing $(basename ${in_fastq}) ####"
-            #  Align fastqs trimmed with atria; sort resulting bams
-            {
-                bowtie2 \
-                    -p "${threads}" \
-                    --end-to-end \
-                    --very-fast \
-                    -x "${f_indices}" \
-                    -U "${in_fastq}" \
-                        | samtools sort \
-                            -@ "${threads}" \
-                            -T "${scratch}" \
-                            -O "bam" \
-                            -o "${out_bam}"
-            } \
-                 > "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stdout.txt" \
-                2> "${err_out}/$(basename "${out_bam}" .bam).bowtie2_samtools-sort.stderr.txt"
+        fastq=${fastq}
 
-            #  Index the sorted bams
-            if [[ -f "${out_bam}" ]]; then
-                samtools index \
-                    -@ "${threads}" \
-                    "${out_bam}" \
-                         > >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stdout.txt") \
-                        2> >(tee -a "${err_out}/$(basename "${out_bam}" .bam).samtools-index.stderr.txt")
-            fi
+        bam=${bam}
+        bam_coor=${bam_coor}
+        bam_quer=${bam_quer}
+        # bed_siQ=${bed_siQ}
+        bed_etc=${bed_etc}
 
-            if [[ -f "${out_bam}" && -f "${out_bam}.bai" ]]; then
-                echo "#DONE"
-            else
-                echo "#PROBLEM"
-            fi
-            echo ""
-        else
-            echo "Bams exist; skipping the running of Bowtie 2, Samtools, etc."
-            break
-        fi
-    done
-fi
+        txt_met=${txt_met}
+        txt_flg=${txt_flg}
+        txt_idx=${txt_idx}
+        txt_pre=${txt_pre}
+
+        dir_base=${dir_base}
+        dir_repo=${dir_repo}
+        dir_work=${dir_work}
+        dir_untr=${dir_untr}
+        dir_trim=${dir_trim}
+        dir_bwt2=${dir_bwt2}
+        dir_indx=${dir_indx}
+        file_fasta=${file_fasta}
+        file_sizes=${file_sizes}
+
+        mapq=${mapq}
+
+        time=${time}
+        threads=${threads}
+        "
+    fi
+done
 ```
 </details>
 <br />

@@ -21,31 +21,36 @@
         1. [Code](#code-4)
     1. [c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"](#c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz)
         1. [Code](#code-5)
-    1. [d. Use `bowtie2` to align the trimmed FASTQ files](#d-use-bowtie2-to-align-the-trimmed-fastq-files)
+    1. [d. Use `bowtie2` to align the FASTQ files](#d-use-bowtie2-to-align-the-fastq-files)
         1. [Code](#code-6)
-    1. [e. Use `bwa` to align the trimmed FASTQ files](#e-use-bwa-to-align-the-trimmed-fastq-files)
+    1. [e. Use `bwa` to align FASTQ files](#e-use-bwa-to-align-fastq-files)
         1. [Code](#code-7)
 1. [X. Run `phantompeakqualtools` on aligned data](#x-run-phantompeakqualtools-on-aligned-data)
     1. [a. Install `phantompeakqualtools`](#a-install-phantompeakqualtools)
-        1. [Code](#code-8)
-        1. [Printed \(remote\)](#printed-remote)
-        1. [Printed \(local\)](#printed-local)
+        1. [Bash code](#bash-code)
+            1. [Printed \(remote\)](#printed-remote)
+            1. [Printed \(local\)](#printed-local)
     1. [b. Run `phantompeakqualtools`](#b-run-phantompeakqualtools)
-        1. [Code](#code-9)
+        1. [Code](#code-8)
+1. [X. Run `SSP` on aligned data](#x-run-ssp-on-aligned-data)
+    1. [a. Install `SSP`](#a-install-ssp)
+        1. [Bash code](#bash-code-1)
+            1. [Printed \(remote\)](#printed-remote-1)
+            1. [Printed \(local\)](#printed-local-1)
 1. [4. Call peaks with MACS3](#4-call-peaks-with-macs3)
     1. [a. Install MACS3](#a-install-macs3)
-        1. [Code](#code-10)
+        1. [Code](#code-9)
     1. [b. Run MACS3](#b-run-macs3)
-        1. [Code](#code-11)
+        1. [Code](#code-10)
     1. [c. Run MACS3 with pooled replicates](#c-run-macs3-with-pooled-replicates)
-        1. [Code](#code-12)
+        1. [Code](#code-11)
 1. [5. Subset peaks](#5-subset-peaks)
     1. [a. Install environment for interactive R scripting](#a-install-environment-for-interactive-r-scripting)
-        1. [Bash code](#bash-code)
+        1. [Bash code](#bash-code-2)
         1. [R code](#r-code)
     1. [b. Perform set operations with peak intervals](#b-perform-set-operations-with-peak-intervals)
         1. [i. Get situated](#i-get-situated)
-            1. [Bash code](#bash-code-1)
+            1. [Bash code](#bash-code-3)
         1. [ii. Perform set operations with peak intervals, returning complete intervals from a given set](#ii-perform-set-operations-with-peak-intervals-returning-complete-intervals-from-a-given-set)
             1. [R code](#r-code-1)
         1. [iii. Perform set operations with peak intervals, returning partial intervals from a given set](#iii-perform-set-operations-with-peak-intervals-returning-partial-intervals-from-a-given-set)
@@ -55,27 +60,27 @@
 1. [6. Calculate sample scaling factors from *S. pombe* spike-ins](#6-calculate-sample-scaling-factors-from-s-pombe-spike-ins)
 1. [7. Miscellaneous \(to be organized\)](#7-miscellaneous-to-be-organized)
     1. [x. Scratch](#x-scratch)
-        1. [Code](#code-13)
+        1. [Code](#code-12)
         1. [Notes](#notes)
     1. [a. Determine the locations of low-complexity regions in *S. cerevisiae*](#a-determine-the-locations-of-low-complexity-regions-in-s-cerevisiae)
         1. [i. Install `sdust` via `minimap`](#i-install-sdust-via-minimap)
-            1. [Code](#code-14)
+            1. [Code](#code-13)
             1. [Printed](#printed)
         1. [ii. Run `sdust` via `minimap`](#ii-run-sdust-via-minimap)
-            1. [Code](#code-15)
+            1. [Code](#code-14)
     1. [b. Determine the effective genome size of *S. cerevisiae* \(50-mers\)](#b-determine-the-effective-genome-size-of-s-cerevisiae-50-mers)
         1. [i. Install `khmer`](#i-install-khmer)
-            1. [Code](#code-16)
+            1. [Code](#code-15)
             1. [Printed](#printed-1)
         1. [ii. Run `khmer`](#ii-run-khmer)
-            1. [Code](#code-17)
-            1. [Printed](#printed-2)
+            1. [Code](#code-16)
+                1. [Printed](#printed-2)
     1. [b. Determine base statistics in *S. cerevisiae* FASTA files](#b-determine-base-statistics-in-s-cerevisiae-fasta-files)
         1. [i. Install `faCount`](#i-install-facount)
-            1. [Code](#code-18)
+            1. [Code](#code-17)
         1. [ii. Run `faCount`](#ii-run-facount)
-            1. [Code](#code-19)
-            1. [Printed](#printed-3)
+            1. [Code](#code-18)
+                1. [Printed](#printed-3)
 
 <!-- /MarkdownTOC -->
 </details>
@@ -303,7 +308,7 @@ function update_shell_config() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -1171,12 +1176,12 @@ EOF
 </details>
 <br />
 
-<a id="d-use-bowtie2-to-align-the-trimmed-fastq-files"></a>
-## d. Use `bowtie2` to align the trimmed FASTQ files
+<a id="d-use-bowtie2-to-align-the-fastq-files"></a>
+## d. Use `bowtie2` to align the FASTQ files
 <a id="code-6"></a>
 ### Code
 <details>
-<summary><i>Code: 3.d. Use `bowtie2` to align the trimmed FASTQ files</i></summary>
+<summary><i>Code: 3.d. Use `bowtie2` to align the FASTQ files</i></summary>
 
 ```bash
 #!/bin/bash
@@ -1192,7 +1197,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -1271,30 +1276,30 @@ threads=8                                                # Number of threads for
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
-    # "${dir_trim}/in_G1_Hho1_6336"
-    # "${dir_trim}/IP_G1_Hho1_6336"
-    # "${dir_trim}/in_G2M_Hho1_6336"
-    # "${dir_trim}/IP_G2M_Hho1_6336"
-    # "${dir_trim}/in_Q_Hho1_6336"
-    # "${dir_trim}/IP_Q_Hho1_6336"
-    # "${dir_trim}/in_G1_Hho1_6337"
-    # "${dir_trim}/IP_G1_Hho1_6337"
-    # "${dir_trim}/in_G2M_Hho1_6337"
-    # "${dir_trim}/IP_G2M_Hho1_6337"
-    # "${dir_trim}/in_Q_Hho1_6337"
-    # "${dir_trim}/IP_Q_Hho1_6337"
-    # "${dir_trim}/in_G1_Hmo1_7750"
-    # "${dir_trim}/IP_G1_Hmo1_7750"
-    # "${dir_trim}/in_G2M_Hmo1_7750"
-    # "${dir_trim}/IP_G2M_Hmo1_7750"
-    # "${dir_trim}/in_Q_Hmo1_7750"
-    # "${dir_trim}/IP_Q_Hmo1_7750"
-    # "${dir_trim}/in_G1_Hmo1_7751"
-    # "${dir_trim}/IP_G1_Hmo1_7751"
-    # "${dir_trim}/in_G2M_Hmo1_7751"
-    # "${dir_trim}/IP_G2M_Hmo1_7751"
-    # "${dir_trim}/in_Q_Hmo1_7751"
-    # "${dir_trim}/IP_Q_Hmo1_7751"
+    "${dir_trim}/in_G1_Hho1_6336"
+    "${dir_trim}/IP_G1_Hho1_6336"
+    "${dir_trim}/in_G2M_Hho1_6336"
+    "${dir_trim}/IP_G2M_Hho1_6336"
+    "${dir_trim}/in_Q_Hho1_6336"
+    "${dir_trim}/IP_Q_Hho1_6336"
+    "${dir_trim}/in_G1_Hho1_6337"
+    "${dir_trim}/IP_G1_Hho1_6337"
+    "${dir_trim}/in_G2M_Hho1_6337"
+    "${dir_trim}/IP_G2M_Hho1_6337"
+    "${dir_trim}/in_Q_Hho1_6337"
+    "${dir_trim}/IP_Q_Hho1_6337"
+    "${dir_trim}/in_G1_Hmo1_7750"
+    "${dir_trim}/IP_G1_Hmo1_7750"
+    "${dir_trim}/in_G2M_Hmo1_7750"
+    "${dir_trim}/IP_G2M_Hmo1_7750"
+    "${dir_trim}/in_Q_Hmo1_7750"
+    "${dir_trim}/IP_Q_Hmo1_7750"
+    "${dir_trim}/in_G1_Hmo1_7751"
+    "${dir_trim}/IP_G1_Hmo1_7751"
+    "${dir_trim}/in_G2M_Hmo1_7751"
+    "${dir_trim}/IP_G2M_Hmo1_7751"
+    "${dir_trim}/in_Q_Hmo1_7751"
+    "${dir_trim}/IP_Q_Hmo1_7751"
     # "${dir_untr}/in_Q_untagged_5781"
     # "${dir_untr}/IP_Q_untagged_5781"
     # "${dir_untr}/in_Q_Esa5_7041"
@@ -1309,22 +1314,22 @@ unset file_fastqs && typeset -a file_fastqs=(
     # "${dir_untr}/IP_Q_Gcn5_7692"
     # "${dir_untr}/in_Q_Gcn5_7709"
     # "${dir_untr}/IP_Q_Gcn5_7709"
-    "${dir_untr}/IP_log_Brn1_rep1"
-    "${dir_untr}/IP_log_Brn1_rep2"
-    "${dir_untr}/IP_log_Brn1_rep3"
-    "${dir_untr}/IP_log_Brn1_repM"
-    "${dir_untr}/IP_Q_Brn1_rep1"
-    "${dir_untr}/IP_Q_Brn1_rep2"
-    "${dir_untr}/IP_Q_Brn1_rep3"
-    "${dir_untr}/IP_Q_Brn1_repM"
-    "${dir_untr}/in_log_Brn1_rep1"
-    "${dir_untr}/in_log_Brn1_rep2"
-    "${dir_untr}/in_log_Brn1_rep3"
-    "${dir_untr}/in_log_Brn1_repM"
-    "${dir_untr}/in_Q_Brn1_rep1"
-    "${dir_untr}/in_Q_Brn1_rep2"
-    "${dir_untr}/in_Q_Brn1_rep3"
-    "${dir_untr}/in_Q_Brn1_repM"
+    # "${dir_untr}/IP_log_Brn1_rep1"
+    # "${dir_untr}/IP_log_Brn1_rep2"
+    # "${dir_untr}/IP_log_Brn1_rep3"
+    # "${dir_untr}/IP_log_Brn1_repM"
+    # "${dir_untr}/IP_Q_Brn1_rep1"
+    # "${dir_untr}/IP_Q_Brn1_rep2"
+    # "${dir_untr}/IP_Q_Brn1_rep3"
+    # "${dir_untr}/IP_Q_Brn1_repM"
+    # "${dir_untr}/in_log_Brn1_rep1"
+    # "${dir_untr}/in_log_Brn1_rep2"
+    # "${dir_untr}/in_log_Brn1_rep3"
+    # "${dir_untr}/in_log_Brn1_repM"
+    # "${dir_untr}/in_Q_Brn1_rep1"
+    # "${dir_untr}/in_Q_Brn1_rep2"
+    # "${dir_untr}/in_Q_Brn1_rep3"
+    # "${dir_untr}/in_Q_Brn1_repM"
 )
 
 
@@ -1402,12 +1407,14 @@ if check_env_installed "${env_name}"; then
     echo "Activating environment ${env_name}"
     
     activate_env "${env_name}"
-    module load Java/17.0.6  #TEMP Until install up-to-date Java with Mamba
+    module load Java/17.0.6  #TODO #TEMP Until install up-to-date Java with Mamba
 else
-    #  Handle the case when the environment is not installed
-    echo "Creating environment ${env_name}"
-    
+    error_and_return "Environment ${env_name} is not installed"
+
     if ${create_mamba_env}; then
+        #  Handle the case when the environment is not installed
+        echo "Creating environment ${env_name}"
+
         #  Switch `--yes` is not set, which means user input is required
         #NOTE Running this on FHCC Rhino; ergo, no CONDA_SUBDIR=osx-64
         mamba create \
@@ -1428,7 +1435,7 @@ else
                 ucsc-facount
         
         activate_env "${env_name}"
-        module load Java/17.0.6  #TEMP Until install up-to-date Java with Mamba
+        module load Java/17.0.6  #TODO #TEMP Until install up-to-date Java with Mamba
     fi
 fi
 
@@ -1438,7 +1445,8 @@ cd "${dir_base}/${dir_repo}" \
 
 #  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
 if [[ ! -d "${dir_bwt2}" ]]; then
-    mkdir -p "${dir_bwt2}/"{bam,cvrg,err_out,qc,siQ-ChIP}
+    mkdir -p ${dir_bwt2}/{flag-2_mapq-1,flag-NA_mapq-0}/{bam,cvrg,err_out,qc,siQ-ChIP}
+    mkdir -p ${dir_bwt2}/{flag-2_mapq-1,flag-NA_mapq-0}/qc/fastqc/{fastq,bam}
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
@@ -1447,6 +1455,8 @@ check_variables=true
 check_operation=true
 run_operation=true
 
+#  Configure and submit jobs for the align_process_etc.sh pipeline; this
+#+ includes setting and checking variables, etc.
 for i in "${!file_fastqs[@]}"; do
     # i=0
     index="${i}"
@@ -1616,20 +1626,18 @@ EOF
 
     sleep 0.2
 done
-
-#TODO Initial BAM outfiles (from just after alignment) wern't deleted upon completion; debug this
 ```
 </details>
 <br />
 
-<a id="e-use-bwa-to-align-the-trimmed-fastq-files"></a>
-## e. Use `bwa` to align the trimmed FASTQ files
+<a id="e-use-bwa-to-align-fastq-files"></a>
+## e. Use `bwa` to align FASTQ files
 `#TODO`
 
 <a id="code-7"></a>
 ### Code
 <details>
-<summary><i>Code: 3.e. Use `bwa` to align the trimmed FASTQ files</i></summary>
+<summary><i>Code: 3.e. Use `bwa` to align FASTQ files</i></summary>
 
 ```bash
 #!/bin/bash
@@ -1686,10 +1694,10 @@ fi
 # X. Run `phantompeakqualtools` on aligned data
 <a id="a-install-phantompeakqualtools"></a>
 ## a. Install `phantompeakqualtools`
-<a id="code-8"></a>
-### Code
+<a id="bash-code"></a>
+### Bash code
 <details>
-<summary><i>Code: X.a. Install `phantompeakqualtools`</i></summary>
+<summary><i>Bash code: X.a. Install `phantompeakqualtools`</i></summary>
 
 ```bash
 #!/bin/bash
@@ -1705,7 +1713,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -1808,7 +1816,7 @@ fi
 <br />
 
 <a id="printed-remote"></a>
-### Printed (remote)
+#### Printed (remote)
 <details>
 <summary><i>Printed: X.a. Install `phantompeakqualtools` (remote)</i></summary>
 
@@ -2098,7 +2106,7 @@ To deactivate an active environment, use
 <br />
 
 <a id="printed-local"></a>
-### Printed (local)
+#### Printed (local)
 <details>
 <summary><i>Printed: X.a. Install `phantompeakqualtools` (local)</i></summary>
 
@@ -2345,7 +2353,7 @@ To deactivate an active environment, use
 
 <a id="b-run-phantompeakqualtools"></a>
 ## b. Run `phantompeakqualtools`
-<a id="code-9"></a>
+<a id="code-8"></a>
 ### Code
 <details>
 <summary><i>Code: X.b. Run `phantompeakqualtools`</i></summary>
@@ -2670,12 +2678,459 @@ done
 ```
 </details>
 <br />
+<br />
+
+<a id="x-run-ssp-on-aligned-data"></a>
+# X. Run `SSP` on aligned data
+<a id="a-install-ssp"></a>
+## a. Install `SSP`
+<a id="bash-code-1"></a>
+### Bash code
+<details>
+<summary><i>Bash code: X.a. Install `SSP`</i></summary>
+
+```bash
+#!/bin/bash
+
+grabnode  # 4, 80, 1, N
+
+#  Define functions ===========================================================
+#  Function to check if a SLURM module is loaded or not; if not, the module is
+#+ loaded
+function check_and_load_module() {
+    local module_name="${1}"
+    if ! module is-loaded "${module_name}" &> /dev/null; then
+        echo "Loading module: ${module_name}"
+        module load "${module_name}"
+    else
+        echo "Module already loaded: ${module_name}"
+    fi
+}
+
+
+#  Function to return an error message and exit code 1, which stops the
+#+ interactive execution of code
+function error_and_return() {
+    echo "Error: ${1}" >&2
+    return 1
+}
+
+
+#  Initialize variables =======================================================
+dir_img="${HOME}/singularity-docker-etc"
+file_img="ssp_drompa.img"
+add_img="docker://rnakato/ssp_drompa"
+
+
+#  Do the main work ===========================================================
+#  Build the SSP image if necessary -------------------------------------------
+run_remote_install=false
+check_ssp_help=false
+
+if ${run_remote_install}; then
+    check_and_load_module "Singularity/3.5.3"
+
+    cd "${dir_img}" || error_and_return "cd'ing failed; check on this"
+
+    if [[ ! -f "${file_img}" ]]; then
+        singularity build "${file_img}" "${add_img}"
+    fi
+
+    if ${check_ssp_help}; then
+        singularity exec "${file_img}" ssp --help
+        singularity exec "${file_img}" makegenometable.pl --help
+    fi
+fi
+
+
+#  Scrap work -----------------------------------------------------------------
+#  To find the a specific script inside the container
+singularity exec ssp_drompa.img find / -name "makegenometable.pl"
+# /home/SSP/scripts/makegenometable.pl
+
+path_script="/home/SSP/scripts/makegenometable.pl"
+file_fa="combined_SC_SP.fa"
+dir_fa="${HOME}/genomes/combined_SC_SP/fasta"
+
+# singularity exec "${file_img}" perl "${path_script}"
+
+if [[ -f genometable.txt ]]; then rm genometable.txt; fi
+singularity exec \
+    -B "${dir_fa}/:/mnt" \
+    "${file_img}" \
+        perl "${path_script}" "/mnt/${file_fa}" \
+            > genometable.txt
+
+cat genometable.txt
+
+singularity exec ssp_drompa.img find / -name "makegenometable.pl"
+
+
+#  Learning to use SPP --------------------------------------------------------
+check_and_load_module "Singularity/3.5.3"
+
+dir_img="${HOME}/singularity-docker-etc"
+file_img="ssp_drompa.img"
+path_img="${dir_img}/ssp_drompa.img"
+
+dir_fa="${HOME}/genomes/combined_SC_SP/fasta"
+file_fa="combined_SC_SP.fa"
+
+path_script="/home/SSP/scripts/makegenometable.pl"
+
+dir_repo="${HOME}/tsukiyamalab/Kris/2023_tutorial_ChIP-seq"
+dir_bam="03_bam/bowtie2/bam"
+# prefix_bam="IP_Q_Brn1_rep1"
+# prefix_bam="in_Q_Brn1_rep1"
+# prefix_bam="IP_Q_Hmo1_7750"
+prefix_bam="in_Q_Hmo1_7750"
+file_bam="${prefix_bam}.sort-coord.bam"
+
+SC_ng_from=10000
+SC_ng_to=50000
+SC_ng_step=500
+
+cd "${dir_repo}" || echo "cd'ing failed; check on this"
+
+# singularity shell \
+#     -B "/${dir_fa}:/mnt" \
+#     "${path_img}"
+
+if [[ ! -f ${dir_repo}/${dir_bam}/genometable.txt ]]; then
+    singularity exec \
+        --bind "/${dir_fa}:/mnt" \
+        --contain \
+        "${path_img}" \
+            perl "${path_script}" "/mnt/${file_fa}" \
+                > "${dir_repo}/${dir_bam}/genometable.txt"
+fi
+
+samtools view -c "${dir_bam}/${file_bam}"
+# IP_Q_Brn1_rep1: 5731919
+# in_Q_Brn1_rep1: 10956170
+# IP_Q_Hmo1_7750: 24942388
+# in_Q_Hmo1_7750: 28116536
+
+# singularity shell \
+#     --bind "${dir_repo}/${dir_bam}/:/mnt" \
+#     --contain \
+#     "${path_img}"
+
+singularity exec \
+    --bind "${dir_repo}/${dir_bam}/:/mnt" \
+    --contain \
+    --pwd "/mnt" \
+    "${path_img}" \
+        ssp \
+            --threads ${SLURM_CPUS_ON_NODE} \
+            --verbose \
+            --input "${file_bam}" \
+            --output "${prefix_bam}" \
+            --gt "genometable.txt" \
+            --include_allchr \
+            --ng_from "${SC_ng_from}" \
+            --ng_to "${SC_ng_to}" \
+            --ng_step "${SC_ng_step}" # \
+            # --num4ssp 5000000  # For Hmo1
+```
+</details>
+<br />
+
+<details>
+<summary><i>Printed</i></summary>
+
+```txt
+❯ singularity exec \
+>     --bind "${dir_repo}/${dir_bam}/:/mnt" \
+>     --contain \
+>     --pwd "/mnt" \
+>     "${path_img}" \
+>         ssp \
+>             --threads ${SLURM_CPUS_ON_NODE} \
+>             --verbose \
+>             --input "${file_bam}" \
+>             --output "${prefix_bam}" \
+>             --gt "genometable.txt" \
+>             --include_allchr \
+>             --ng_from "${SC_ng_from}" \
+>             --ng_to "${SC_ng_to}" \
+>             --ng_step "${SC_ng_step}" \
+>             --num4ssp 5000000
+reading genome_table file..
+
+======================================
+SSP version 1.3.2
+
+Input file: IP_Q_Brn1_rep1.sort-coord.bam
+Output prefix: sspout/IP_Q_Brn1_rep1
+Genome-table file: genometable.txt
+Single-end mode: fragment length will be estimated by strand-shift profile
+PCR bias filtering: ON
+    10000000 reads used for library complexity
+SSP background region: [10000,50000], step 500
+Read number for SSP: 5000000
+Number of threads: 4
+verbose mode.
+======================================
+Parsing IP_Q_Brn1_rep1.sort-coord.bam...
+Input format: BAM
+mapped reads: 5731919   + reads: 1562052    - reads: 1560436
+duplicated reads: 2609431
+Falied quality reads: 0
+unmapped reads: 0
+Checking redundant reads: redundancy threshold 1
+Warning: number of reads (3122488) is < 10 million.
+done.
+Making Jaccard index profile...
+Warning: length of chromosome SP_MTR: 20128 is shorter than background distance 50000. Skipped.
+
+Warning: length of chromosome SP_Mito: 19433 is shorter than background distance 50000. Skipped.
+I..SP_II..XI..II..XII..III..IV..XIII..XIV..V..SP_III..VI..XV..VII..XVI..VIII..Mito..IX..
+Warning: length of chromosome SP_II_TG: 20000 is shorter than background distance 50000. Skipped.
+SP_I..X..Jaccard Bit: 5.96092sec.
+
+Warning: number of reads (3114558) is less than num4ssp (5000000).
+Making FCS profile...I..II..III..IV..V..VI..VII..VIII..IX..X..XI..XII..XIII..XIV..XV..XVI..Mito..SP_II_TG..SP_I..SP_II..SP_III..SP_MTR..SP_Mito..
+read number for calculating FCS: 3114558
+Calculate FCS score...10...20...30...40...50...60...70...80...90...95...100...105...110...115...120...125...130...135...140...145...150...155...160...165...170...175...180...190...200...214...300...400...500...700...1000...2000...3000...5000...10000...100000...1000000...done.
+R --vanilla < sspout/IP_Q_Brn1_rep1.FCS.R > sspout/IP_Q_Brn1_rep1.FCS.R.log 2>&1
+Fragment variability: 3.9918sec.
+
+
+❯ singularity exec \
+>     --bind "${dir_repo}/${dir_bam}/:/mnt" \
+>     --contain \
+>     --pwd "/mnt" \
+>     "${path_img}" \
+>         ssp \
+>             --threads ${SLURM_CPUS_ON_NODE} \
+>             --verbose \
+>             --input "${file_bam}" \
+>             --output "${prefix_bam}" \
+>             --gt "genometable.txt" \
+>             --include_allchr \
+>             --ng_from "${SC_ng_from}" \
+>             --ng_to "${SC_ng_to}" \
+>             --ng_step "${SC_ng_step}" \
+>             --num4ssp 5000000
+reading genome_table file..
+
+======================================
+SSP version 1.3.2
+
+Input file: in_Q_Brn1_rep1.sort-coord.bam
+Output prefix: sspout/in_Q_Brn1_rep1
+Genome-table file: genometable.txt
+Single-end mode: fragment length will be estimated by strand-shift profile
+PCR bias filtering: ON
+    10000000 reads used for library complexity
+SSP background region: [10000,50000], step 500
+Read number for SSP: 5000000
+Number of threads: 4
+verbose mode.
+======================================
+Parsing in_Q_Brn1_rep1.sort-coord.bam...
+Input format: BAM
+mapped reads: 10956170  + reads: 3423542    - reads: 3422910
+duplicated reads: 4109718
+Falied quality reads: 0
+unmapped reads: 0
+Checking redundant reads: redundancy threshold 2
+Warning: number of reads (6846452) is < 10 million.
+done.
+Making Jaccard index profile...I..SP_II..XI..
+Warning: length of chromosome SP_MTR: 20128 is shorter than background distance 50000. Skipped.
+
+Warning: length of chromosome SP_Mito: 19433 is shorter than background distance 50000. Skipped.
+II..XII..III..XIII..IV..XIV..V..SP_III..XV..VI..VII..XVI..VIII..Mito..
+Warning: length of chromosome SP_II_TG: 20000 is shorter than background distance 50000. Skipped.
+SP_I..IX..X..Jaccard Bit: 5.98999sec.
+Making FCS profile...I..II..III..IV..V..VI..VII..VIII..IX..X..XI..XII..XIII..XIV..XV..XVI..Mito..SP_II_TG..SP_I..SP_II..SP_III..SP_MTR..SP_Mito..
+read number for calculating FCS: 5000022
+Calculate FCS score...10...20...30...40...50...60...70...80...90...95...100...105...110...115...120...125...130...135...140...145...150...155...160...165...170...175...180...190...200...258...300...400...500...700...1000...2000...3000...5000...10000...100000...1000000...done.
+R --vanilla < sspout/in_Q_Brn1_rep1.FCS.R > sspout/in_Q_Brn1_rep1.FCS.R.log 2>&1
+Fragment variability: 4.51705sec.
+
+
+❯ singularity exec \
+>     --bind "${dir_repo}/${dir_bam}/:/mnt" \
+>     --contain \
+>     --pwd "/mnt" \
+>     "${path_img}" \
+>         ssp \
+>             --threads ${SLURM_CPUS_ON_NODE} \
+>             --verbose \
+>             --input "${file_bam}" \
+>             --output "${prefix_bam}" \
+>             --gt "genometable.txt" \
+>             --include_allchr \
+>             --ng_from "${SC_ng_from}" \
+>             --ng_to "${SC_ng_to}" \
+>             --ng_step "${SC_ng_step}"
+reading genome_table file..
+
+======================================
+SSP version 1.3.2
+
+Input file: IP_Q_Hmo1_7750.sort-coord.bam
+Output prefix: sspout/IP_Q_Hmo1_7750
+Genome-table file: genometable.txt
+Single-end mode: fragment length will be estimated by strand-shift profile
+PCR bias filtering: ON
+    10000000 reads used for library complexity
+SSP background region: [10000,50000], step 500
+Read number for SSP: 10000000
+Number of threads: 4
+verbose mode.
+======================================
+Parsing IP_Q_Hmo1_7750.sort-coord.bam...
+Input format: BAM
+Warning: parsing paired-end file as single-end.
+mapped reads: 24942388  + reads: 8268961    - reads: 8268961
+duplicated reads: 8404466
+Falied quality reads: 0
+unmapped reads: 0
+Checking redundant reads: redundancy threshold 6
+done.
+Making Jaccard index profile...XI..
+Warning: length of chromosome SP_MTR: 20128 is shorter than background distance 50000. Skipped.
+
+Warning: length of chromosome SP_Mito: 19433 is shorter than background distance 50000. Skipped.
+SP_II..I..II..XII..III..IV..XIII..XIV..V..SP_III..XV..VI..VII..XVI..VIII..Mito..IX..
+Warning: length of chromosome SP_II_TG: 20000 is shorter than background distance 50000. Skipped.
+SP_I..X..Jaccard Bit: 6.00788sec.
+Making FCS profile...I..II..III..IV..V..VI..VII..VIII..IX..X..XI..XII..XIII..XIV..XV..XVI..Mito..SP_II_TG..SP_I..SP_II..SP_III..SP_MTR..SP_Mito..
+read number for calculating FCS: 10000420
+Calculate FCS score...10...20...30...40...50...60...70...80...90...95...100...105...110...115...120...125...130...135...140...145...150...155...160...165...170...175...180...190...200...213...300...400...500...700...1000...2000...3000...5000...10000...100000...1000000...done.
+R --vanilla < sspout/IP_Q_Hmo1_7750.FCS.R > sspout/IP_Q_Hmo1_7750.FCS.R.log 2>&1
+Fragment variability: 5.1032sec.
+
+
+❯ singularity exec \
+>     --bind "${dir_repo}/${dir_bam}/:/mnt" \
+>     --contain \
+>     --pwd "/mnt" \
+>     "${path_img}" \
+>         ssp \
+>             --threads ${SLURM_CPUS_ON_NODE} \
+>             --verbose \
+>             --input "${file_bam}" \
+>             --output "${prefix_bam}" \
+>             --gt "genometable.txt" \
+>             --include_allchr \
+>             --ng_from "${SC_ng_from}" \
+>             --ng_to "${SC_ng_to}" \
+>             --ng_step "${SC_ng_step}"
+reading genome_table file..
+
+======================================
+SSP version 1.3.2
+
+Input file: in_Q_Hmo1_7750.sort-coord.bam
+Output prefix: sspout/in_Q_Hmo1_7750
+Genome-table file: genometable.txt
+Single-end mode: fragment length will be estimated by strand-shift profile
+PCR bias filtering: ON
+    10000000 reads used for library complexity
+SSP background region: [10000,50000], step 500
+Read number for SSP: 10000000
+Number of threads: 4
+verbose mode.
+======================================
+Parsing in_Q_Hmo1_7750.sort-coord.bam...
+Input format: BAM
+Warning: parsing paired-end file as single-end.
+mapped reads: 28116536  + reads: 9889919    - reads: 9889919
+duplicated reads: 8336698
+Falied quality reads: 0
+unmapped reads: 0
+Checking redundant reads: redundancy threshold 7
+done.
+Making Jaccard index profile...
+Warning: length of chromosome SP_MTR: 20128 is shorter than background distance SP_II..50000. Skipped.
+
+Warning: length of chromosome SP_Mito: 19433 is shorter than background distance 50000. Skipped.
+XI..I..II..XII..III..SP_III..XIII..IV..XIV..V..XV..VI..VII..XVI..VIII..Mito..IX..
+Warning: length of chromosome SP_II_TG: 20000 is shorter than background distance 50000. Skipped.
+SP_I..X..Jaccard Bit: 6.13603sec.
+Making FCS profile...I..II..III..IV..V..VI..VII..VIII..IX..X..XI..XII..XIII..XIV..XV..XVI..Mito..SP_II_TG..SP_I..SP_II..SP_III..SP_MTR..SP_Mito..
+read number for calculating FCS: 10001882
+Calculate FCS score...10...20...30...40...50...60...70...80...90...95...100...105...110...115...120...125...130...135...140...145...150...155...160...165...170...175...180...190...191...200...300...400...500...700...1000...2000...3000...5000...10000...100000...1000000...done.
+R --vanilla < sspout/in_Q_Hmo1_7750.FCS.R > sspout/in_Q_Hmo1_7750.FCS.R.log 2>&1
+Fragment variability: 5.90415sec.
+```
+</details>
+<br />
+
+<a id="printed-remote-1"></a>
+#### Printed (remote)
+<details>
+<summary><i>Printed: X.a. Install `SSP`</i></summary>
+
+```txt
+❯ grabnode
+How many CPUs/cores would you like to grab on the node? [1-36] 4
+How much memory (GB) would you like to grab? [80] 80
+Please enter the max number of days you would like to grab this node: [1-7] 1
+Do you need a GPU ? [y/N]N
+
+You have requested 4 CPUs on this node/server for 1 days or until you type exit.
+
+Warning: If you exit this shell before your jobs are finished, your jobs
+on this node/server will be terminated. Please use sbatch for larger jobs.
+
+Shared PI folders can be found in: /fh/fast, /fh/scratch and /fh/secure.
+
+Requesting Queue: campus-new cores: 4 memory: 80 gpu: NONE
+srun: job 43090273 queued and waiting for resources
+srun: job 43090273 has been allocated resources
+
+
+❯ module avail singularity
+
+------------------------------- /app/modules/all -------------------------------
+   Singularity/3.5.3
+
+Use "module spider" to find all possible modules and extensions.
+Use "module keyword key1 key2 ..." to search for all possible modules matching
+any of the "keys".
+
+
+❯ module load Singularity/3.5.3
+
+
+❯ singularity build ssp_drompa.img docker://rnakato/ssp_drompa
+singularity exec ssp_drompa.img ssp
+...
+
+
+❯ singularity exec ssp_drompa.img ssp
+
+SSP v1.3.2
+===============
+
+Usage: ssp [option] -i <inputfile> -o <output> --gt <genome_table>
+Use --help option for more information on the other options
+```
+</details>
+<br />
+
+<a id="printed-local-1"></a>
+#### Printed (local)
+<details>
+<summary><i>Printed: X.a. Install `SSP`</i></summary>
+
+```txt
+#DONOTDO
+```
+</details>
+<br />
 
 <a id="4-call-peaks-with-macs3"></a>
 # 4. Call peaks with MACS3
 <a id="a-install-macs3"></a>
 ## a. Install MACS3
-<a id="code-10"></a>
+<a id="code-9"></a>
 ### Code
 <details>
 <summary><i>Code: 4.a. Install MACS3</i></summary>
@@ -2694,7 +3149,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -2803,7 +3258,7 @@ fi
 
 <a id="b-run-macs3"></a>
 ## b. Run MACS3
-<a id="code-11"></a>
+<a id="code-10"></a>
 ### Code
 <details>
 <summary><i>Code: Run MACS3</i></summary>
@@ -2877,7 +3332,7 @@ dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
 dir_bams="03_bam/bowtie2/bam"                            # Directory for BAMs
 dir_macs="03_bam/bowtie2/macs3"                          # Directory for MACS3 outfiles
 
-gsize=12157105
+gsize=12157105                                           # Effective genome size (faCount)
 keep_dup="auto"
 
 time="4:00:00"                                           # Job time for SLURM (H:MM:SS)
@@ -3065,7 +3520,7 @@ done
 
 <a id="c-run-macs3-with-pooled-replicates"></a>
 ## c. Run MACS3 with pooled replicates
-<a id="code-12"></a>
+<a id="code-11"></a>
 ### Code
 <details>
 <summary><i>Code: Run MACS3 with pooled replicates</i></summary>
@@ -3139,7 +3594,7 @@ dir_work="results/2023-0406_tutorial_ChIP-seq_analyses"  # Work directory
 dir_bams="03_bam/bowtie2/bam"                            # Directory for BAMs
 dir_macs="03_bam/bowtie2/macs3"                          # Directory for MACS3 outfiles
 
-gsize=12157105
+gsize=12157105                                           # Effective genome size (faCount)
 keep_dup="auto"
 
 time="4:00:00"                                           # Job time for SLURM (H:MM:SS)
@@ -3347,7 +3802,7 @@ The purpose of the following two code chunks is to establish a computational env
 - Package installation
 - Environment activation and custom package installation
 
-<a id="bash-code"></a>
+<a id="bash-code-2"></a>
 ### Bash code
 <details>
 <summary><i>Bash code: 5.a. Install environment for interactive R scripting</i></summary>
@@ -3366,7 +3821,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -3532,7 +3987,7 @@ q()  # No need to save your workspace
 ## b. Perform set operations with peak intervals
 <a id="i-get-situated"></a>
 ### i. Get situated
-<a id="bash-code-1"></a>
+<a id="bash-code-3"></a>
 #### Bash code
 The purpose of this `Bash` code chunk is to initialize an environment for interactive `R` scripting, `R_env`, that in turn allows us to access programs needed to process and perform set operations on `narrowPeak` files output by MACS3. Please modify the script to navigate (`cd`) into the directory containing the `narrowPeak` files, and ensure the `R` interpreter is activated before proceeding to the subsequent `R` code chunks. Operations performed in this chunk:
 - Environment initialization
@@ -4447,7 +4902,7 @@ write_BED_from_GRanges(
 # 7. Miscellaneous (to be organized)
 <a id="x-scratch"></a>
 ## x. Scratch
-<a id="code-13"></a>
+<a id="code-12"></a>
 ### Code
 <details>
 <summary><i>Code: Scratch</i></summary>
@@ -4492,7 +4947,7 @@ Here's the breakdown of the command:
 ## a. Determine the locations of low-complexity regions in *S. cerevisiae*
 <a id="i-install-sdust-via-minimap"></a>
 ### i. Install [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
-<a id="code-14"></a>
+<a id="code-13"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `sdust` via `minimap`</i></summary>
@@ -4511,7 +4966,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -4535,6 +4990,25 @@ function check_env_installed() {
 }
 
 
+function activate_env() {
+    local env_name="${1}"
+
+    deactivate_env
+
+    if ! mamba activate "${env_name}" &> /dev/null; then
+        if ! conda activate "${env_name}" &> /dev/null; then
+            if ! source activate "${env_name}" &> /dev/null; then
+                error_and_return "Failed to activate environment \"${env_name}\"."
+                return 1
+            fi
+        fi
+    fi
+    
+    echo "Environment \"${env_name}\" activated successfully."
+    return 0
+}
+
+
 #  Initialize variables and arrays ============================================
 env_name="alignment-processing_env"
 
@@ -4553,17 +5027,7 @@ if check_env_installed "${env_name}"; then
     echo "Activating environment ${env_name}"
     
     #TODO Make the following a function
-    if ! mamba activate "${env_name}" &> /dev/null; then
-        #  If `mamba activate` fails, try using `source activate`
-        if ! conda activate "${env_name}" &> /dev/null; then
-            if ! source activate "${env_name}" &> /dev/null; then
-                #  If `source activate` also fails, return an error
-                error_and_return "Failed to activate environment \"${env_name}\"."
-            fi
-        fi
-    else
-        echo "Environment \"${env_name}\" activated using mamba."
-    fi
+    activate_env "${env_name}"
 else
     #  Handle the case when the environment is not installed
     echo "Creating environment ${env_name}"
@@ -4588,21 +5052,9 @@ else
                 ucsc-bedgraphtobigwig \
                 ucsc-facount
         
-        # source activate "${env_name}"
+        activate_env "${env_name}"
     fi
 fi
-
-# mamba create \
-#     --yes \
-#     --name minimap_env \
-#     --channel bioconda \
-#         minimap
-
-# source activate "alignment-processing_env"
-# mamba install \
-#     --yes \
-#     --channel bioconda \
-#         ucsc-facount
 ```
 </details>
 <br />
@@ -4858,7 +5310,7 @@ Executing transaction: done
 
 <a id="ii-run-sdust-via-minimap"></a>
 ### ii. Run [`sdust`](https://pubmed.ncbi.nlm.nih.gov/16796549/) via [`minimap`](https://github.com/lh3/minimap/tree/master)
-<a id="code-15"></a>
+<a id="code-14"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Run `sdust` via `minimap`</i></summary>
@@ -4954,7 +5406,7 @@ fi
 ## b. Determine the effective genome size of *S. cerevisiae* (50-mers)
 <a id="i-install-khmer"></a>
 ### i. Install [`khmer`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-16"></a>
+<a id="code-15"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `khmer`</i></summary>
@@ -4973,7 +5425,7 @@ function error_and_return() {
 
 #  Function to check if Mamba is installed
 function check_mamba_installed() {
-    if ! : mamba &> /dev/null; then
+    if ! command -v mamba &> /dev/null; then
         echo "Mamba is not installed on your system. Mamba is a package manager" 
         echo "that makes package installations faster and more reliable."
         echo ""
@@ -5172,7 +5624,7 @@ To deactivate an active environment, use
 
 <a id="ii-run-khmer"></a>
 ### ii. Run [`khmer`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-17"></a>
+<a id="code-16"></a>
 #### Code
 <details>
 <summary><i>Code: ii. Run `khmer`</i></summary>
@@ -5270,7 +5722,7 @@ fi
 <br />
 
 <a id="printed-2"></a>
-#### Printed
+##### Printed
 <details>
 <summary><i>Printed: ii. Run `khmer`</i></summary>
 
@@ -5347,7 +5799,7 @@ Total estimated number of unique 50-mers: 11624332
 ## b. Determine base statistics in *S. cerevisiae* FASTA files
 <a id="i-install-facount"></a>
 ### i. Install [`faCount`](https://khmer.readthedocs.io/en/latest/)
-<a id="code-18"></a>
+<a id="code-17"></a>
 #### Code
 <details>
 <summary><i>Code: i. Install `faCount`</i></summary>
@@ -5359,7 +5811,7 @@ Total estimated number of unique 50-mers: 11624332
 
 <a id="ii-run-facount"></a>
 ### ii. Run `faCount`
-<a id="code-19"></a>
+<a id="code-18"></a>
 #### Code
 <details>
 <summary><i>Code: Run `faCount`</i></summary>
@@ -5423,7 +5875,7 @@ faCount -summary "${a_fa}"
 <br />
 
 <a id="printed-3"></a>
-#### Printed
+##### Printed
 <details>
 <summary><i>Printed: Run `faCount`</i></summary>
 

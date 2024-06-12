@@ -12,12 +12,12 @@ check_variables=true
 flag_fqc_fastq=true
 flag_list_tally=true
 flag_fqc_bam=true
-flag_met=false
-flag_flg=false
-flag_idx=false
-flag_lc_extrap=false
-flag_bound_pop=false
-flag_c_curve=false
+flag_met=true
+flag_flg=true
+flag_idx=true
+flag_lc_extrap=true
+flag_bound_pop=true
+flag_c_curve=true
 flag_siq=true
 flag_etc=true
 flag_clean=true
@@ -26,7 +26,7 @@ flag_clean=true
 #  Define functions ===========================================================
 #  Function to return an error message to stderr and exit with exit code 1,
 #+ which stops the execution of the script
-function error_and_exit() {
+function error_exit() {
     echo "Error: ${1}" >&2
     if ${interact}; then return 1; else exit 1; fi
 }
@@ -40,7 +40,7 @@ function echo_note() { echo "Note: ${1}"; }
 function check_program_in_path() {
     local program_name="${1}"
     if ! command -v "${program_name}" &> /dev/null; then
-        error_and_exit "${program_name} is not in PATH. Please install ${program_name} or add it to PATH to continue."
+        error_exit "${program_name} is not in PATH. Please install ${program_name} or add it to PATH to continue."
     fi
 }
 
@@ -69,7 +69,7 @@ determine_fastq_extension() {
     elif [[ "${fastq}" == *.fq.gz ]]; then
         extension=".fq.gz"
     else
-        error_and_exit "No valid FASTQ extension found for ${fastq}."
+        error_exit "No valid FASTQ extension found for ${fastq}."
     fi
 
     echo "${extension}"
@@ -84,15 +84,20 @@ list_tally_flags_mapq() {
     local threads="${SLURM_CPUS_ON_NODE:-1}"
     local what="flags"
     local by_chr=false
+    local error_message_1="Error: Failed to process BAM file with Samtools."
+    local error_message_2="Error: Invalid option specified for 'what'."
 
     #  Parse keyword arguments
     if [[ -z "${1}" || "${1}" == "-h" || "${1}" == "--help" ]]; then
-        echo "Usage: list_tally_flags --infile <path> [--outfile <path>]"
-        echo "           [--threads <integer >= 1>]"
+        echo "Usage: list_tally_flags --infile <path> --outfile <path>" \
+            "[--threads <integer >= 1>] [--what <option>] [--by_chr]"
         echo "  -i, --infile   Specify the input BAM file (required)."
-        echo "  -o, --outfile  Specify the output TSV file to write flag tallies (required)."
-        echo "  -t, --threads  Specify the number of threads to use (default: ${threads})."
-        echo "  -w, --what     Specify what to tally: 'flags', 'mapq', or 'both' (default: 'flags')."
+        echo "  -o, --outfile  Specify the output TSV file to write flag" \
+            "tallies (required)."
+        echo "  -t, --threads  Specify the number of threads to use" \
+            "(default: ${threads})."
+        echo "  -w, --what     Specify what to tally: 'flags', 'mapq', or" \
+            "'both' (default: flags)."
         echo "  -b, --by_chr   Stratify the output by chromosome (optional)."
         return 1
     fi
@@ -135,7 +140,7 @@ list_tally_flags_mapq() {
     #  Process according to the specified "what" option, checking and assigning
     #+ what if/as needed)
     case "${what}" in
-        flags)
+        flag|flags)
             if [[ -z "${outfile}" ]]; then
                 outfile="${infile/.bam/.flags.txt}"
             fi
@@ -157,7 +162,7 @@ list_tally_flags_mapq() {
                         | sort -k1,1 -k2,2n \
                             > "${outfile}";
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             else
@@ -173,7 +178,7 @@ list_tally_flags_mapq() {
                         | sort -nr -k2 \
                             > "${outfile}";
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             fi ;;
@@ -199,7 +204,7 @@ list_tally_flags_mapq() {
                         | sort -k1,1 -k2,2n \
                             > "${outfile}";
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             else
@@ -215,7 +220,7 @@ list_tally_flags_mapq() {
                         | sort -nr -k2 \
                             > "${outfile}";
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             fi ;;
@@ -241,7 +246,7 @@ list_tally_flags_mapq() {
                         | sort -k1,1 -k2,2n -k3,3n \
                             > "${outfile}";
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             else
@@ -265,17 +270,19 @@ list_tally_flags_mapq() {
                         | sort -k1,1n -k2,2n \
                             > "${outfile}"
                 then
-                    echo "Error: Failed to process BAM file with Samtools." >&2
+                    echo "${error_message_1}" >&2
                     return 1
                 fi
             fi ;;
         *)
-            echo "Error: Invalid option specified for what." >&2
+            echo "${error_message_2}" >&2
             return 1
             ;;
     esac
 
-    echo "list_tally_flags_mapq for ${what} tallied and written to ${outfile}."
+    echo \
+        "list_tally_flags_mapq for option '${what}' tallied and written to" \
+        "${outfile}."
 }
 
 
@@ -284,10 +291,10 @@ function show_help() {
     cat << EOM
 Usage: ${0} [OPTIONS]
 
-This script aligns paired- or single-end FASTQ files using Bowtie 2, processes
-the output with SAMtools (coordinate sorting, queryname sorting, marking
-duplicates, etc.), and outputs both a queryname-sorted BAM file and a
-coordinate-sorted, duplicate-marked BAM file.
+This script aligns paired- or single-end FASTQ files using the alignment
+programs Bowtie 2 or BWA, processes the output with Samtools (coordinate
+sorting, queryname sorting, marking duplicates, etc.), and outputs both a
+queryname-sorted BAM file and a coordinate-sorted, duplicate-marked BAM file.
 
 The script also (1) generates a BED file of fragments for use as input to siQ-
 ChIP (for paired-end FASTQ input files only), (2) generates another BED file of
@@ -303,43 +310,45 @@ lc_extrap also gives bounds on the number of distinct reads in the library and
 the associated confidence intervals.
 
 Options:
-   -h, --help      Display this help message.
-   -t, --threads   Number of threads to use (default: 1).
-   -i, --index     Path and stem for the Bowtie 2 index (required).
-   -f, --fasta     PATH for genome FASTA file (required).
-   -s, --sizes     Path for chromosome sizes file (required).
-   -m, --mode      Run Bowtie 2 in 'single' or 'paired' mode (default: paired).
-   -q, --mapq      MAPQ threshold for BAM filtering (default: 1).
-  -rf, --req_flag  Require flag 2 for BAM filtering (optional).
-  -fl, --f_length  Fragment length in bp (integer > 0) for the generation of a
-                   siQ-ChIP BED file; if specified and mode is 'paired', then
-                   the value will override the calculation of fragment length
-                   from aligned read mates (default for 'single' mode: 200;
-                   the default for 'paired' mode is to use values stored in BAM
-                   TLEN fields).
-  -f1, --fastq_1   Path to the first FASTQ file (required).
-  -f2, --fastq_2   Path to the second FASTQ file (required if mode is 'paired';
-                   ignored if mode is 'single').
-   -b, --bam       Output path for the BAM file (required).
-  -bc, --bam_coor  Output path for the coordinate-sorted BAM file.
-  -bq, --bam_quer  Output path for the queryname-sorted BAM file.
-  -bs, --bed_siQ   Output path for the BED file used as input to siQ-ChIP.
-  -be, --bed_etc   Output path and stem for the BED file of per-base coverage,
-                   related Mosdepth output files, and the RPM-scaled bedGraph
-                   and bigWig files derived from the above BED file.
-  -dff, --d_fqc_f  Output directory for HTML file and compressed sub-directory
-                   (ZIP) from running FastQC on FASTQ file(s) (required if
-                   hardcoded flag_fqc_fastq=true).
-  -dfb, --d_fqc_b  Output directory for HTML file and compressed sub-directory
-                   (ZIP) from running FastQC on coordinate-sorted BAM file
-                   (required if hardcoded flag_fqc_bam=true).
-  -tl, --txt_list  Output path for the list_tally_flags_mapq TXT file.
-  -tm, --txt_met   Output path for the picard CollectAlignmentSummaryMetrics
-                   TXT file.
-  -tf, --txt_flg   Output path for the samtools flagstat TXT file.
-  -ti, --txt_idx   Output path for the samtools idxstats TXT file.
-  -tp, --txt_pre   Output path and stem for the preseq lc_extrap, bound_pop,
-                   and c_curve TXT files.
+    -h, --help      Display this help message.
+    -t, --threads   Number of threads to use (default: 1).
+    -a, --aligner   Use alignment program 'bowtie2' or 'bwa' (default:
+                    bowtie2). 
+    -i, --index     Path and stem for the aligner index (required).
+    -f, --fasta     PATH for genome FASTA file (required).
+    -s, --sizes     Path for chromosome sizes file (required).
+    -m, --mode      Run aligner in 'single' or 'paired' mode (default: paired).
+    -q, --mapq      MAPQ threshold for BAM filtering (default: 1).
+   -rf, --req_flag  Require flag 2 for BAM filtering (optional).
+   -fl, --f_length  Fragment length in bp (integer > 0) for the generation of a
+                    siQ-ChIP BED file; if specified and mode is 'paired', then
+                    the value will override the calculation of fragment length
+                    from aligned read mates (default for 'single' mode: 200;
+                    the default for 'paired' mode is to use values stored in
+                    BAM TLEN fields).
+   -f1, --fastq_1   Path to the first FASTQ file (required).
+   -f2, --fastq_2   Path to the second FASTQ file (required if mode is
+                    'paired'; ignored if mode is 'single').
+    -b, --bam       Output path for the BAM file (required).
+   -bc, --bam_coor  Output path for the coordinate-sorted BAM file.
+   -bq, --bam_quer  Output path for the queryname-sorted BAM file.
+   -bs, --bed_siQ   Output path for the BED file used as input to siQ-ChIP.
+   -be, --bed_etc   Output path and stem for the BED file of per-base coverage,
+                    related Mosdepth output files, and the RPM-scaled bedGraph
+                    and bigWig files derived from the above BED file.
+  -dff, --d_fqc_f   Output directory for HTML file and compressed sub-directory
+                    (ZIP) from running FastQC on FASTQ file(s) (required if
+                    hardcoded flag_fqc_fastq=true).
+  -dfb, --d_fqc_b   Output directory for HTML file and compressed sub-directory
+                    (ZIP) from running FastQC on coordinate-sorted BAM file
+                    (required if hardcoded flag_fqc_bam=true).
+   -tl, --txt_list  Output path for the list_tally_flags_mapq TXT file.
+   -tm, --txt_met   Output path for the picard CollectAlignmentSummaryMetrics
+                    TXT file.
+   -tf, --txt_flg   Output path for the samtools flagstat TXT file.
+   -ti, --txt_idx   Output path for the samtools idxstats TXT file.
+   -tp, --txt_pre   Output path and stem for the preseq lc_extrap, bound_pop,
+                    and c_curve TXT files.
 
 Dependencies:
   - bedGraphToBigWig
@@ -364,17 +373,18 @@ Notes:
     mean fragment length in order to generate a siQ-ChIP BED file from
     single-end sequenced ChIP-seq alignments (or to override the use of TLEN
     with paired-end sequenced ChIP-seq alignments).
-  - #TODO Test the above implementation.
+      + #TODO Test the above implementation.
 
 Examples:
   #  Running in 'paired' mode
-  align-process-etc_fastqs_bowtie2.sh
+  align_process_etc.sh
       --threads 4
-      --index path/to/indices/file_prefix
+      --aligner bwa
+      --index path/to/indices/file_prefix.fa
       --fasta path/to/fasta/file.fa
       --sizes path/to/sizes/file.tsv
       --mode paired
-      --mapq 1
+      --mapq 0
       --req_flag
       --fastq_1 path/to/fastqs/file_1.fq.gz
       --fastq_2 path/to/fastqs/file_2.fq.gz
@@ -392,8 +402,9 @@ Examples:
       --txt_pre path/for/QC/file_prefix
 
   #  Running in 'single' mode
-  align-process-etc_fastqs_bowtie2.sh
+  align_process_etc.sh
       --threads 4
+      --aligner bowtie2
       --index path/to/indices/file_prefix
       --fasta path/to/fasta/file.fa
       --sizes path/to/sizes/file.tsv
@@ -418,16 +429,6 @@ EOM
 
 
 #  #TODO Name this section ====================================================
-check_program_in_path "awk"
-check_program_in_path "bedGraphToBigWig"
-check_program_in_path "bedSort"
-check_program_in_path "bowtie2"
-check_program_in_path "fastqc"
-check_program_in_path "mosdepth"
-check_program_in_path "picard"
-check_program_in_path "samtools"
-check_program_in_path "sort"
-
 if [[ -z "${1}" || "${1}" == "-h" || "${1}" == "--help" ]]; then
     show_help
     if ! ${interact}; then exit 0; fi
@@ -441,7 +442,12 @@ if ${interact}; then
 
     #  Values for running tests
     threads="${SLURM_CPUS_ON_NODE:-1}"
-    index="${HOME}/genomes/combined_SC_SP/bowtie2/combined_SC_SP"
+    aligner="bwa"  # "bowtie2"
+    if [[ ${aligner} == "bowtie2" ]]; then
+        index="${HOME}/genomes/combined_SC_SP/${aligner}/combined_SC_SP"
+    elif [[ ${aligner} == "bwa" ]]; then
+        index="${HOME}/genomes/combined_SC_SP/${aligner}/combined_SC_SP.fa"
+    fi
     fasta="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.fa"
     sizes="${HOME}/genomes/combined_SC_SP/fasta/combined_SC_SP.chrom-info.tsv"
 
@@ -451,37 +457,42 @@ if ${interact}; then
     # if [[ -n "${f_length}" ]]; then unset f_length; fi
     # fastq_1="${dir_exp}/02_trim/in_G1_Hho1_6336_R1.atria.fastq.gz"
     # fastq_2="${dir_exp}/02_trim/in_G1_Hho1_6336_R2.atria.fastq.gz"
-    # bam="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.bam"
-    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-coord.bam"
-    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/in_G1_Hho1_6336.sort-qname.bam"
-    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/in_G1_Hho1_6336.bed.gz"
-    # d_fqc_f="${dir_exp}/03_bam/bowtie2/qc/fastqc/fastq"
-    # d_fqc_b="${dir_exp}/03_bam/bowtie2/qc/fastqc/bam"
-    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/in_G1_Hho1_6336"
-    # txt_list="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.list-tally.txt"
-    # txt_met="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.picard-metrics.txt"
-    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-flagstat.txt"
-    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
-    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/in_G1_Hho1_6336.preseq"
+    # bam="${dir_exp}/03_bam/${aligner}/bam/in_G1_Hho1_6336.bam"
+    # bam_coor="${dir_exp}/03_bam/${aligner}/bam/in_G1_Hho1_6336.sort-coord.bam"
+    # bam_quer="${dir_exp}/03_bam/${aligner}/bam/in_G1_Hho1_6336.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/${aligner}/siQ-ChIP/in_G1_Hho1_6336.bed.gz"
+    # d_fqc_f="${dir_exp}/03_bam/${aligner}/qc/fastqc/fastq"
+    # d_fqc_b="${dir_exp}/03_bam/${aligner}/qc/fastqc/bam"
+    # bed_etc="${dir_exp}/03_bam/${aligner}/cvrg/in_G1_Hho1_6336"
+    # txt_list="${dir_exp}/03_bam/${aligner}/qc/in_G1_Hho1_6336.list-tally.txt"
+    # txt_met="${dir_exp}/03_bam/${aligner}/qc/in_G1_Hho1_6336.picard-metrics.txt"
+    # txt_flg="${dir_exp}/03_bam/${aligner}/qc/in_G1_Hho1_6336.samtools-flagstat.txt"
+    # txt_idx="${dir_exp}/03_bam/${aligner}/qc/in_G1_Hho1_6336.samtools-idxstats.txt"
+    # txt_pre="${dir_exp}/03_bam/${aligner}/qc/in_G1_Hho1_6336.preseq"
 
     mode="paired"
-    mapq=1
+    mapq=0
     req_flag=true
     if [[ -n "${f_length}" ]]; then unset f_length; fi
     fastq_1="${dir_exp}/02_trim/IP_G1_Hho1_6336_R1.atria.fastq.gz"
     fastq_2="${dir_exp}/02_trim/IP_G1_Hho1_6336_R2.atria.fastq.gz"
-    bam="${dir_exp}/03_bam/bowtie2/bam/IP_G1_Hho1_6336.bam"
-    bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_G1_Hho1_6336.sort-coord.bam"
-    bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_G1_Hho1_6336.sort-qname.bam"
-    bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_G1_Hho1_6336.bed.gz"
-    bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_G1_Hho1_6336"
-    d_fqc_f="${dir_exp}/03_bam/bowtie2/qc/fastqc/fastq"
-    d_fqc_b="${dir_exp}/03_bam/bowtie2/qc/fastqc/bam"
-    txt_list="${dir_exp}/03_bam/bowtie2/qc/IP_G1_Hho1_6336.list-tally.txt"
-    txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_G1_Hho1_6336.picard-metrics.txt"
-    txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_G1_Hho1_6336.samtools-flagstat.txt"
-    txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_G1_Hho1_6336.samtools-idxstats.txt"
-    txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_G1_Hho1_6336.preseq"
+    if ${req_flag}; then
+        subdir="flag-2_mapq-${mapq}"
+    else
+        subdir="flag-NA_mapq-${mapq}"
+    fi
+    bam="${dir_exp}/03_bam/${aligner}/${subdir}/bam/IP_G1_Hho1_6336.bam"
+    bam_coor="${dir_exp}/03_bam/${aligner}/${subdir}/bam/IP_G1_Hho1_6336.sort-coord.bam"
+    bam_quer="${dir_exp}/03_bam/${aligner}/${subdir}/bam/IP_G1_Hho1_6336.sort-qname.bam"
+    bed_siQ="${dir_exp}/03_bam/${aligner}/${subdir}/siQ-ChIP/IP_G1_Hho1_6336.bed.gz"
+    bed_etc="${dir_exp}/03_bam/${aligner}/${subdir}/cvrg/IP_G1_Hho1_6336"
+    d_fqc_f="${dir_exp}/03_bam/${aligner}/${subdir}/qc/fastqc/fastq"
+    d_fqc_b="${dir_exp}/03_bam/${aligner}/${subdir}/qc/fastqc/bam"
+    txt_list="${dir_exp}/03_bam/${aligner}/${subdir}/qc/IP_G1_Hho1_6336.list-tally.txt"
+    txt_met="${dir_exp}/03_bam/${aligner}/${subdir}/qc/IP_G1_Hho1_6336.picard-metrics.txt"
+    txt_flg="${dir_exp}/03_bam/${aligner}/${subdir}/qc/IP_G1_Hho1_6336.samtools-flagstat.txt"
+    txt_idx="${dir_exp}/03_bam/${aligner}/${subdir}/qc/IP_G1_Hho1_6336.samtools-idxstats.txt"
+    txt_pre="${dir_exp}/03_bam/${aligner}/${subdir}/qc/IP_G1_Hho1_6336.preseq"
 
     # mode="paired"
     # mapq=1
@@ -489,36 +500,36 @@ if ${interact}; then
     # if [[ -n "${f_length}" ]]; then unset f_length; fi
     # fastq_1="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R1.atria.fastq.gz"
     # fastq_2="${dir_exp}/02_trim/IP_Q_Hmo1_7750_R2.atria.fastq.gz"
-    # bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.bam"
-    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-coord.bam"
-    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Hmo1_7750.sort-qname.bam"
-    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
-    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Hmo1_7750"
-    # d_fqc_f="${dir_exp}/03_bam/bowtie2/qc/fastqc/fastq"
-    # d_fqc_b="${dir_exp}/03_bam/bowtie2/qc/fastqc/bam"
-    # txt_list="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.list-tally.txt"
-    # txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
-    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
-    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
-    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Hmo1_7750.preseq"
+    # bam="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Hmo1_7750.bam"
+    # bam_coor="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Hmo1_7750.sort-coord.bam"
+    # bam_quer="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Hmo1_7750.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/${aligner}/siQ-ChIP/IP_Q_Hmo1_7750.bed.gz"
+    # bed_etc="${dir_exp}/03_bam/${aligner}/cvrg/IP_Q_Hmo1_7750"
+    # d_fqc_f="${dir_exp}/03_bam/${aligner}/qc/fastqc/fastq"
+    # d_fqc_b="${dir_exp}/03_bam/${aligner}/qc/fastqc/bam"
+    # txt_list="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Hmo1_7750.list-tally.txt"
+    # txt_met="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Hmo1_7750.picard-metrics.txt"
+    # txt_flg="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Hmo1_7750.samtools-flagstat.txt"
+    # txt_idx="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Hmo1_7750.samtools-idxstats.txt"
+    # txt_pre="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Hmo1_7750.preseq"
 
     # mode="single"
     # mapq=1
     # f_length=200
     # fastq_1="${dir_exp}/01_sym/IP_Q_Brn1_rep1.fastq.gz"
     # if [[ -n "${fastq_2}" ]]; then unset fastq_2; fi
-    # bam="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.bam"
-    # bam_coor="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.sort-coord.bam"
-    # bam_quer="${dir_exp}/03_bam/bowtie2/bam/IP_Q_Brn1_rep1.sort-qname.bam"
-    # bed_siQ="${dir_exp}/03_bam/bowtie2/siQ-ChIP/IP_Q_Brn1_rep1.bed.gz"
-    # bed_etc="${dir_exp}/03_bam/bowtie2/cvrg/IP_Q_Brn1_rep1"
-    # d_fqc_f="${dir_exp}/03_bam/bowtie2/qc/fastqc/fastq"
-    # d_fqc_b="${dir_exp}/03_bam/bowtie2/qc/fastqc/bam"
-    # txt_list="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.list-tally.txt"
-    # txt_met="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.picard-metrics.txt"
-    # txt_flg="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.samtools-flagstat.txt"
-    # txt_idx="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.samtools-idxstats.txt"
-    # txt_pre="${dir_exp}/03_bam/bowtie2/qc/IP_Q_Brn1_rep1.preseq"
+    # bam="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Brn1_rep1.bam"
+    # bam_coor="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Brn1_rep1.sort-coord.bam"
+    # bam_quer="${dir_exp}/03_bam/${aligner}/bam/IP_Q_Brn1_rep1.sort-qname.bam"
+    # bed_siQ="${dir_exp}/03_bam/${aligner}/siQ-ChIP/IP_Q_Brn1_rep1.bed.gz"
+    # bed_etc="${dir_exp}/03_bam/${aligner}/cvrg/IP_Q_Brn1_rep1"
+    # d_fqc_f="${dir_exp}/03_bam/${aligner}/qc/fastqc/fastq"
+    # d_fqc_b="${dir_exp}/03_bam/${aligner}/qc/fastqc/bam"
+    # txt_list="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Brn1_rep1.list-tally.txt"
+    # txt_met="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Brn1_rep1.picard-metrics.txt"
+    # txt_flg="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Brn1_rep1.samtools-flagstat.txt"
+    # txt_idx="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Brn1_rep1.samtools-idxstats.txt"
+    # txt_pre="${dir_exp}/03_bam/${aligner}/qc/IP_Q_Brn1_rep1.preseq"
 
     #  Optional: Check variable assignments 
     if ${check_variables}; then
@@ -526,6 +537,7 @@ if ${interact}; then
         ### Variable assignments for interactive testing ###
 
         threads=${threads}
+        aligner=${aligner}
         index=${index}
         fasta=${fasta}
         sizes=${sizes}
@@ -554,6 +566,7 @@ else
     while [[ "$#" -gt 0 ]]; do
         case "${1}" in
               -t|--threads)  threads="${2}";  shift 2 ;;
+              -a|--aligner)  aligner="${2}";  shift 2 ;;
               -i|--index)    index="${2}";    shift 2 ;;
               -f|--fasta)    fasta="${2}";    shift 2 ;;
               -s|--sizes)    sizes="${2}";    shift 2 ;;
@@ -581,40 +594,62 @@ fi
 
 if [[ -z "${threads}" ]]; then
     threads="${SLURM_CPUS_ON_NODE:-1}"
-    ${verbose} && echo_note "The number of threads has not been specified; defaulting to ${threads}."
+    ${verbose} && echo_note \
+        "The number of threads has not been specified; defaulting to" \
+        "${threads}."
 fi
 
 if ! [[ "${threads}" =~ ^[0-9]+$ ]] || [[ "${threads}" -lt 1 ]]; then
-    error_and_exit "The number of threads must be an integer >= 1."
+    error_exit "The number of threads must be an integer >= 1."
 fi
 
+if [[ -z "${aligner}" ]]; then
+    aligner="bowtie2"
+    ${verbose} && echo_note \
+        "Aligner has not been specified; defaulting to ${aligner}."
+fi
+
+case "${aligner}" in
+    bowtie2|bwa) : ;;
+    *) error_exit \
+        "Invalid aligner '${aligner}'. Must be either 'bowtie2' or 'bwa'."
+        ;;
+esac
+
 if [[ -z "${index}" ]]; then
-    error_and_exit "File path and stem for Bowtie 2 indices are required. Use -i or --index to specify it."
+    error_exit \
+        "File path and stem for aligner indices are required. Use -i or" \
+        "--index to specify it."
 fi
 
 if [[ ! -d "$(dirname "${index}")" ]]; then
-    error_and_exit "Specified directory for Bowtie 2 indices does not exist."
+    error_exit "Specified directory for aligner indices does not exist."
 fi
 
 if [[ -z "${sizes}" ]]; then
-    error_and_exit "File path for chromosome sizes is required. Use -s or --sizes to specify it."
+    error_exit \
+        "File path for chromosome sizes is required. Use -s or --sizes to" \
+        "specify it."
 fi
 
 if [[ ! -f "${sizes}" ]]; then
-    error_and_exit "Specified chromosome sizes file does not exist."
+    error_exit "Specified chromosome sizes file does not exist."
 fi
 
 if [[ -z "${fasta}" ]]; then
-    error_and_exit "File path for genome FASTA is required. Use -f or --fasta to specify it."
+    error_exit \
+        "File path for genome FASTA is required. Use -f or --fasta to" \
+        "specify it."
 fi
 
 if [[ ! -f "${fasta}" ]]; then
-    error_and_exit "Specified genome FASTA file does not exist."
+    error_exit "Specified genome FASTA file does not exist."
 fi
 
 if [[ -z "${mapq}" ]]; then
     mapq=1
-    ${verbose} && echo_note "MAPQ threshold has not been specified; defaulting to ${mapq}."
+    ${verbose} && echo_note \
+        "MAPQ threshold has not been specified; defaulting to ${mapq}."
 fi
 
 if [[ -z "${req_flag}" || "${req_flag}" != "true" ]]; then
@@ -623,137 +658,192 @@ fi
 
 if [[ -z "${mode}" ]]; then
     mode="paired"
-    ${verbose} && echo_note "Mode has not been specified; defaulting to '${mode}' mode."
+    ${verbose} && echo_note \
+        "Mode has not been specified; defaulting to '${mode}' mode."
 fi
 
 case "${mode}" in
     single|paired) : ;;
-    *) error_and_exit "Invalid mode '${mode}'. Must be either 'single' or 'paired'." ;;
+    *) error_exit \
+        "Invalid mode '${mode}'. Must be either 'single' or 'paired'."
+        ;;
 esac
 
 if [[ "${mode}" == "paired" && "${req_flag}" == "false" && ${verbose} ]]; then
-    echo_note "Mode is 'paired' and BAM file will NOT be filtered for paired alignments (i.e., alignments for which flag bit 2 is set)."
+    echo_note \
+        "Mode is 'paired' and BAM file will NOT be filtered for paired" \
+        "alignments (i.e., alignments for which flag bit 2 is set)."
 else
-    echo_note "Mode is 'paired' and BAM file will be filtered for paired alignments (i.e., alignments for which flag bit 2 is set)."
+    echo_note \
+        "Mode is 'paired' and BAM file will be filtered for paired" \
+        "alignments (i.e., alignments for which flag bit 2 is set)."
 fi
 
 if [[ -z "${f_length}" ]]; then
     if [[ "${mode}" == "single" ]]; then
-        error_and_exit "Fragment length is required for 'single' mode. Use -fl or --f_length to specify it."
+        error_exit \
+            "Fragment length is required for 'single' mode. Use -fl or" \
+            "--f_length to specify it."
     else
         f_length=0
-        ${verbose} && echo_note "Fragment length not specified for 'paired' mode; will determine from alignment (TLEN)."
+        ${verbose} && echo_note \
+            "Fragment length not specified for 'paired' mode; will" \
+            "determine from alignment (TLEN)."
     fi
 elif ! [[ "${f_length}" =~ ^[0-9]+$ ]]; then
-    error_and_exit "Fragment length must be a non-negative integer; received ${f_length}."
+    error_exit \
+        "Fragment length must be a non-negative integer; received ${f_length}."
 elif [[ "${f_length}" -eq 0 && "${mode}" == "single" ]]; then
-    error_and_exit "Fragment length must be greater than 0 for 'single' mode."
+    error_exit \
+        "Fragment length must be greater than 0 for 'single' mode."
 elif [[ "${f_length}" -gt 0 && "${mode}" == "paired" && ${verbose} ]]; then
-    echo_note "Fragment length specified as ${f_length} for 'paired' mode; will not determine from alignment (TLEN)."
+    echo_note \
+        "Fragment length specified as ${f_length} for 'paired' mode; will" \
+        "not determine from alignment (TLEN)."
 elif [[ "${f_length}" -gt 0 && "${mode}" == "single" && ${verbose} ]]; then
-    echo_note "Fragment length specified as ${f_length} for 'single' mode."
+    echo_note \
+        "Fragment length specified as ${f_length} for 'single' mode."
 fi
 
 if [[ -z "${fastq_1}" ]]; then
-    error_and_exit "FASTQ_1 file path is required. Use -f1 or --fastq_1 to specify it."
+    error_exit \
+        "FASTQ_1 file path is required. Use -f1 or --fastq_1 to specify it."
 fi
 
 if [[ ! -f "${fastq_1}" ]]; then
-    error_and_exit "Specified FASTQ_1 file does not exist."
+    error_exit "Specified FASTQ_1 file does not exist."
 fi
 
 if [[ ! "${fastq_1}" =~ \.(fastq|fq)(\.gz)?$ ]]; then
-    error_and_exit "FASTQ_1 does not have a valid extension, which must be one of the following: *.fastq, *.fastq.gz, *.fq, or *.fq.gz."
+    error_exit \
+        "FASTQ_1 does not have a valid extension, which must be one of the" \
+        "following: *.fastq, *.fastq.gz, *.fq, or *.fq.gz."
 fi
 
 if [[ "${mode}" == "paired" ]]; then
     if [[ -z "${fastq_2}" ]]; then
-        error_and_exit "FASTQ_2 file path is required. Use -f2 or --fastq_2 to specify it."
+        error_exit \
+            "FASTQ_2 file path is required. Use -f2 or --fastq_2 to specify" \
+            "it."
     fi
 
     if [[ ! -f "${fastq_2}" ]]; then
-        error_and_exit "Specified FASTQ_2 file does not exist."
+        error_exit "Specified FASTQ_2 file does not exist."
     fi
 
     if [[ ! "${fastq_2}" =~ \.(fastq|fq)(\.gz)?$ ]]; then
-        error_and_exit "FASTQ_2 does not have a valid extension, which must be one of the following: *.fastq, *.fastq.gz, *.fq, or *.fq.gz."
+        error_exit \
+            "FASTQ_2 does not have a valid extension, which must be one of" \
+            "the following: *.fastq, *.fastq.gz, *.fq, or *.fq.gz."
     fi
 fi
 
 if [[ "${mode}" == "single" && -n "${fastq_2}" && ${verbose} ]]; then
-    echo_note "Mode is 'single' but FASTQ_2 file is assigned. FASTQ_2 will be ignored."
+    echo_note "Mode is 'single' but FASTQ_2 file is assigned. FASTQ_2 will" \
+        "be ignored."
     echo "      fastq_2=\"${fastq_2}\""
 fi
 
 if [[ -z "${bam}" ]]; then
-    error_and_exit "BAM file path is required. Use -b or --bam to specify it."
+    error_exit "BAM file path is required. Use -b or --bam to specify it."
 fi
 
 if [[ -z "${bam_coor}" ]]; then
     bam_coor="${bam/.bam/.sort-coord.bam}"
-    ${verbose} && echo_note "Coordinate-sorted BAM outfile has not been specified; defaulting to ${bam_coor}."
+    ${verbose} && echo_note \
+        "Coordinate-sorted BAM outfile has not been specified; defaulting" \
+        "to ${bam_coor}."
 fi
 
 if [[ -z "${bam_quer}" ]]; then
     bam_quer="${bam/.bam/.sort-qname.bam}"
-    ${verbose} && echo_note "Queryname-sorted BAM outfile has not been specified; defaulting to ${bam_quer}."
+    ${verbose} && echo_note \
+        "Queryname-sorted BAM outfile has not been specified; defaulting to" \
+        "${bam_quer}."
 fi
 
 if [[ -z "${bed_siQ}" ]]; then
     bed_siQ="${bam/.bam/.siQ-ChIP.bed.gz}"
-    ${verbose} && echo_note "siQ-ChIP BED outfile has not been specified; defaulting to ${bed_siQ}."
+    ${verbose} && echo_note \
+        "siQ-ChIP BED outfile has not been specified; defaulting to" \
+        "${bed_siQ}."
 fi
 
 if [[ "${bed_siQ}" != *.gz ]]; then
     bed_siQ="${bed_siQ}.gz"
-    ${verbose} && echo_note "Appending suffix '.gz' to string assigned to bed_siQ: ${bed_siQ}" 
+    ${verbose} && echo_note \
+        "Appending suffix '.gz' to string assigned to bed_siQ: ${bed_siQ}." 
 fi
 
 if [[ -z "${bed_etc}" ]]; then
     bed_etc="${bam%.bam}"
-    ${verbose} && echo_note "Stem for per-base coverage BED outfile, Mosdepth outfiles, etc. has not been specified; defaulting to ${bed_etc}."
+    ${verbose} && echo_note \
+        "Stem for per-base coverage BED outfile, Mosdepth outfiles, etc." \
+        "has not been specified; defaulting to ${bed_etc}."
 fi
 
 if [[ -z "${d_fqc_f}" && ${flag_fqc_fastq} ]]; then
-    error_and_exit "FastQC directory is required. Use -dff or --d_fqc_f to specify it."
+    error_exit \
+        "FastQC directory is required. Use -dff or --d_fqc_f to specify it."
 fi
 
 if [[ ! -d "${d_fqc_f}" && ${flag_fqc_fastq} ]]; then
-    error_and_exit "Specified directory for FastQC does not exist."
+    error_exit "Specified directory for FastQC does not exist."
 fi
 
 if [[ -z "${d_fqc_b}" && ${flag_fqc_bam} ]]; then
-    error_and_exit "FastQC directory is required. Use -dfb or --d_fqc_b to specify it."
+    error_exit \
+        "FastQC directory is required. Use -dfb or --d_fqc_b to specify it."
 fi
 
 if [[ ! -d "${d_fqc_b}" && ${flag_fqc_bam} ]]; then
-    error_and_exit "Specified directory for FastQC does not exist."
+    error_exit "Specified directory for FastQC does not exist."
 fi
 
 if [[ -z "${txt_list}" ]]; then
     txt_idx="${bam/.bam/.list-tally.txt}"
-    ${verbose} && echo_note "list_tally_flags_mapq outfile has not been specified; defaulting to ${txt_list}."
+    ${verbose} && echo_note \
+        "list_tally_flags_mapq outfile has not been specified; defaulting" \
+        "to ${txt_list}."
 fi
 
 if [[ -z "${txt_met}" ]]; then
     txt_idx="${bam/.bam/.picard-metrics.txt}"
-    ${verbose} && echo_note "Picard CollectAlignmentSummaryMetrics outfile has not been specified; defaulting to ${txt_met}."
+    ${verbose} && echo_note \
+        "Picard CollectAlignmentSummaryMetrics outfile has not been" \
+        "specified; defaulting to ${txt_met}."
 fi
 
 if [[ -z "${txt_flg}" ]]; then
     txt_flg="${bam/.bam/.samtools-flagstat.txt}"
-    ${verbose} && echo_note "Samtools flagstat outfile has not been specified; defaulting to ${txt_flg}."
+    ${verbose} && echo_note \
+        "Samtools flagstat outfile has not been specified; defaulting to" \
+        "${txt_flg}."
 fi
 
 if [[ -z "${txt_idx}" ]]; then
     txt_idx="${bam/.bam/.samtools-idxstats.txt}"
-    ${verbose} && echo_note "Samtools idxstats outfile has not been specified; defaulting to ${txt_idx}."
+    ${verbose} && echo_note \
+        "Samtools idxstats outfile has not been specified; defaulting to" \
+        "${txt_idx}."
 fi
 
 if [[ -z "${txt_pre}" ]]; then
     txt_pre="${bam/.bam/.preseq}"
-    ${verbose} && echo_note "Stem for preseq outfiles has not been specified; defaulting to ${txt_pre}."
+    ${verbose} && echo_note \
+        "Stem for preseq outfiles has not been specified; defaulting to" \
+        "${txt_pre}."
 fi
+
+check_program_in_path "awk"
+check_program_in_path "bedGraphToBigWig"
+check_program_in_path "bedSort"
+check_program_in_path "bowtie2"
+check_program_in_path "fastqc"
+check_program_in_path "mosdepth"
+check_program_in_path "picard"
+check_program_in_path "samtools"
+check_program_in_path "sort"
 
 
 #  #TODO Name this section ====================================================
@@ -763,25 +853,29 @@ if ${flag_fqc_fastq}; then
     extension_1="$(determine_fastq_extension "${fastq_1}")" || {
         if ${interact}; then return 1; else exit 1; fi
     }
-    file_fqc_1="${d_fqc_f}/$(basename "${fastq_1}" "${extension_1}")_fastqc.html"
-    message_1="FastQC output already exists for FASTQ_1. Skipping FastQC operation (step #0)."
+    name_fqc_1="$(basename "${fastq_1}" "${extension_1}")_fastqc.html"
+    file_fqc_1="${d_fqc_f}/${name_fqc_1}"
+    message_1a="FastQC output exists for FASTQ_1."
+    message_1b="Skipping FastQC operation (step #0)."
     
     if [[ "${mode}" == "single" ]]; then
         if [[ ! -f "${file_fqc_1}" ]]; then
             fastqc "${fastq_1}" -o "${d_fqc_f}"
         else
-            echo_note "${message_1}"
+            echo_note "${message_1a} ${message_1b}"
         fi
     elif [[ "${mode}" == "paired" ]]; then
         extension_2="$(determine_fastq_extension "${fastq_2}")" || {
             if ${interact}; then return 1; else exit 1; fi
         }
-        file_fqc_2="${d_fqc_f}/$(basename "${fastq_2}" "${extension_2}")_fastqc.html"
-        message_2="FastQC output already exists for FASTQ_2. Skipping FastQC operation (step #0)."
+        name_fqc_2="$(basename "${fastq_2}" "${extension_2}")_fastqc.html"
+        file_fqc_2="${d_fqc_f}/${name_fqc_2}"
+        message_2a="FastQC output exists for FASTQ_2."
+        message_2b="Skipping FastQC operation (step #0)."
 
         if [[ -f "${file_fqc_1}" || -f "${file_fqc_2}" ]]; then
-            [[ -f "${file_fqc_1}" ]] && echo_note "${message_1}"
-            [[ -f "${file_fqc_2}" ]] && echo_note "${message_2}"
+            [[ -f "${file_fqc_1}" ]] && echo_note "${message_1a} ${message_1b}"
+            [[ -f "${file_fqc_2}" ]] && echo_note "${message_2a} ${message_2b}"
         fi
 
         #  Execute FastQC if/as needed
@@ -797,75 +891,114 @@ fi
 
 
 #  Step #1 ----------------------------
-#+ Check if the BAM files exist; if not, perform alignment with Bowtie 2,
-#+ converting the Bowtie 2 output to a BAM file with Samtools; for paired-end
+#+ Check if the BAM files exist; if not, perform alignment with Bowtie 2 or
+#+ BWA, converting the output to a BAM file with Samtools; for paired-end
 #+ sequenced data, retain only properly paired reads (-f 2) that are greater
 #+ than or equal to a user-supplied MAPQ score (-q "${mapq}") [by default,
 #+ retain any-quality "maxi-reads" (-q 1)]
 #+ 
 #+ On the definition of "maxi-reads" and how to interpret Bowtie 2 MAPQ scores:
-#+ biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+#+ - biofinysics.blogspot.com/2014/05/how-does-bowtie2-assign-mapq-scores.html
+#+ 
+#+ On how to interpret BWA MAPQ scores:
+#+ - sequencing.qcfail.com/articles/mapq-values-are-really-useful-but-their-implementation-is-a-mess/
+#+ - davetang.org/muse/2011/09/14/mapping-qualities/
 if [[
        ! -f "${bam}" \
     && ! -f "${bam_coor}" \
     && ! -f "${bam_quer}"
 ]]; then
     if [[ "${mode}" == "paired" ]]; then
-        if ${req_flag}; then
+        if [[ "${aligner}" == "bowtie2" ]]; then
+            if ${req_flag}; then
+                bowtie2 \
+                    -p "${threads}" \
+                    -x "${index}" \
+                    --very-sensitive-local \
+                    --no-unal \
+                    --no-mixed \
+                    --no-discordant \
+                    --no-overlap \
+                    --no-dovetail \
+                    --phred33 \
+                    -1 "${fastq_1}" \
+                    -2 "${fastq_2}" \
+                        | samtools view \
+                            -@ "${threads}" \
+                            -b \
+                            -f 2 \
+                            -q "${mapq}" \
+                            -o "${bam}"
+            else
+                bowtie2 \
+                    -p "${threads}" \
+                    -x "${index}" \
+                    --very-sensitive-local \
+                    --no-unal \
+                    --no-mixed \
+                    --no-discordant \
+                    --no-overlap \
+                    --no-dovetail \
+                    --phred33 \
+                    -1 "${fastq_1}" \
+                    -2 "${fastq_2}" \
+                        | samtools view \
+                            -@ "${threads}" \
+                            -b \
+                            -q "${mapq}" \
+                            -o "${bam}"
+            fi
+        elif [[ "${aligner}" == "bwa" ]]; then
+            if ${req_flag}; then
+                bwa mem \
+                    -t ${threads} \
+                    "${index}" \
+                    "${fastq_1}" \
+                    "${fastq_2}" \
+                        | samtools view \
+                            -@ ${threads} \
+                            -b \
+                            -f 2 \
+                            -q "${mapq}" \
+                            -o "${bam}"
+            else
+                bwa mem \
+                    -t ${threads} \
+                    "${index}" \
+                    "${fastq_1}" \
+                    "${fastq_2}" \
+                        | samtools view \
+                            -@ ${threads} \
+                            -b \
+                            -q "${mapq}" \
+                            -o "${bam}"
+            fi
+        fi
+    elif [[ "${mode}" == "single" ]]; then
+        if [[ "${aligner}" == "bowtie2" ]]; then
             bowtie2 \
                 -p "${threads}" \
                 -x "${index}" \
                 --very-sensitive-local \
                 --no-unal \
-                --no-mixed \
-                --no-discordant \
-                --no-overlap \
-                --no-dovetail \
                 --phred33 \
-                -I 10 \
-                -X 700 \
-                -1 "${fastq_1}" \
-                -2 "${fastq_2}" \
+                -U "${fastq_1}" \
                     | samtools view \
                         -@ "${threads}" \
                         -b \
-                        -f 2 \
                         -q "${mapq}" \
                         -o "${bam}"
-        else
-            bowtie2 \
-                -p "${threads}" \
-                -x "${index}" \
-                --very-sensitive-local \
-                --no-unal \
-                --no-mixed \
-                --no-discordant \
-                --no-overlap \
-                --no-dovetail \
-                --phred33 \
-                -I 10 \
-                -X 700 \
-                -1 "${fastq_1}" \
-                -2 "${fastq_2}" \
+        elif [[ "${aligner}" == "bwa" ]]; then
+            bwa mem \
+                -t ${threads} \
+                "${index}" \
+                "${fastq_1}" \
                     | samtools view \
-                        -@ "${threads}" \
+                        -@ ${threads} \
                         -b \
                         -q "${mapq}" \
                         -o "${bam}"
         fi
-    elif [[ "${mode}" == "single" ]]; then
-        bowtie2 \
-            -p "${threads}" \
-            -x "${index}" \
-            --very-sensitive-local \
-            --no-unal \
-            --phred33 \
-            -U "${fastq_1}" \
-                | samtools view \
-                    -@ "${threads}" \
-                    -b \
-                    -q "${mapq}" \
-                    -o "${bam}"
     fi
 else
     echo_note "BAM file exists. Skipping alignment operations (step #1)."
@@ -889,10 +1022,12 @@ if [[ -f "${bam}" ]]; then
 
         if [[ "${mode}" == "paired" ]]; then
             #  After sorting by queryname, fix the paired read mate
-            #+ information; this information is required for subsequent
+            #+ information as this information is required for subsequent
             #+ operations
             if ${verbose}; then
-                echo "Running step #2b: Fix the aligned mate information in queryname-sorted BAM file."
+                echo \
+                    "Running step #2b: Fix the aligned mate information in" \
+                    "queryname-sorted BAM file."
             fi
 
             if [[ -f "${bam_quer}" ]]; then
@@ -903,7 +1038,7 @@ if [[ -f "${bam}" ]]; then
                     "${bam_quer}" \
                     "${bam_quer%.bam}.tmp.bam"
 
-                #  Replace the original queryname-sorted BAM with
+                #  Replace the original queryname-sorted BAM with the
                 #+ queryname-sorted mate-fixed BAM
                 if [[ -f "${bam_quer%.bam}.tmp.bam" ]]; then
                     mv -f \
@@ -912,13 +1047,18 @@ if [[ -f "${bam}" ]]; then
                 fi
             fi
         elif [[ "${mode}" == "single" && ${verbose} ]]; then
-            echo_note "Skipping step #2b (run samtools fixmate), which is not applicable for a BAM file derived from single-end sequencing data."
+            echo_note \
+                "Skipping step #2b (run samtools fixmate), which is not" \
+                "applicable for a BAM file derived from single-end" \
+                "sequencing data."
         fi
     else
-        echo_note "Queryname-sorted BAM file exists. Skipping sort operations (step #2)."
+        echo_note \
+            "Queryname-sorted BAM file exists. Skipping sort operations" \
+            "(step #2)."
     fi
 else
-    error_and_exit "BAM infile does not exist (step #2)."
+    error_exit "BAM infile does not exist (step #2)."
 fi
 
 
@@ -928,7 +1068,9 @@ fi
 if [[ -f "${bam_quer}" ]]; then
     if [[ ! -f "${bam_coor}" ]]; then
         if ${verbose}; then
-            echo "Running step #3a: Sort the queryname-sorted BAM file by coordinates."
+            echo \
+                "Running step #3a: Sort the queryname-sorted BAM file by" \
+                "coordinates."
         fi
 
         samtools sort \
@@ -936,10 +1078,12 @@ if [[ -f "${bam_quer}" ]]; then
             -o "${bam_coor}" \
             "${bam_quer}"
     else
-        echo_note "Coordinate-sorted BAM file exists. Skipping sort operation (step #3a)."
+        echo_note \
+            "Coordinate-sorted BAM file exists. Skipping sort operation" \
+            "(step #3a)."
     fi
 else
-    error_and_exit "Queryname-sorted BAM infile does not exist (step #3a)."
+    error_exit "Queryname-sorted BAM infile does not exist (step #3a)."
 fi
 
 #  Index the coordinate-sorted BAM file
@@ -953,10 +1097,12 @@ if [[ -f "${bam_coor}" ]]; then
             -@ "${threads}" \
             "${bam_coor}"
     else
-        echo_note "Index (BAI file) for coordinate-sorted BAM file exists. Skipping index operation (step #3b)."
+        echo_note \
+            "Index (BAI file) for coordinate-sorted BAM file exists." \
+            "Skipping index operation (step #3b)."
     fi
 else
-    error_and_exit "Coordinate-sorted BAM infile does not exist (step #3b)."
+    error_exit "Coordinate-sorted BAM infile does not exist (step #3b)."
 fi
 
 
@@ -968,10 +1114,14 @@ if [[ -f "${bam_coor}" ]]; then
             samtools view -H "${bam_coor}" \
                 | grep -q "@PG.*CL:samtools markdup";
         then
-            echo_note "Duplicate alignments are already marked in coordinate-sorted BAM file. Skipping markdup operations (step #4)."
+            echo_note \
+                "Duplicate alignments are already marked in coordinate-" \
+                "sorted BAM file. Skipping markdup operations (step #4)."
         else
             if ${verbose}; then
-                echo "Running step #4: Mark duplicate alignments in the coordinate-sorted BAM file."
+                echo \
+                    "Running step #4: Mark duplicate alignments in the" \
+                    "coordinate-sorted BAM file."
             fi
 
             #  Mark duplicate alignments in the coordinate-sorted BAM file
@@ -989,10 +1139,12 @@ if [[ -f "${bam_coor}" ]]; then
             fi
         fi
     else
-        error_and_exit "Index (BAI file) for coordinate-sorted BAM file does not exist (step #4)."
+        error_exit \
+            "Index (BAI file) for coordinate-sorted BAM file does not exist" \
+            "(step #4)."
     fi
 else
-    error_and_exit "Coordinate-sorted BAM file does not exist (step #4)."
+    error_exit "Coordinate-sorted BAM file does not exist (step #4)."
 fi
 
 
@@ -1005,20 +1157,26 @@ if [[ -f "${bam_coor}" ]]; then
                | grep -q "@PG.*CL:samtools markdup";
         then
             #  Step #5a -----
-            file_fqc_bam="${d_fqc_b}/$(basename "${bam_coor}" .bam)_fastqc.html"
+            name_fqc_bam="$(basename "${bam_coor}" .bam)_fastqc.html"
+            file_fqc_bam="${d_fqc_b}/${name_fqc_bam}"
             if [[ ! -f "${file_fqc_bam}" && ${flag_fqc_bam} ]]; then
                 ${verbose} \
-                    && echo "Running step #5a: Run FastQC on coordinate-sorted BAM file." \
-                    && echo "                  Output directory will be ${d_fqc_b}."
+                    && echo "Running step #5a: Run FastQC on" \
+                        "coordinate-sorted BAM file." \
+                    && echo "                  Output directory will be" \
+                        "${d_fqc_b}."
                 fastqc "${bam_coor}" -o "${d_fqc_b}"
             else
-                echo_note "FastQC output for coordinate-sorted BAM file already exists. Skipping FastQC operation (step #5a)."
+                echo_note \
+                    "FastQC output for coordinate-sorted BAM file already" \
+                        "exists. Skipping FastQC operation (step #5a)."
             fi
 
             #  Step #5b -----
             if [[ ! -f "${txt_list}" && ${flag_list_tally} ]]; then
                 ${verbose} \
-                    && echo "Running step #5b: Run list_tally_flags_mapq on coordinate-sorted BAM file." \
+                    && echo "Running step #5b: Run list_tally_flags_mapq on" \
+                        "coordinate-sorted BAM file." \
                     && echo "                  Outfile will be ${txt_list}."
                 list_tally_flags_mapq \
                     -t "${threads}" \
@@ -1026,8 +1184,28 @@ if [[ -f "${bam_coor}" ]]; then
                     -o "${txt_list}" \
                     -w "both" \
                     -b
+
+                list_tally_flags_mapq \
+                    -t "${threads}" \
+                    -i "${bam_coor}" \
+                    -o "${txt_list%.txt}.not-by-chr.txt" \
+                    -w "both"
+
+                list_tally_flags_mapq \
+                    -t "${threads}" \
+                    -i "${bam_coor}" \
+                    -o "${txt_list%.txt}.flags.not-by-chr.txt" \
+                    -w "flags"
+
+                list_tally_flags_mapq \
+                    -t "${threads}" \
+                    -i "${bam_coor}" \
+                    -o "${txt_list%.txt}.MAPQ.not-by-chr.txt" \
+                    -w "MAPQ"
             else
-                echo_note "list_tally_flags_mapq TXT file already exists. Skipping list_tally_flags_mapq operation (step #5b)."
+                echo_note \
+                    "list_tally_flags_mapq TXT file already exists. Skipping" \
+                    "list_tally_flags_mapq operation (step #5b)."
             fi
 
             #  Step #5c -----
@@ -1037,7 +1215,9 @@ if [[ -f "${bam_coor}" ]]; then
                 #+ reads that passed machine signal-to-noise threshold quality
                 #+ filters"
                 ${verbose} \
-                    && echo "Running step #5c: Run picard CollectAlignmentSummaryMetrics on coordinate-sorted BAM file." \
+                    && echo "Running step #5c: Run picard" \
+                        "CollectAlignmentSummaryMetrics on coordinate-sorted" \
+                        "BAM file." \
                     && echo "                  Outfile will be ${txt_met}."
 
                 if [[ "${fasta##*.}" == "gz" ]]; then
@@ -1045,7 +1225,8 @@ if [[ -f "${bam_coor}" ]]; then
                     if [[ ! -f "${decomp_fasta}.fai" ]]; then
                         #  Picard CollectAlignmentSummaryMetrics requires that
                         #+ the FASTA file is not compressed
-                        ${verbose} && echo_note "Decompressing the reference genome FASTA file."
+                        ${verbose} && echo_note \
+                            "Decompressing the reference genome FASTA file."
 
                         if [[ ! -f "${decomp_fasta}" ]]; then
                             gunzip -c "${fasta}" > "${decomp_fasta}"
@@ -1054,7 +1235,9 @@ if [[ -f "${bam_coor}" ]]; then
                         #  Also, Picard CollectAlignmentSummaryMetrics requires
                         #+ that the reference genome FASTA is indexed; so,
                         #+ generate an FAI file if necessary
-                        ${verbose} && echo_note "Generating an index file (FAI) for the reference genome FASTA file."
+                        ${verbose} && echo_note \
+                            "Generating an index file (FAI) for the" \
+                            "reference genome FASTA file."
                         samtools faidx -@ "${threads}" "${decomp_fasta}"
                     fi
 
@@ -1064,7 +1247,9 @@ if [[ -f "${bam_coor}" ]]; then
                         --OUTPUT "${txt_met}"
                 else
                     if [[ ! -f "${fasta}.fai" ]]; then
-                        ${verbose} && echo_note "Generating an index file (FAI) for the reference genome FASTA file."
+                        ${verbose} && echo_note \
+                            "Generating an index file (FAI) for the reference" \
+                            "genome FASTA file."
 
                         samtools faidx -@ "${threads}" "${fasta}"
                     fi
@@ -1075,14 +1260,18 @@ if [[ -f "${bam_coor}" ]]; then
                         --OUTPUT "${txt_met}"
                 fi
             else
-                echo_note "picard CollectAlignmentSummaryMetrics TXT file already exists. Skipping picard CollectAlignmentSummaryMetrics operations (step #5c)."
+                echo_note \
+                    "picard CollectAlignmentSummaryMetrics TXT file already" \
+                    "exists. Skipping picard CollectAlignmentSummaryMetrics" \
+                    "operations (step #5c)."
             fi
 
             #  Step #5d -----
             if [[ ! -f "${txt_flg}" && ${flag_flg} ]]; then
                 #  Generate Samtools flagstat report
                 ${verbose} \
-                    && echo "Running step #5d: Run samtools flagstat on coordinate-sorted BAM file." \
+                    && echo "Running step #5d: Run samtools flagstat on" \
+                        "coordinate-sorted BAM file." \
                     && echo "                  Outfile will be ${txt_flg}."
 
                 samtools flagstat \
@@ -1090,19 +1279,24 @@ if [[ -f "${bam_coor}" ]]; then
                     "${bam_coor}" \
                         > "${txt_flg}"
             else
-                echo_note "samtools flagstat TXT file already exists. Skipping samtools flagstat operation (step #5d)."
+                echo_note \
+                    "samtools flagstat TXT file already exists. Skipping" \
+                    "samtools flagstat operation (step #5d)."
             fi
 
             #  Step #5e -----
             if [[ ! -f "${txt_idx}" && ${flag_idx} ]]; then
                 #  Generate Samtools idxstats report
                 ${verbose} \
-                    && echo "Running step #5e: Run samtools idxstats on coordinate-sorted BAM file." \
+                    && echo "Running step #5e: Run samtools idxstats on" \
+                        "coordinate-sorted BAM file." \
                     && echo "                  Outfile will be ${txt_idx}."
 
                 samtools idxstats "${bam_coor}" > "${txt_idx}"
             else
-                echo_note "samtools idxstats TXT file already exists. Skipping samtools idxstats operation (step #5e)."
+                echo_note \
+                    "samtools idxstats TXT file already exists. Skipping" \
+                    "samtools idxstats operation (step #5e)."
             fi
 
             #  Step #5f -----
@@ -1111,9 +1305,12 @@ if [[ -f "${bam_coor}" ]]; then
                 #+ larger experiments; preseq lc_extrap also gives bounds on the number of
                 #+ distinct reads in the library and the associated confidence intervals
                 ${verbose} \
-                    && echo "Running step #5f: Run preseq lc_extrap on coordinate-sorted BAM file." \
-                    && echo "                  Outfile #1 will be ${txt_pre}-lc-extrap.txt." \
-                    && echo "                  Outfile #2 will be ${txt_pre%.txt}-lc-extrap-verbose.txt."
+                    && echo "Running step #5f: Run preseq lc_extrap on" \
+                        "coordinate-sorted BAM file." \
+                    && echo "                  Outfile #1 will be" \
+                        "${txt_pre}-lc-extrap.txt." \
+                    && echo "                  Outfile #2 will be" \
+                        "${txt_pre%.txt}-lc-extrap-verbose.txt."
 
                 preseq lc_extrap -v -P -B -r 24 \
                     -o "${txt_pre}-lc-extrap.txt" \
@@ -1151,13 +1348,13 @@ if [[ -f "${bam_coor}" ]]; then
                 echo_note "preseq c_curve TXT files already exist. Skipping c_curve operation (step #5h)."
             fi
         else
-            error_and_exit "Duplicate alignments have not been marked in coordinate-sorted BAM file (step #5)."
+            error_exit "Duplicate alignments have not been marked in coordinate-sorted BAM file (step #5)."
         fi
     else
-        error_and_exit "Index (BAI file) for coordinate-sorted BAM file does not exist (step #5)."
+        error_exit "Index (BAI file) for coordinate-sorted BAM file does not exist (step #5)."
     fi
 else
-    error_and_exit "Coordinate-sorted BAM file does not exist (step #5)."
+    error_exit "Coordinate-sorted BAM file does not exist (step #5)."
 fi
 
 
@@ -1244,13 +1441,13 @@ if ${flag_siq} && [[ -f "${bam_quer}" ]]; then
                 | gzip \
                     > "${bed_siQ}"
         else
-            error_and_exit "Invalid mode specified: ${mode}; expected 'single' or 'paired' (step #6)."
+            error_exit "Invalid mode specified: ${mode}; expected 'single' or 'paired' (step #6)."
         fi
     else
         echo_note "BED file for siQ-ChIP already exists. Skipping operations (step #6)."
     fi
 else
-    error_and_exit "Queryname-sorted BAM file does not exist (step #6)."
+    error_exit "Queryname-sorted BAM file does not exist (step #6)."
 fi
 
 
@@ -1287,7 +1484,7 @@ if ${flag_etc} && [[ -f "${bam_coor}" ]]; then
                 total_reads="$(samtools view -c "${bam_coor}")"
 
                 if [[ "${total_reads}" -eq 0 ]]; then
-                    error_and_exit "In calculation for RPM alignment coverage, total_reads is ${total_reads} (step #7b1)."
+                    error_exit "In calculation for RPM alignment coverage, total_reads is ${total_reads} (step #7b1)."
                 fi
 
                 zcat "${bed_etc}.per-base.bed.gz" \
@@ -1312,7 +1509,7 @@ if ${flag_etc} && [[ -f "${bam_coor}" ]]; then
                         "${bed_etc}.rpm.sort.bg" \
                         "${bed_etc}.rpm.bedgraph"
                 else
-                    error_and_exit "RPM alignment coverage BEDGRAPH file does not exist (step #7b2)."
+                    error_exit "RPM alignment coverage BEDGRAPH file does not exist (step #7b2)."
                 fi
 
                 # Step #7b3 -----
@@ -1323,7 +1520,7 @@ if ${flag_etc} && [[ -f "${bam_coor}" ]]; then
                         echo_note "RPM alignment coverage BIGWIG file already exists. Skipping sorting operation (step #7b3)."
                     fi
                 else
-                    error_and_exit "RPM alignment coverage BEDGRAPH file does not exist (step #7b3)."
+                    error_exit "RPM alignment coverage BEDGRAPH file does not exist (step #7b3)."
                 fi
 
                 # Step #7b4 -----
@@ -1338,25 +1535,25 @@ if ${flag_etc} && [[ -f "${bam_coor}" ]]; then
                         echo_note "Compressed RPM alignment coverage BEDGRAPH file already exists. Skipping compression (step #7b4)."
                     fi
                 else
-                    error_and_exit "Required RPM alignment coverage files do not exist (step #7b4)."
+                    error_exit "Required RPM alignment coverage files do not exist (step #7b4)."
                 fi
             else
                 echo_note "RPM alignment coverage BEDGRAPH file exists. Skipping RPM alignment coverage operations (step #7b)."
             fi
         else
-            error_and_exit "Per-base alignment coverage BED file does not exist (step #7b)."
+            error_exit "Per-base alignment coverage BED file does not exist (step #7b)."
         fi
     else
-        error_and_exit "Index (BAI file) for coordinate-sorted BAM file does not exist (step #7)."
+        error_exit "Index (BAI file) for coordinate-sorted BAM file does not exist (step #7)."
     fi
 else
-    error_and_exit "Coordinate-sorted BAM infile does not exist (step #7)."
+    error_exit "Coordinate-sorted BAM infile does not exist (step #7)."
 fi
 
 
 #  Step #8 ----------------------------
-#+ Remove the original BAM file (Bowtie 2 output piped to Samtools) if all
-#+ other files have been successfully created
+#+ Remove the original BAM file (Bowtie 2 or BWA output piped to Samtools) if
+#+ all other files have been successfully created
 if ${flag_clean}; then
     if [[
            -f "${bam}" \

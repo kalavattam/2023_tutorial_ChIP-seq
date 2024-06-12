@@ -5201,7 +5201,7 @@ In the majority of NGS experiment[s], DNA (or RNA) is fragmented into small stre
 **Paired-end reads**  
 1. Regions of the genome are sampled to determine the median fragment/read length.
 2. The genome is subdivided into disjoint regions. Each of these regions comprises one or more bins of some desired size (specified by `-bs`).
-3. For each region, all alignments overlapping it are gathered. In addition, all alignments within [2,000] bases are gathered, as [2,000] bases is the maximum allowed fragment size.
+3. For each region, all alignments overlapping it are gathered. [Additionally], all alignments within [2,000] bases are gathered, as [2,000] bases is the maximum allowed fragment size.
 4. The resulting collection of alignments are all extended according to their fragment length, which for paired-end reads is indicated in BAM files.
     + For singletons, the expected fragment length from step 1 is used.
 5. For each of the extended reads, the count in each bin that it overlaps is incremented.
@@ -5215,6 +5215,19 @@ In the majority of NGS experiment[s], DNA (or RNA) is fragmented into small stre
 
 **Blacklisted regions**  
 The question likely arises as to how alignments originating inside of blacklisted regions are handled. In short, any alignment contained completely within a blacklisted region is ignored, regardless of whether it would extend into a non-blacklisted region or not. Alignments only partially overlapping blacklisted regions are treated as normal, as are pairs of reads that span [across] a blacklisted region. This is primarily for the sake of performance, as otherwise each extended read would need to be checked to see if it overlaps a blacklisted region.
+
+<details>
+<summary><i>Comments and questions from me, 2024-0531</i></summary>
+<br />
+
+> 1. Regions of the genome are sampled to determine the median fragment/read length.
+How many and at what size?
+
+> 2. The genome is subdivided into disjoint regions. Each of these regions comprises one or more bins of some desired size (specified by `-bs`).
+Given the meaning of "disjoint" as "having no elements in common," the quoted text would be interpreted as follows: "The genome is divided into separate, non-overlapping regions. Each of these regions consists of one or more bins of a specified size (determined by `-bs`)." This interpretation implies that each region is distinct and does not overlap with any other region, and these regions are further divided into smaller units called bins.
+
+
+</details>
 </details>
 <br />
 
@@ -5455,6 +5468,7 @@ read.reference_start
 </details>
 <br />
 
+**The following answer from GPT4 is incorrect.**
 <details>
 <summary><i>GPT4</i></summary>
 <br />
@@ -5542,7 +5556,7 @@ So, `--samFlagInclude` with a FLAG number needs to be added to the above call. W
 <summary><i>GPT4</i></summary>
 <br />
 
-For bamCoverage to include only one mate of a pair in your analysis, you can use the SAM flag filtering options provided by bamCoverage. In particular, you can use `--samFlagInclude` to specify which reads should be included based on their flag settings.
+For `bamCoverage` to include only one mate of a pair in your analysis, you can use the SAM flag filtering options provided by `bamCoverage`. In particular, you can use `--samFlagInclude` to specify which reads should be included based on their flag settings.
 
 If you want to include only the first mate of each pair, you can use the flag `0x40`. This flag represents the first mate in a paired-end read. Here’s how the flag works:
 - `0x40` in hexadecimal corresponds to `64` in decimal, which is the SAM flag for the first mate in a properly paired read.

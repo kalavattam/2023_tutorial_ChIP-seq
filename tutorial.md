@@ -21,7 +21,7 @@
         1. [Code](#code-4)
     1. [c. Create `bowtie2` and `bwa` indices for "`combined_SC_SP.fa.gz`"](#c-create-bowtie2-and-bwa-indices-for-combined_sc_spfagz)
         1. [Code](#code-5)
-    1. [d. Use `bowtie2` to align the FASTQ files](#d-use-bowtie2-to-align-the-fastq-files)
+    1. [d. Use `bowtie2` or `bwa` to align the FASTQ files](#d-use-bowtie2-or-bwa-to-align-the-fastq-files)
         1. [Code](#code-6)
     1. [e. Use `bwa` to align FASTQ files](#e-use-bwa-to-align-fastq-files)
         1. [Code](#code-7)
@@ -99,7 +99,7 @@
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -201,7 +201,7 @@ fi
 
 #  Navigate to the work directory, and echo a message if navigation fails
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
 #  If it doesn't exist, then create a directory to store symlinked FASTQ files
 if [[ ! -d "${dir_sym}" ]]; then
@@ -281,7 +281,7 @@ fi
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -358,11 +358,11 @@ case "${os}" in
             URL_mid="mac/aarch64/1.9"
             tarball="julia-1.9.4-macaarch64.tar.gz"
         else
-            error_and_return "Unsupported architecture: ${arch}"
+            error_return "Unsupported architecture: ${arch}"
         fi
         ;;
     *)
-        error_and_return "Unsupported operating system: ${os}"
+        error_return "Unsupported operating system: ${os}"
         ;;
 esac
 
@@ -402,7 +402,7 @@ if ${check_binary}; then
         echo "Available Julia binaries:"
         type -a julia
     else
-        error_and_return "Julia is not in the PATH."
+        error_return "Julia is not in the PATH."
     fi
 fi
 
@@ -432,7 +432,7 @@ if ${check_operation}; then
                 shell_config=\"${HOME}/.zshrc\"
                 ;;
             *)
-                error_and_return \"No known shell configuration file found.\"
+                error_return \"No known shell configuration file found.\"
                 ;;
         esac
 
@@ -473,7 +473,7 @@ if ${run_operation}; then
                 shell_config="${HOME}/.zshrc"
                 ;;
             *)
-                error_and_return "No known shell configuration file found."
+                error_return "No known shell configuration file found."
                 ;;
         esac
 
@@ -508,7 +508,7 @@ if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
                 #  If `source activate` also fails, return an error
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
             fi
         fi
     else
@@ -542,27 +542,27 @@ install_atria=true  # Install Atria or not
 if ${install_atria}; then
     #  Check if git and Julia are available
     if ! type git &> /dev/null; then
-        error_and_return "git is not installed or not in the PATH."
+        error_return "git is not installed or not in the PATH."
     fi
 
     if ! type julia &> /dev/null; then
-        error_and_return "Julia is not installed or not in the PATH."
+        error_return "Julia is not installed or not in the PATH."
     fi
 
     #  Clone the Atria repository if it doesn't already exist
     if [[ ! -d "${atria_dir}" ]]; then
         cd "$(dirname "${atria_dir}")" \
-            || error_and_return "Failed to cd to $(dirname "${atria_dir}")."
+            || error_return "Failed to cd to $(dirname "${atria_dir}")."
         
         git clone "https://github.com/cihga39871/Atria.git" \
-            || error_and_return "Failed to clone Atria repository."
+            || error_return "Failed to clone Atria repository."
     else
         echo "Atria directory already exists. Skipping git clone."
     fi
 
     #  Change to the Atria directory
     cd "${atria_dir}" \
-        || error_and_return "Failed to change to Atria directory."
+        || error_return "Failed to change to Atria directory."
 
     #  Environment containing Atria dependencies must be activated prior to
     #+ installation of Atria
@@ -577,7 +577,7 @@ if ${install_atria}; then
                 #  If `conda activate` fails, try using `source activate`
                 if ! source activate "${env_name}" &> /dev/null; then
                     #  If `source activate` also fails, return an error
-                    error_and_return "Failed to activate environment \"${env_name}\"."
+                    error_return "Failed to activate environment \"${env_name}\"."
                 fi
             fi
         fi
@@ -586,7 +586,7 @@ if ${install_atria}; then
     #FIXME Installation issue on macOS: github.com/cihga39871/Atria/issues/14
     #  Run the Julia script to build Atria
     if ! julia build_atria.jl; then
-        error_and_return "Failed to build Atria."
+        error_return "Failed to build Atria."
     fi
 
     echo "Atria installed successfully."
@@ -617,7 +617,7 @@ fi
 #  Define function ============================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -719,7 +719,7 @@ fi
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
 #  If it doesn't exist, then create a directory to store trimmed FASTQ files
 if [[ ! -d "${dir_trim}" ]]; then
@@ -1047,7 +1047,7 @@ fi
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -1157,7 +1157,7 @@ fi
 #  Relocate to the directory for storing BWA indices
 if [[ "$(pwd)" != "${dir_work}/bwa" ]]; then
     cd "${dir_work}/bwa" \
-        || error_and_return "cd'ing failed; check on this."
+        || error_return "cd'ing failed; check on this."
 fi
 
 #  Using a HEREDOC, submit to SLURM a job for creating BWA indices
@@ -1176,20 +1176,20 @@ EOF
 </details>
 <br />
 
-<a id="d-use-bowtie2-to-align-the-fastq-files"></a>
-## d. Use `bowtie2` to align the FASTQ files
+<a id="d-use-bowtie2-or-bwa-to-align-the-fastq-files"></a>
+## d. Use `bowtie2` or `bwa` to align the FASTQ files
 <a id="code-6"></a>
 ### Code
 <details>
-<summary><i>Code: 3.d. Use `bowtie2` to align the FASTQ files</i></summary>
+<summary><i>Code: 3.d. Use `bowtie2` or `bwa` to align the FASTQ files</i></summary>
 
 ```bash
 #!/bin/bash
 
-#  Define function ============================================================
+#  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -1216,7 +1216,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -1247,7 +1247,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -1259,20 +1259,39 @@ function activate_env() {
 
 
 #  Initialize variables and arrays ============================================
-dir_base="${HOME}/tsukiyamalab"                          # Base directory for lab data
-dir_repo="Kris/2023_tutorial_ChIP-seq"                   # Repository directory
-dir_untr="01_sym"                                        # Directory for initial, non-trimmed FASTQs
-dir_trim="02_trim"                                       # Directory for trimmed FASTQs
-dir_bwt2="03_bam/bowtie2"
+script="align_process_etc.sh"              # Script to call
+mapq=0                                     # Filter BAM for MAPQ >= value
+aligner="bwa"                              # Alignment program to use
+req_flag=true                              # If true, filter BAM for flag bit 2
+
+time="8:00:00"                             # Job time for SLURM
+threads=8                                  # Number of threads for SLURM jobs
+
+dir_base="${HOME}/tsukiyamalab"            # Base directory for lab data
+dir_repo="Kris/2023_tutorial_ChIP-seq"     # Repository directory
+dir_untr="01_sym"                          # Directory for non-trimmed FASTQs
+dir_trim="02_trim"                         # Directory for trimmed FASTQs
+dir_aln="03_bam/${aligner}"                # Directory for aligned outfiles
+
+if ${req_flag}; then
+    dir_exp="flag-2_mapq-${mapq}"          # Directory for filtered outfiles
+else
+    dir_exp="flag-NA_mapq-${mapq}"         # Directory for filtered outfiles
+fi
+
+dir_fqc_fq="${dir_aln}/${dir_exp}/qc/fastqc/fastq"
+dir_fqc_bam="${dir_aln}/${dir_exp}/qc/fastqc/bam"
+
 dir_genome=${HOME}/genomes/combined_SC_SP
-dir_indx="${dir_genome}/bowtie2/combined_SC_SP"
+
+if [[ "${aligner}" == "bowtie2" ]]; then
+    dir_indx="${dir_genome}/${aligner}/combined_SC_SP"
+elif [[ "${aligner}" == "bwa" ]]; then
+    dir_indx="${dir_genome}/${aligner}/combined_SC_SP.fa"
+fi
+
 file_fasta="${dir_genome}/fasta/combined_SC_SP.fa"
 file_sizes="${dir_genome}/fasta/combined_SC_SP.chrom-info.tsv"
-
-mapq=1
-
-time="8:00:00"                                           # Job time for SLURM
-threads=8                                                # Number of threads for SLURM jobs
 
 #  Initialize an indexed array with FASTQ file stems
 unset file_fastqs && typeset -a file_fastqs=(
@@ -1343,20 +1362,28 @@ create_mamba_env=false
 #  If check_variables is true, then echo the variable assignments
 if ${check_variables}; then
     echo "
+    script=${script}
+    mapq=${mapq}
+    aligner=${aligner}
+    req_flag=${req_flag}
+
+    time=${time}
+    threads=${threads}
+
     dir_base=${dir_base}
     dir_repo=${dir_repo}
     dir_untr=${dir_untr}
     dir_trim=${dir_trim}
-    dir_bwt2=${dir_bwt2}
+    dir_aln=${dir_aln}
+    dir_exp=${dir_exp}
+
+    dir_fqc_fq=${dir_fqc_fq}
+    dir_fqc_bam=${dir_fqc_bam}
+
     dir_genome=${dir_genome}
     dir_indx=${dir_indx}
     file_fasta=${file_fasta}
     file_sizes=${file_sizes}
-    
-    mapq=${mapq}
-
-    time=${time}
-    threads=${threads}
     "
 fi
 
@@ -1384,7 +1411,7 @@ if ${check_array}; then
                 "
             fi
         else
-            error_and_return "Processing logic problem for ${file}."
+            error_return "Processing logic problem for ${file}."
         fi
     done
 fi
@@ -1407,9 +1434,9 @@ if check_env_installed "${env_name}"; then
     echo "Activating environment ${env_name}"
     
     activate_env "${env_name}"
-    module load Java/17.0.6  #TODO #TEMP Until install up-to-date Java with Mamba
+    module load Java/17.0.6  #TODO #TEMP Install up-to-date Java with Mamba
 else
-    error_and_return "Environment ${env_name} is not installed"
+    error_return "Environment ${env_name} is not installed"
 
     if ${create_mamba_env}; then
         #  Handle the case when the environment is not installed
@@ -1435,18 +1462,19 @@ else
                 ucsc-facount
         
         activate_env "${env_name}"
-        module load Java/17.0.6  #TODO #TEMP Until install up-to-date Java with Mamba
+        module load Java/17.0.6  #TODO #TEMP Install up-to-date Java with Mamba
     fi
 fi
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}."
 
-#  If it doesn't exist, create a directory to store Bowtie2-aligned BAM files
-if [[ ! -d "${dir_bwt2}" ]]; then
-    mkdir -p ${dir_bwt2}/{flag-2_mapq-1,flag-NA_mapq-0}/{bam,cvrg,err_out,qc,siQ-ChIP}
-    mkdir -p ${dir_bwt2}/{flag-2_mapq-1,flag-NA_mapq-0}/qc/fastqc/{fastq,bam}
+#  If it doesn't exist, create a directory to store the aligned, processed BAM
+#+ files
+if [[ ! -d "${dir_aln}/${dir_exp}" ]]; then
+    mkdir -p ${dir_aln}/${dir_exp}/{bam,cvrg,err_out,qc,siQ-ChIP}
+    mkdir -p ${dir_aln}/${dir_exp}/qc/fastqc/{fastq,bam}
 fi
 
 #  Set flags: checking variables, checking and submitting Bowtie2 jobs
@@ -1459,54 +1487,50 @@ run_operation=true
 #+ includes setting and checking variables, etc.
 for i in "${!file_fastqs[@]}"; do
     # i=0
-    index="${i}"
-    iter=$(( index + 1 ))
-    file="${file_fastqs[${index}]}"                          # echo "${file}"
-    stem="$(basename ${file})"                               # echo "${stem}"
-    job_name="$(echo ${dir_bwt2} | sed 's:\/:_:g').${stem}"  # echo "${job_name}"
-    script="align-process-etc_fastqs_bowtie2.sh"             #TODO Move out of loop
+    index="${i}"                                            # echo "${index}"
+    iter=$(( index + 1 ))                                   # echo "${iter}"
+    file="${file_fastqs[${index}]}"                         # echo "${file}"
+    stem="$(basename ${file})"                              # echo "${stem}"
+    job_name="$(echo ${dir_aln} | sed 's:\/:_:g').${stem}"  # echo "${job_name}"
     
     #  Parse the files' source directory to determine which alignment script to
     #+ use and appropriate suffix for FASTQ file names
     if [[ "$(dirname ${file})" == "${dir_trim}" ]]; then
         if [[ "$(basename ${file})" =~ "Brn1" ]]; then
-            mode="single"                                    # echo "${mode}"
-            fastq_1="${file}.atria.fastq.gz"                 # echo "${fastq_1}"
-            fastq_2="ignore"                                 # echo "${fastq_2}"
+            mode="single"                                   # echo "${mode}"
+            fastq_1="${file}.atria.fastq.gz"                # echo "${fastq_1}"
+            fastq_2="ignore"                                # echo "${fastq_2}"
         else
-            mode="paired"                                    # echo "${mode}"
-            fastq_1="${file}_R1.atria.fastq.gz"              # echo "${fastq_1}"
-            fastq_2="${file}_R2.atria.fastq.gz"              # echo "${fastq_2}"
+            mode="paired"                                   # echo "${mode}"
+            fastq_1="${file}_R1.atria.fastq.gz"             # echo "${fastq_1}"
+            fastq_2="${file}_R2.atria.fastq.gz"             # echo "${fastq_2}"
         fi
     elif [[ "$(dirname ${file})" == "${dir_untr}" ]]; then
         if [[ "$(basename ${file})" =~ "Brn1" ]]; then
-            mode="single"                                    # echo "${mode}"
-            fastq_1="${file}.fastq.gz"                       # echo "${fastq_1}"
-            fastq_2="ignore"                                 # echo "${fastq_2}"
+            mode="single"                                   # echo "${mode}"
+            fastq_1="${file}.fastq.gz"                      # echo "${fastq_1}"
+            fastq_2="ignore"                                # echo "${fastq_2}"
         else
-            mode="paired"                                    # echo "${mode}"
-            fastq_1="${file}_R1.fastq.gz"                    # echo "${fastq_1}"
-            fastq_2="${file}_R2.fastq.gz"                    # echo "${fastq_2}"
+            mode="paired"                                   # echo "${mode}"
+            fastq_1="${file}_R1.fastq.gz"                   # echo "${fastq_1}"
+            fastq_2="${file}_R2.fastq.gz"                   # echo "${fastq_2}"
         fi
     else
-        error_and_return "Processing logic problem for ${file}."
+        error_return "Processing logic problem for ${file}."
     fi
     
-    bam="${dir_bwt2}/bam/${stem}.bam"
-    bam_coor="${bam/.bam/.sort-coord.bam}"
-    bam_quer="${bam/.bam/.sort-qname.bam}"
+    bam="${dir_aln}/${dir_exp}/bam/${stem}.bam"             # echo "${bam}"
+    bam_coor="${bam/.bam/.sort-coord.bam}"                  # echo "${bam_coor}"
+    bam_quer="${bam/.bam/.sort-qname.bam}"                  # echo "${bam_quer}"
     
-    if [[ "${mode}" == "paired" ]]; then
-        bed_siQ="${dir_bwt2}/siQ-ChIP/${stem}.bed.gz"
-    else
-        bed_siQ="ignore"
-    fi
-    bed_etc="${dir_bwt2}/cvrg/${stem}"
-    
-    txt_met="${dir_bwt2}/qc/${stem}.picard-metrics.txt"
-    txt_flg="${dir_bwt2}/qc/${stem}.samtools-flagstat.txt"
-    txt_idx="${dir_bwt2}/qc/${stem}.samtools-idxstats.txt"
-    txt_pre="${dir_bwt2}/qc/${stem}.preseq"
+    bed_siQ="${dir_aln}/${dir_exp}/siQ-ChIP/${stem}.bed.gz" # echo "${bed_siQ}"
+    bed_etc="${dir_aln}/${dir_exp}/cvrg/${stem}"            # echo "${bed_etc}"
+
+    txt_list="${dir_aln}/${dir_exp}/qc/${stem}.list-tally.txt"        # echo "${txt_list}"
+    txt_met="${dir_aln}/${dir_exp}/qc/${stem}.picard-metrics.txt"     # echo "${txt_met}"
+    txt_flg="${dir_aln}/${dir_exp}/qc/${stem}.samtools-flagstat.txt"  # echo "${txt_flg}"
+    txt_idx="${dir_aln}/${dir_exp}/qc/${stem}.samtools-idxstats.txt"  # echo "${txt_idx}"
+    txt_pre="${dir_aln}/${dir_exp}/qc/${stem}.preseq"                 # echo "${txt_pre}"
 
     #  Echo current iteration
     if ${print_iteration}; then
@@ -1525,18 +1549,18 @@ for i in "${!file_fastqs[@]}"; do
         stem=${stem}
         job_name=${job_name}
 
-        script=${script}
         mode=${mode}
-
         fastq_1=${fastq_1}
         fastq_2=${fastq_2}
 
         bam=${bam}
         bam_coor=${bam_coor}
         bam_quer=${bam_quer}
+
         bed_siQ=${bed_siQ}
         bed_etc=${bed_etc}
 
+        txt_list=${txt_list}
         txt_met=${txt_met}
         txt_flg=${txt_flg}
         txt_idx=${txt_idx}
@@ -1546,15 +1570,19 @@ for i in "${!file_fastqs[@]}"; do
         dir_repo=${dir_repo}
         dir_untr=${dir_untr}
         dir_trim=${dir_trim}
-        dir_bwt2=${dir_bwt2}
+        dir_aln=${dir_aln}
         dir_indx=${dir_indx}
         file_fasta=${file_fasta}
         file_sizes=${file_sizes}
 
-        mapq=${mapq}
-
-        time=${time}
         threads=${threads}
+        time=${time}
+        error=${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stderr.txt
+        output=${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stdout.txt
+        
+        script=${script}
+        mapq=${mapq}
+        req_flag=${req_flag}
         "
     fi
 
@@ -1567,16 +1595,16 @@ sbatch << EOF
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=${threads}
 #SBATCH --time=${time}
-#SBATCH --error=\"${dir_bwt2}/err_out/${job_name}.%A.stderr.txt\"
-#SBATCH --output=\"${dir_bwt2}/err_out/${job_name}.%A.stdout.txt\"
+#SBATCH --error=\"${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stderr.txt\"
+#SBATCH --output=\"${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stdout.txt\"
 
 bash ${script} \\
     --threads \"${threads}\" \\
     --index \"${dir_indx}\" \\
     --fasta \"${file_fasta}\" \\
     --sizes \"${file_sizes}\" \\
-    --mapq \"${mapq}\" \\
     --mode \"${mode}\" \\
+    --mapq \"${mapq}\" $(${req_flag} && echo --req_flag) \\
     --fastq_1 \"${fastq_1}\" \\
     --fastq_2 \"${fastq_2}\" \\
     --bam \"${bam}\" \\
@@ -1584,6 +1612,9 @@ bash ${script} \\
     --bam_quer \"${bam_quer}\" \\
     --bed_siQ \"${bed_siQ}\" \\
     --bed_etc \"${bed_etc}\" \\
+    --d_fqc_f ${dir_fqc_fq} \\
+    --d_fqc_b ${dir_fqc_bam} \\
+    --txt_list \"${txt_list}\" \\
     --txt_met \"${txt_met}\" \\
     --txt_flg \"${txt_flg}\" \\
     --txt_idx \"${txt_idx}\" \\
@@ -1600,16 +1631,16 @@ sbatch << EOF
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=${threads}
 #SBATCH --time=${time}
-#SBATCH --error="${dir_bwt2}/err_out/${job_name}.%A.stderr.txt"
-#SBATCH --output="${dir_bwt2}/err_out/${job_name}.%A.stdout.txt"
+#SBATCH --error="${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stderr.txt"
+#SBATCH --output="${dir_aln}/${dir_exp}/err_out/${job_name}.%A.stdout.txt"
 
 bash ${script} \
     --threads "${threads}" \
     --index "${dir_indx}" \
     --fasta "${file_fasta}" \
     --sizes "${file_sizes}" \
-    --mapq "${mapq}" \
     --mode "${mode}" \
+    --mapq "${mapq}" $(${req_flag} && echo --req_flag) \
     --fastq_1 "${fastq_1}" \
     --fastq_2 "${fastq_2}" \
     --bam "${bam}" \
@@ -1617,6 +1648,9 @@ bash ${script} \
     --bam_quer "${bam_quer}" \
     --bed_siQ "${bed_siQ}" \
     --bed_etc "${bed_etc}" \
+    --d_fqc_f ${dir_fqc_fq} \
+    --d_fqc_b ${dir_fqc_bam} \
+    --txt_list "${txt_list}" \
     --txt_met "${txt_met}" \
     --txt_flg "${txt_flg}" \
     --txt_idx "${txt_idx}" \
@@ -1705,7 +1739,7 @@ fi
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -1732,7 +1766,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -1763,7 +1797,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -2364,7 +2398,7 @@ To deactivate an active environment, use
 #  Define function ============================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -2376,7 +2410,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -2409,7 +2443,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -2468,7 +2502,7 @@ if ${check_variables}; then
     echo "
     dir_base=${dir_base}
     dir_repo=${dir_repo}
-    dir_bwt2=${dir_bams}
+    dir_aln=${dir_bams}
     dir_ppqt=${dir_ppqt}
     
     fdr=${fdr}
@@ -2500,7 +2534,7 @@ activate_env "${env_name}"
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}."
 
 #  If it doesn't exist, create a directory to store MACS3 outfiles
 if [[ ! -d "${dir_ppqt}" ]]; then
@@ -2710,7 +2744,7 @@ function check_and_load_module() {
 
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -2730,7 +2764,7 @@ check_ssp_help=false
 if ${run_remote_install}; then
     check_and_load_module "Singularity/3.5.3"
 
-    cd "${dir_img}" || error_and_return "cd'ing failed; check on this"
+    cd "${dir_img}" || error_return "cd'ing failed; check on this"
 
     if [[ ! -f "${file_img}" ]]; then
         singularity build "${file_img}" "${add_img}"
@@ -3141,7 +3175,7 @@ Use --help option for more information on the other options
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -3168,7 +3202,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -3199,7 +3233,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -3269,7 +3303,7 @@ fi
 #  Define function ============================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -3281,7 +3315,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -3314,7 +3348,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -3361,7 +3395,7 @@ if ${check_variables}; then
     dir_base=${dir_base}
     dir_repo=${dir_repo}
     dir_work=${dir_work}
-    dir_bwt2=${dir_bams}
+    dir_aln=${dir_bams}
     dir_macs=${dir_macs}
     
     gsize=${gsize}
@@ -3392,7 +3426,7 @@ activate_env "${env_name}"
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
 #  If it doesn't exist, create a directory to store MACS3 outfiles
 if [[ ! -d "${dir_macs}" ]]; then
@@ -3531,7 +3565,7 @@ done
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -3543,7 +3577,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -3576,7 +3610,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -3619,7 +3653,7 @@ if ${check_variables}; then
     dir_base=${dir_base}
     dir_repo=${dir_repo}
     dir_work=${dir_work}
-    dir_bwt2=${dir_bams}
+    dir_aln=${dir_bams}
     dir_macs=${dir_macs}
 
     gsize=${gsize}
@@ -3658,7 +3692,7 @@ activate_env "${env_name}"
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
 #  If it doesn't exist, create a directory to store MACS3 outfiles
 if [[ ! -d "${dir_macs}" ]]; then
@@ -3813,7 +3847,7 @@ The purpose of the following two code chunks is to establish a computational env
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -3840,7 +3874,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -3871,7 +3905,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -4006,7 +4040,7 @@ The purpose of this `Bash` code chunk is to initialize an environment for intera
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -4018,7 +4052,7 @@ function deactivate_env() {
         if ! mamba deactivate &> /dev/null; then
             if ! conda deactivate &> /dev/null; then
                 if ! source deactivate &> /dev/null; then
-                    error_and_return "Failed to deactivate environment."
+                    error_return "Failed to deactivate environment."
                     return 1
                 fi
             fi
@@ -4051,7 +4085,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -4094,7 +4128,7 @@ activate_env "${env_name}"
 
 #  Navigate to the work directory
 cd "${dir_base}/${dir_repo}/${dir_work}" \
-    || error_and_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
+    || error_return "Failed to cd to ${dir_base}/${dir_repo}/${dir_work}."
 
 #  Invoke the R interpreter to begin the work to subset peaks
 R
@@ -4958,7 +4992,7 @@ Here's the breakdown of the command:
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -4998,7 +5032,7 @@ function activate_env() {
     if ! mamba activate "${env_name}" &> /dev/null; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
                 return 1
             fi
         fi
@@ -5417,7 +5451,7 @@ fi
 #  Define functions ===========================================================
 #  Function to return an error message and exit code 1, which stops the
 #+ interactive execution of code
-function error_and_return() {
+function error_return() {
     echo "Error: ${1}" >&2
     return 1
 }
@@ -5473,7 +5507,7 @@ if [[ $(check_env_installed "${env_name}") -eq 0 ]]; then
         if ! conda activate "${env_name}" &> /dev/null; then
             if ! source activate "${env_name}" &> /dev/null; then
                 #  If `source activate` also fails, return an error
-                error_and_return "Failed to activate environment \"${env_name}\"."
+                error_return "Failed to activate environment \"${env_name}\"."
             fi
         fi
     else
